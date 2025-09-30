@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>VYAACentralInforApi.WebApi</name>
+    </assembly>
+    <members>
+        <member name="M:VYAACentralInforApi.WebApi.System.Controllers.UsersController.GetAllUsers">
+            <summary>
+            Get all users from the database
+            </summary>
+            <returns>List of all users</returns>
+        </member>
+        <member name="M:VYAACentralInforApi.WebApi.System.Controllers.UsersController.GetUserById(System.String)">
+            <summary>
+            Get a specific user by ID
+            </summary>
+            <param name="id">User ID</param>
+            <returns>User details</returns>
+        </member>
+        <member name="M:VYAACentralInforApi.WebApi.System.Controllers.UsersController.GetUserByUserName(System.String)">
+            <summary>
+            Get a specific user by username
+            </summary>
+            <param name="username">Username</param>
+            <returns>User details</returns>
+        </member>
+    </members>
+</doc>

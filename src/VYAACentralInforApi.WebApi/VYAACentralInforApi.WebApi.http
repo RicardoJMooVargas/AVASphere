@@ -1,6 +1,0 @@
-@VYAACentralInforApi.WebApi_HostAddress = http://localhost:5259
-
-GET {{VYAACentralInforApi.WebApi_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

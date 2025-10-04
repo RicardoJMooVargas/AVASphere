@@ -60,7 +60,12 @@ namespace VYAACentralInforApi.Application.System.Services
 
         public async Task InitializeDefaultUserAsync()
         {
-            const string defaultUserName = "admin";
+            // Obtener configuración del usuario por defecto desde variables de entorno
+            var defaultUserName = Environment.GetEnvironmentVariable("DEFAULT_USER_USERNAME") ?? "admin";
+            var defaultName = Environment.GetEnvironmentVariable("DEFAULT_USER_NAME") ?? "Administrator";
+            var defaultLastName = Environment.GetEnvironmentVariable("DEFAULT_USER_LASTNAME") ?? "System";
+            var defaultPassword = Environment.GetEnvironmentVariable("DEFAULT_USER_PASSWORD") ?? "admin123";
+            var defaultRole = Environment.GetEnvironmentVariable("DEFAULT_USER_ROLE") ?? "Admin";
             
             var userExists = await _userRepository.UserExistsAsync(defaultUserName);
             
@@ -69,10 +74,10 @@ namespace VYAACentralInforApi.Application.System.Services
                 var defaultUser = new Users
                 {
                     UserName = defaultUserName,
-                    Name = "Administrator",
-                    LastName = "System",
-                    Rol = "Admin",
-                    Password = "admin123",
+                    Name = defaultName,
+                    LastName = defaultLastName,
+                    Rol = defaultRole,
+                    Password = defaultPassword,
                     Status = true,
                     Verified = true,
                     CreateAt = DateTime.UtcNow

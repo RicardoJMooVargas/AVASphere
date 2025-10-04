@@ -3,11 +3,11 @@ using VYAACentralInforApi.Domain.System;
 
 namespace VYAACentralInforApi.Infrastructure
 {
-    public class MongoDbContext
+    public class SystemMongoDbContext
     {
         private readonly IMongoDatabase _database;
 
-        public MongoDbContext(string connectionString, string databaseName)
+        public SystemMongoDbContext(string connectionString, string databaseName)
         {
             var client = new MongoClient(connectionString);
             _database = client.GetDatabase(databaseName);

@@ -13,3 +13,4 @@ C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.Applica
 C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.Application\obj\Debug\net9.0\refint\VYAACentralInforApi.Application.dll
 C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.Application\obj\Debug\net9.0\VYAACentralInforApi.Application.pdb
 C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.Application\obj\Debug\net9.0\ref\VYAACentralInforApi.Application.dll
+C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.Application\obj\Debug\net9.0\VYAACentralInforApi.Application.sourcelink.json

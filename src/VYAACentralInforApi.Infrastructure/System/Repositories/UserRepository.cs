@@ -8,7 +8,7 @@ namespace VYAACentralInforApi.Infrastructure.System
     {
         private readonly IMongoCollection<Users> _usersCollection;
 
-        public UserRepository(MongoDbContext context)
+        public UserRepository(SystemMongoDbContext context)
         {
             _usersCollection = context.Users;
         }

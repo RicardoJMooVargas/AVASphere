@@ -6,6 +6,8 @@ namespace VYAACentralInforApi.WebApi.System.Controllers
 {
     [ApiController]
     [Route("api/system/[controller]")]
+    [ApiExplorerSettings(GroupName = "System")]
+    [Tags("System - Users")]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;

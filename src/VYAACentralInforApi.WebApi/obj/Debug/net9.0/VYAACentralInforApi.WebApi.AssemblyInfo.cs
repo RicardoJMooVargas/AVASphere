@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("VYAACentralInforApi.WebApi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f5e6e54fe43f52dbe65624f328778694c42f6e00")]
 [assembly: System.Reflection.AssemblyProductAttribute("VYAACentralInforApi.WebApi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VYAACentralInforApi.WebApi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

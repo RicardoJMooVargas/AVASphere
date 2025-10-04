@@ -54,3 +54,12 @@ C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.WebApi\
 C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.WebApi\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.WebApi\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
 C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.WebApi\obj\Debug\net9.0\VYAACentralInforApi.WebApi.xml
+C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.WebApi\obj\Debug\net9.0\VYAACentralInforApi.WebApi.sourcelink.json
+C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.WebApi\bin\Debug\net9.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.WebApi\bin\Debug\net9.0\Microsoft.IdentityModel.Abstractions.dll
+C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.WebApi\bin\Debug\net9.0\Microsoft.IdentityModel.JsonWebTokens.dll
+C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.WebApi\bin\Debug\net9.0\Microsoft.IdentityModel.Logging.dll
+C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.WebApi\bin\Debug\net9.0\Microsoft.IdentityModel.Protocols.dll
+C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.WebApi\bin\Debug\net9.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.WebApi\bin\Debug\net9.0\Microsoft.IdentityModel.Tokens.dll
+C:\Users\AcerLapTablet\repos\VYAACentralInforApi\src\VYAACentralInforApi.WebApi\bin\Debug\net9.0\System.IdentityModel.Tokens.Jwt.dll

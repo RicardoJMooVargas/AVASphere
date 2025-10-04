@@ -13,7 +13,7 @@ public class Quotation
     public DateTime SaleDate { get; set; } = DateTime.UtcNow;
 
     [BsonElement("status")]
-    public string Status { get; set; } = "Pending"; // Pending, Accepted, Rejected
+    public string Status { get; set; } = "PENDIENTE"; // Pending, Accepted, Rejected
 
     [BsonElement("salesExecutives")]
     public List<string> SalesExecutives { get; set; } = new List<string>(); // User IDs, first one is the creator/owner

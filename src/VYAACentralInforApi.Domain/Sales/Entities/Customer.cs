@@ -8,6 +8,9 @@ public class Customer
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
     public string CustomerId { get; set; } = string.Empty;
+    
+    [BsonElement("code")]
+    public string Code { get; set; } = string.Empty;
 
     [BsonElement("fullName")]
     public string FullName { get; set; } = string.Empty;

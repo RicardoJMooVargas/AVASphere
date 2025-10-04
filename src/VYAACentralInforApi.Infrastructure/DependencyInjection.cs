@@ -126,6 +126,6 @@ public static class DependencyInjection
         services.AddScoped<ISaleRepository, SaleRepository>();
         
         // SERVICIOS DEL MÓDULO SALES
-        services.AddScoped<ICustomerService, CustomerService>();
+        //services.AddScoped<ICustomerService, CustomerService>();
     }
 }

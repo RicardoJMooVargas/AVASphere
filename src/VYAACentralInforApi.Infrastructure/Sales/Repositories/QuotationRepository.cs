@@ -1,6 +1,6 @@
-﻿using MongoDB.Driver;
-using VYAACentralInforApi.Domain.Sales.Entities;
-using VYAACentralInforApi.Domain.Sales.Interfaces;
+using MongoDB.Driver;
+using VYAACentralInforApi.ApplicationCore.Sales.Entities;
+using VYAACentralInforApi.ApplicationCore.Sales.Interfaces;
 using VYAACentralInforApi.Infrastructure.Sales.Data;
 
 namespace VYAACentralInforApi.Infrastructure.Sales.Repositories;

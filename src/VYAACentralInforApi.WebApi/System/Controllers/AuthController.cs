@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using VYAACentralInforApi.Application.System.Interfaces;
-using VYAACentralInforApi.Domain.System;
+using VYAACentralInforApi.ApplicationCore.System.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
 

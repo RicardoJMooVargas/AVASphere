@@ -16,8 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\VYAACentralInforApi.Domain\VYAACentralInforApi.Domain.csproj" />
-    <ProjectReference Include="..\VYAACentralInforApi.Application\VYAACentralInforApi.Application.csproj" />
+    <ProjectReference Include="..\VYAACentralInforApi.ApplicationCore\VYAACentralInforApi.ApplicationCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>

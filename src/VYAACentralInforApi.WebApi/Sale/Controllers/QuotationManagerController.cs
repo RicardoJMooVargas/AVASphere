@@ -1,13 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using VYAACentralInforApi.Application.Sales.Interfaces;
-using VYAACentralInforApi.Domain.Sales.Entities;
-using VYAACentralInforApi.WebApi.Sale.DTOs;
+using VYAACentralInforApi.ApplicationCore.Sales.Interfaces;
+using VYAACentralInforApi.ApplicationCore.Sales.Entities;
+using VYAACentralInforApi.ApplicationCore.Sales.DTOs;
 using MongoDB.Bson;
 
 namespace VYAACentralInforApi.WebApi.Sale.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[ApiExplorerSettings(GroupName = "Sales")]
+[Tags("Quotations")]
 public class QuotationManagerController : ControllerBase
 {
     private readonly IQuotationService _quotationService;
@@ -22,9 +24,7 @@ public class QuotationManagerController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<QuotationResponseDto>> CreateQuotation(
-        [FromBody] CreateQuotationDto createQuotationDto,
-        [FromHeader(Name = "UserId")] string createdByUserId)
+    public async Task<ActionResult<QuotationResponseDto>> CreateQuotation([FromBody] CreateQuotationDto createQuotationDto, [FromHeader(Name = "UserId")] string createdByUserId)
     {
         try
         {
@@ -124,14 +124,14 @@ public class QuotationManagerController : ControllerBase
             return StatusCode(500, $"Error interno del servidor: {ex.Message}");
         }
     }
-
+    
     [HttpGet("{id}")]
     public async Task<ActionResult<QuotationResponseDto>> GetQuotationById(string id)
     {
         try
         {
             var quotation = await _quotationService.GetQuotationByIdAsync(id);
-            
+
             if (quotation == null)
             {
                 return NotFound($"No se encontró la cotización con ID {id}.");

@@ -1,7 +1,7 @@
 using MongoDB.Driver;
-using VYAACentralInforApi.Domain.System;
+using VYAACentralInforApi.ApplicationCore.System;
 
-namespace VYAACentralInforApi.Infrastructure
+namespace VYAACentralInforApi.Infrastructure.System.Data
 {
     public class SystemMongoDbContext
     {

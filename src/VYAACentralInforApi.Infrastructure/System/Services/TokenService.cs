@@ -1,9 +1,9 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
-using VYAACentralInforApi.Application.System.Interfaces;
-using VYAACentralInforApi.Domain.System;
+using VYAACentralInforApi.ApplicationCore.System;
+using VYAACentralInforApi.ApplicationCore.System.Interfaces;
 using VYAACentralInforApi.Infrastructure.System.Configuration;
 
 namespace VYAACentralInforApi.Infrastructure.System.Services;

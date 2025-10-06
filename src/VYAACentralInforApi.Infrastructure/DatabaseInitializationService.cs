@@ -1,8 +1,8 @@
-﻿namespace VYAACentralInforApi.Infrastructure.Services;
+namespace VYAACentralInforApi.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using VYAACentralInforApi.Application.System.Interfaces;
+using VYAACentralInforApi.ApplicationCore.System.Interfaces;
 
 
 

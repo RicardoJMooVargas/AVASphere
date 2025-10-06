@@ -1,4 +1,4 @@
-﻿namespace VYAACentralInforApi.Infrastructure.System.Configuration;
+namespace VYAACentralInforApi.Infrastructure.System.Configuration;
 
 public class JwtSettings
 {

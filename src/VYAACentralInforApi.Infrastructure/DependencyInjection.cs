@@ -3,17 +3,16 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using VYAACentralInforApi.Application.Sales.Interfaces;
-using VYAACentralInforApi.Application.System.Interfaces;
-using VYAACentralInforApi.Application.System.Services;
-using VYAACentralInforApi.Domain.System.Interfaces;
-using VYAACentralInforApi.Infrastructure.System;
-using VYAACentralInforApi.Infrastructure.Services;
 using VYAACentralInforApi.Infrastructure.System.Configuration;
 using VYAACentralInforApi.Infrastructure.System.Services;
+using VYAACentralInforApi.Infrastructure.System.Data;
+using VYAACentralInforApi.Infrastructure.System.Repositories;
 using VYAACentralInforApi.Infrastructure.Sales.Data;
 using VYAACentralInforApi.Infrastructure.Sales.Repositories;
-using VYAACentralInforApi.Domain.Sales.Interfaces;
+using VYAACentralInforApi.ApplicationCore.Sales.Services;
+using VYAACentralInforApi.ApplicationCore.System.Services;
+using VYAACentralInforApi.ApplicationCore.System.Interfaces;
+using VYAACentralInforApi.ApplicationCore.Sales.Interfaces;
 
 namespace VYAACentralInforApi.Infrastructure;
 
@@ -126,6 +125,9 @@ public static class DependencyInjection
         services.AddScoped<ISaleRepository, SaleRepository>();
         
         // SERVICIOS DEL MÓDULO SALES
-        //services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<IQuotationService, QuotationService>();
+        //services.AddScoped<IQuotationFollowupsService, QuotationFollowupsService>();
+        //services.AddScoped<ISaleService, SaleService>();
     }
 }

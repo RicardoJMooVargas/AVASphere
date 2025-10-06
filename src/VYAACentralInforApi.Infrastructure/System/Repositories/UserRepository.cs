@@ -1,8 +1,9 @@
 using MongoDB.Driver;
-using VYAACentralInforApi.Domain.System;
-using VYAACentralInforApi.Domain.System.Interfaces;
+using VYAACentralInforApi.ApplicationCore.System;
+using VYAACentralInforApi.ApplicationCore.System.Interfaces;
+using VYAACentralInforApi.Infrastructure.System.Data;
 
-namespace VYAACentralInforApi.Infrastructure.System
+namespace VYAACentralInforApi.Infrastructure.System.Repositories
 {
     public class UserRepository : IUserRepository
     {

@@ -1,5 +1,5 @@
 ﻿using MongoDB.Driver;
-using VYAACentralInforApi.Domain.Sales.Entities;
+using VYAACentralInforApi.ApplicationCore.Sales.Entities;
 
 namespace VYAACentralInforApi.Infrastructure.Sales.Data;
 

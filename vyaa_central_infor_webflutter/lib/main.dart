@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'screens/login_page.dart';
 import 'screens/home_page.dart';
-import 'theme/app_theme.dart';
+import 'Core/theme/app_theme.dart';
 import 'services/local/cache_service.dart';
 
 void main() async {
@@ -34,7 +34,7 @@ class Principal extends StatelessWidget {
     );
 
     return MaterialApp.router(
-      title: 'VYAA Central',
+      title: 'VYAACentral',
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       routerConfig: router,

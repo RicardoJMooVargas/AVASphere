@@ -12,4 +12,10 @@ class AppColors {
   // Example custom colors
   static const Color brandBlue = Color(0xFF0D47A1);
   static const Color brandOrange = Color(0xFFFF7043);
+
+  // Login colors from example
+  static const Color primaryColor = Color.fromARGB(255, 0, 56, 99); 
+  static const Color primaryColorGray = Color.fromARGB(255, 127, 140, 141); // Gray
+  static const Color tertiaryColor = Color.fromARGB(255, 255, 193, 50); 
 }
+  

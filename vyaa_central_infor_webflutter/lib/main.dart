@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:get/get.dart';
 
 import 'screens/login_page.dart';
 import 'screens/home_page.dart';
-import 'Core/theme/app_theme.dart';
-import 'services/local/cache_service.dart';
+import 'core/theme/app_theme.dart';
+import 'services/local/cache_service.service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,25 +19,21 @@ class Principal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final GoRouter router = GoRouter(
-      initialLocation: initialRoute,
-      routes: <RouteBase>[
-        GoRoute(
-          path: '/login',
-          builder: (context, state) => const LoginPage(),
-        ),
-        GoRoute(
-          path: '/home',
-          builder: (context, state) => const HomePage(),
-        ),
-      ],
-    );
-
-    return MaterialApp.router(
+    return GetMaterialApp(
       title: 'VYAACentral',
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      routerConfig: router,
+      initialRoute: initialRoute,
+      getPages: [
+        GetPage(
+          name: '/login',
+          page: () => const LoginPage(),
+        ),
+        GetPage(
+          name: '/home',
+          page: () => const HomePage(),
+        ),
+      ],
     );
   }
 }

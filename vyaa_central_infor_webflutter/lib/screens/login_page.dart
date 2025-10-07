@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:go_router/go_router.dart';
+import 'package:get/get.dart';
+import 'package:vyaa_central_infor_webflutter/core/internalControllers/notification_services.dart';
 import '../services/api/auth.service.dart';
-import '../models/requests/auth_request.model.dart';
-import '../Core/theme/app_colors.dart';
+import '../models/requests/auth_req.module.dart';
+import '../core/theme/app_colors.dart';
+//import '../core/internalServices/notification_services.dart';
 import 'dart:ui';
 
 class LoginPage extends StatefulWidget {
@@ -15,7 +17,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   // Use model which owns controllers so we can reuse and dispose them cleanly
-  final AuthRequest _authModel = AuthRequest();
+  final AuthReq _authModel = AuthReq();
   bool _loading = false;
   
   // Create a focus node for the password field
@@ -31,13 +33,16 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _loading = true);
     try {
       final service = AuthService();
-  await service.login(_authModel);
-      if (!mounted) return;
-      GoRouter.of(context).go('/home');
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      final response = await service.login(_authModel);
+      
+      if (response.isSuccess) {
+        NotificationService.showSuccess('Inicio de sesión exitoso');
+        Get.offAllNamed('/home');
+      } else {
+        NotificationService.showError(response.error ?? 'Error al iniciar sesión');
       }
+    } catch (e) {
+      NotificationService.showError('Error inesperado: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _loading = false);
     }

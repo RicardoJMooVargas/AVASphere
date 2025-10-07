@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import '../local/cache_service.dart';
-import '../../models/requests/auth_request.model.dart';
+import '../local/cache_service.service.dart';
+import '../../models/requests/auth_req.module.dart';
 import '../../configs/api_settings.config.dart';
+import '../../configs/api_response.config.dart';
+import '../../core/internalControllers/notification_services.dart';
 
 class AuthService {
   final ApiSettings _settings;
@@ -12,48 +14,82 @@ class AuthService {
 
   Uri _url(String path) => Uri.parse('${_settings.baseUrl}$path');
 
-  /// Login with username and password. Returns the token string on success.
-  Future<String> login(AuthRequest request) async {
-    final uri = _url('/api/system/Auth/login');
-    final body = jsonEncode(request.toJson());
+  /// Login with username and password. Returns ApiResponse with token string on success.
+  Future<ApiResponse<String>> login(AuthReq request) async {
+    try {
+      final uri = _url('/api/system/Auth/login');
+      final body = jsonEncode(request.toJson());
 
-    final response = await http.post(
-      uri,
-      headers: _settings.headers,
-      body: body,
-    );
+      final response = await http.post(
+        uri,
+        headers: _settings.headers,
+        body: body,
+      );
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final Map<String, dynamic> decoded = jsonDecode(response.body);
-      // Assuming the API returns a token field (jwt) - adapt if different
-      final token = decoded['token'] as String? ?? decoded['access_token'] as String? ?? '';
-      if (token.isNotEmpty) {
-        await CacheService.saveToken(token);
-        return token;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final Map<String, dynamic> decoded = jsonDecode(response.body);
+        // Assuming the API returns a token field (jwt) - adapt if different
+        final token = decoded['token'] as String? ?? decoded['access_token'] as String? ?? '';
+        if (token.isNotEmpty) {
+          await CacheService.saveToken(token);
+          return ApiResponse.success(token);
+        }
+        return ApiResponse.error('Token no encontrado en la respuesta del servidor');
       }
-      throw Exception('Token not found in response');
-    }
 
-    throw Exception('Login failed (${response.statusCode}): ${response.body}');
+      final errorMessage = ApiResponse.getErrorMessage(response.statusCode, response.body);
+      return ApiResponse.error(errorMessage);
+      
+    } catch (e) {
+      // Handle network errors, JSON parsing errors, etc.
+      if (e.toString().contains('SocketException') || e.toString().contains('TimeoutException')) {
+        return ApiResponse.error('Error de conexión: Verifique su conexión a internet');
+      } else if (e.toString().contains('FormatException')) {
+        return ApiResponse.error('Error en el formato de respuesta del servidor');
+      } else {
+        return ApiResponse.error('Error inesperado: ${e.toString()}');
+      }
+    }
   }
 
-  /// Validate token. Returns the message and user (may be null) as Map.
-  Future<Map<String, dynamic>> validateToken() async {
-    final token = await CacheService.getToken();
-    if (token == null) throw Exception('No token saved');
+  /// Validate token. Returns ApiResponse with user data on success.
+  Future<ApiResponse<Map<String, dynamic>>> validateToken() async {
+    try {
+      final token = await CacheService.getToken();
+      if (token == null) {
+        return ApiResponse.error('No hay token guardado: Debe iniciar sesión');
+      }
 
-    final uri = _url('/api/system/Auth/validate-token');
+      final uri = _url('/api/system/Auth/validate-token');
 
-    final headers = Map<String, String>.from(_settings.headers);
-    headers['Authorization'] = 'Bearer $token';
+      final headers = Map<String, String>.from(_settings.headers);
+      headers['Authorization'] = 'Bearer $token';
 
-    final response = await http.get(uri, headers: headers);
+      final response = await http.get(uri, headers: headers);
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> decoded = jsonDecode(response.body);
-      return decoded;
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> decoded = jsonDecode(response.body);
+        return ApiResponse.success(decoded);
+      }
+
+      // If token is invalid, handle token expiration
+      if (response.statusCode == 401) {
+        NotificationService.handleTokenExpired();
+        return ApiResponse.error('Token expirado');
+      }
+
+      final errorMessage = ApiResponse.getErrorMessage(response.statusCode, response.body);
+      return ApiResponse.error(errorMessage);
+      
+    } catch (e) {
+      // Handle network errors, JSON parsing errors, etc.
+      if (e.toString().contains('SocketException') || e.toString().contains('TimeoutException')) {
+        return ApiResponse.error('Error de conexión: Verifique su conexión a internet');
+      } else if (e.toString().contains('FormatException')) {
+        return ApiResponse.error('Error en el formato de respuesta del servidor');
+      } else {
+        return ApiResponse.error('Error inesperado: ${e.toString()}');
+      }
     }
-
-    throw Exception('Validate failed (${response.statusCode}): ${response.body}');
   }
 }

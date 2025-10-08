@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using VYAACentralInforApi.ApplicationCore.System.Interfaces;
+using VYAACentralInforApi.Infrastructure.Sales.Data;
+using VYAACentralInforApi.Infrastructure.Sales.Services;
 
 
 
@@ -10,11 +12,13 @@ public class DatabaseInitializationService : IHostedService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<DatabaseInitializationService> _logger;
+    private readonly SalesMongoDbContext _salesContext;
 
-    public DatabaseInitializationService(IServiceProvider serviceProvider, ILogger<DatabaseInitializationService> logger)
+    public DatabaseInitializationService(IServiceProvider serviceProvider, ILogger<DatabaseInitializationService> logger, SalesMongoDbContext salesContext)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _salesContext = salesContext;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -30,6 +34,9 @@ public class DatabaseInitializationService : IHostedService
             
             // Inicializar datos del módulo Sales
             await InitializeSalesModuleAsync(scope.ServiceProvider);
+            
+            // Ejecutar migración de cotizaciones
+            //await MigrateQuotationsAsync();
             
             _logger.LogInformation("Inicialización general de la base de datos completada exitosamente.");
         }
@@ -76,6 +83,22 @@ public class DatabaseInitializationService : IHostedService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al inicializar el módulo Sales");
+            throw;
+        }
+    }
+
+    private async Task MigrateQuotationsAsync()
+    {
+        try
+        {
+            _logger.LogInformation("Iniciando migración de cotizaciones...");
+            var migrationService = new QuotationMigrationService(_salesContext);
+            await migrationService.MigrateQuotationsAsync();
+            _logger.LogInformation("Migración de cotizaciones completada.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error durante la migración de cotizaciones");
             throw;
         }
     }

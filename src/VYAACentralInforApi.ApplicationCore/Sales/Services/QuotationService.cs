@@ -54,7 +54,6 @@ public class QuotationService : IQuotationService
             {
                 throw new InvalidOperationException($"No existe un cliente con el ID {quotation.CustomerId}.");
             }
-            quotation.Customer = customer;
         }
 
         // Configurar campos automáticos
@@ -89,28 +88,49 @@ public class QuotationService : IQuotationService
             }
         }
 
-        return await _quotationRepository.CreateQuotationAsync(quotation);
+        var createdQuotation = await _quotationRepository.CreateQuotationAsync(quotation);
+
+        // Cargar los datos del cliente después de crear la cotización
+        if (!string.IsNullOrEmpty(createdQuotation.CustomerId))
+        {
+            createdQuotation.Customer = await _customerRepository.GetCustomerByIdAsync(createdQuotation.CustomerId);
+        }
+
+        return createdQuotation;
     }
 
     public async Task<IEnumerable<Quotation>> GetQuotationsAsync(DateTime? startDate = null, DateTime? endDate = null, string? customerName = null, int? folio = null)
     {
+        IEnumerable<Quotation> quotations;
+
         // Si se proporciona un folio específico, buscar solo por folio
         if (folio.HasValue)
         {
             var quotationByFolio = await _quotationRepository.GetQuotationByFolioAsync(folio.Value);
-            return quotationByFolio != null ? new List<Quotation> { quotationByFolio } : new List<Quotation>();
+            quotations = quotationByFolio != null ? new List<Quotation> { quotationByFolio } : new List<Quotation>();
         }
-
-        // Si no se proporcionan fechas, usar el día actual
-        if (!startDate.HasValue || !endDate.HasValue)
+        else
         {
-            var today = DateTime.UtcNow.Date;
-            startDate = today;
-            endDate = today.AddDays(1).AddTicks(-1); // Hasta el final del día
+            // Si no se proporcionan fechas, usar el día actual
+            if (!startDate.HasValue || !endDate.HasValue)
+            {
+                var today = DateTime.UtcNow.Date;
+                startDate = today;
+                endDate = today.AddDays(1).AddTicks(-1); // Hasta el final del día
+            }
+
+            // Obtener cotizaciones por rango de fechas
+            quotations = await _quotationRepository.GetQuotationsByDateRangeAsync(startDate.Value, endDate.Value);
         }
 
-        // Obtener cotizaciones por rango de fechas
-        var quotations = await _quotationRepository.GetQuotationsByDateRangeAsync(startDate.Value, endDate.Value);
+        // Cargar los datos del cliente para cada cotización
+        foreach (var quotation in quotations)
+        {
+            if (!string.IsNullOrEmpty(quotation.CustomerId))
+            {
+                quotation.Customer = await _customerRepository.GetCustomerByIdAsync(quotation.CustomerId);
+            }
+        }
 
         // Filtrar por nombre de cliente si se proporciona
         if (!string.IsNullOrEmpty(customerName))
@@ -129,7 +149,15 @@ public class QuotationService : IQuotationService
             throw new ArgumentException("El ID de la cotización es requerido.", nameof(id));
         }
 
-        return await _quotationRepository.GetQuotationByIdAsync(id);
+        var quotation = await _quotationRepository.GetQuotationByIdAsync(id);
+        
+        // Cargar los datos del cliente si existe
+        if (quotation != null && !string.IsNullOrEmpty(quotation.CustomerId))
+        {
+            quotation.Customer = await _customerRepository.GetCustomerByIdAsync(quotation.CustomerId);
+        }
+
+        return quotation;
     }
 
     public async Task<Quotation> UpdateQuotationAsync(Quotation quotation)
@@ -159,14 +187,21 @@ public class QuotationService : IQuotationService
             {
                 throw new InvalidOperationException($"No existe un cliente con el ID {quotation.CustomerId}.");
             }
-            quotation.Customer = customer;
         }
 
         // Mantener algunos campos originales
         quotation.CreatedAt = existingQuotation.CreatedAt;
         quotation.UpdatedAt = DateTime.UtcNow;
 
-        return await _quotationRepository.UpdateQuotationAsync(quotation);
+        var updatedQuotation = await _quotationRepository.UpdateQuotationAsync(quotation);
+
+        // Cargar los datos del cliente después de actualizar
+        if (!string.IsNullOrEmpty(updatedQuotation.CustomerId))
+        {
+            updatedQuotation.Customer = await _customerRepository.GetCustomerByIdAsync(updatedQuotation.CustomerId);
+        }
+
+        return updatedQuotation;
     }
 
     public async Task<bool> DeleteQuotationAsync(string id)

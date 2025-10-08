@@ -33,6 +33,19 @@ public class QuotationManagerController : ControllerBase
                 return BadRequest("El ID del usuario creador es requerido en el header 'UserId'.");
             }
 
+            // Validar campos obligatorios de Customer
+            if (string.IsNullOrWhiteSpace(createQuotationDto.Customer.FullName))
+            {
+                return BadRequest("El nombre completo del cliente es obligatorio.");
+            }
+
+            if (createQuotationDto.Customer.Phones == null || 
+                !createQuotationDto.Customer.Phones.Any() || 
+                createQuotationDto.Customer.Phones.All(p => string.IsNullOrWhiteSpace(p)))
+            {
+                return BadRequest("Al menos un número de teléfono del cliente es obligatorio.");
+            }
+
             // Manejar el cliente (crear nuevo o actualizar existente)
             Customer customer;
             if (string.IsNullOrEmpty(createQuotationDto.Customer.CustomerId))

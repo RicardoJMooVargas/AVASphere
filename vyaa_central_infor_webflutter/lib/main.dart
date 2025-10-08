@@ -31,7 +31,7 @@ class Principal extends StatelessWidget {
         ),
         GetPage(
           name: '/home',
-          page: () => const HomePage(),
+          page: () => HomePage(),
         ),
       ],
     );

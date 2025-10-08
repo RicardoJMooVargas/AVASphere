@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using VYAACentralInforApi.ApplicationCore.Common.Attributes;
 
 namespace VYAACentralInforApi.ApplicationCore.Sales.DTOs;
 
@@ -21,13 +22,12 @@ public class CustomerDto
 {
     public string? CustomerId { get; set; } // Si tiene ID, se editará; si no, se creará nuevo
 
-    [Required]
-    public string Code { get; set; } = string.Empty;
+    public string? Code { get; set; }
 
     [Required]
     public string FullName { get; set; } = string.Empty;
 
-    [EmailAddress]
+    [OptionalEmail]
     public string? Email { get; set; }
 
     public List<string>? Phones { get; set; }

@@ -22,7 +22,6 @@
   <ItemGroup>
     <Folder Include="Common\" />
     <Folder Include="Sales\Configuration\" />
-    <Folder Include="Sales\Services\" />
   </ItemGroup>
 
 </Project>

@@ -10,16 +10,33 @@ class NotificationService {
     Get.snackbar(
       'Error',
       message,
-      snackPosition: SnackPosition.TOP,
+      snackPosition: SnackPosition.BOTTOM,
+      maxWidth: 100,
       backgroundColor: Colors.red.withOpacity(0.1),
       colorText: Colors.red.shade700,
       borderColor: Colors.red.shade300,
       borderWidth: 1,
-      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       duration: _snackbarDuration,
+      titleText: Text(
+        'Error',
+        style: TextStyle(
+          color: Colors.red.shade700,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      messageText: Text(
+        message,
+        style: TextStyle(
+          color: Colors.red.shade700,
+          fontSize: 11,
+        ),
+      ),
       icon: Icon(
         Icons.error_outline,
         color: Colors.red.shade700,
+        size: 16,
       ),
     );
   }
@@ -29,16 +46,33 @@ class NotificationService {
     Get.snackbar(
       'Éxito',
       message,
-      snackPosition: SnackPosition.TOP,
+      snackPosition: SnackPosition.BOTTOM,
+      maxWidth: 300,
       backgroundColor: Colors.green.withOpacity(0.1),
       colorText: Colors.green.shade700,
       borderColor: Colors.green.shade300,
       borderWidth: 1,
-      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       duration: _snackbarDuration,
+      titleText: Text(
+        'Éxito',
+        style: TextStyle(
+          color: Colors.green.shade700,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      messageText: Text(
+        message,
+        style: TextStyle(
+          color: Colors.green.shade700,
+          fontSize: 11,
+        ),
+      ),
       icon: Icon(
         Icons.check_circle_outline,
         color: Colors.green.shade700,
+        size: 16,
       ),
     );
   }
@@ -48,16 +82,33 @@ class NotificationService {
     Get.snackbar(
       'Advertencia',
       message,
-      snackPosition: SnackPosition.TOP,
+      snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.orange.withOpacity(0.1),
       colorText: Colors.orange.shade700,
       borderColor: Colors.orange.shade300,
       borderWidth: 1,
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16, right: 16, left: 400),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       duration: _snackbarDuration,
+      titleText: Text(
+        'Advertencia',
+        style: TextStyle(
+          color: Colors.orange.shade700,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      messageText: Text(
+        message,
+        style: TextStyle(
+          color: Colors.orange.shade700,
+          fontSize: 11,
+        ),
+      ),
       icon: Icon(
         Icons.warning_amber_outlined,
         color: Colors.orange.shade700,
+        size: 16,
       ),
     );
   }
@@ -71,16 +122,33 @@ class NotificationService {
     Get.snackbar(
       'Sesión Expirada',
       'Tu sesión ha expirado. Serás redirigido al login.',
-      snackPosition: SnackPosition.TOP,
+      snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.amber.withOpacity(0.1),
       colorText: Colors.amber.shade800,
       borderColor: Colors.amber.shade300,
       borderWidth: 1,
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16, right: 16, left: 400),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       duration: const Duration(seconds: 3),
+      titleText: Text(
+        'Sesión Expirada',
+        style: TextStyle(
+          color: Colors.amber.shade800,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      messageText: Text(
+        'Tu sesión ha expirado. Serás redirigido al login.',
+        style: TextStyle(
+          color: Colors.amber.shade800,
+          fontSize: 11,
+        ),
+      ),
       icon: Icon(
         Icons.access_time_outlined,
         color: Colors.amber.shade800,
+        size: 16,
       ),
     );
 
@@ -144,16 +212,33 @@ class NotificationService {
     Get.snackbar(
       'Información',
       message,
-      snackPosition: SnackPosition.TOP,
+      snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.blue.withOpacity(0.1),
       colorText: Colors.blue.shade700,
       borderColor: Colors.blue.shade300,
       borderWidth: 1,
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16, right: 16, left: 400),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       duration: _snackbarDuration,
+      titleText: Text(
+        'Información',
+        style: TextStyle(
+          color: Colors.blue.shade700,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      messageText: Text(
+        message,
+        style: TextStyle(
+          color: Colors.blue.shade700,
+          fontSize: 11,
+        ),
+      ),
       icon: Icon(
         Icons.info_outline,
         color: Colors.blue.shade700,
+        size: 16,
       ),
     );
   }

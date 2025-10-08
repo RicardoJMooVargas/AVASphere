@@ -25,9 +25,6 @@ public class Quotation
     [BsonRepresentation(BsonType.ObjectId)]
     public string CustomerId { get; set; } = string.Empty;
 
-    [BsonElement("customer")]
-    public Customer? Customer { get; set; }
-
     [BsonElement("generalComment")]
     public string? GeneralComment { get; set; }
 
@@ -39,4 +36,8 @@ public class Quotation
 
     [BsonElement("updatedAt")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Propiedad no persistida para obtener los datos del cliente cuando sea necesario
+    [BsonIgnore]
+    public Customer? Customer { get; set; }
 }

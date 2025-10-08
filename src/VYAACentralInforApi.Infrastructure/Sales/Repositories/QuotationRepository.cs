@@ -8,12 +8,10 @@ namespace VYAACentralInforApi.Infrastructure.Sales.Repositories;
 public class QuotationRepository : IQuotationRepository
 {
     private readonly IMongoCollection<Quotation> _quotations;
-    private readonly ICustomerRepository _customerRepository;
 
-    public QuotationRepository(SalesMongoDbContext context, ICustomerRepository customerRepository)
+    public QuotationRepository(SalesMongoDbContext context)
     {
         _quotations = context.Quotations;
-        _customerRepository = customerRepository;
     }
 
     public async Task<IEnumerable<Quotation>> GetAllQuotationsAsync()
@@ -62,18 +60,7 @@ public class QuotationRepository : IQuotationRepository
 
     public async Task<Quotation> CreateQuotationAsync(Quotation quotation)
     {
-        // Verificar que el customer existe
-        if (!string.IsNullOrEmpty(quotation.CustomerId))
-        {
-            var customer = await _customerRepository.GetCustomerByIdAsync(quotation.CustomerId);
-            if (customer == null)
-            {
-                throw new InvalidOperationException($"Customer with ID {quotation.CustomerId} does not exist.");
-            }
-            quotation.Customer = customer;
-        }
-
-        // Verificar que no existe una cotización con el mismo folio
+        // Solo verificar que no existe una cotización con el mismo folio
         if (await QuotationExistsByFolioAsync(quotation.Folio))
         {
             throw new InvalidOperationException($"A quotation with folio {quotation.Folio} already exists.");
@@ -95,16 +82,6 @@ public class QuotationRepository : IQuotationRepository
             throw new InvalidOperationException($"Quotation with ID {quotation.QuotationId} not found.");
         }
 
-        // Verificar que el customer existe si se está actualizando
-        if (!string.IsNullOrEmpty(quotation.CustomerId))
-        {
-            var customer = await _customerRepository.GetCustomerByIdAsync(quotation.CustomerId);
-            if (customer == null)
-            {
-                throw new InvalidOperationException($"Customer with ID {quotation.CustomerId} does not exist.");
-            }
-            quotation.Customer = customer;
-        }
 
         quotation.UpdatedAt = DateTime.UtcNow;
         

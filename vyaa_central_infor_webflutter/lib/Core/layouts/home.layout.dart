@@ -47,8 +47,8 @@ class HomeLayout extends StatelessWidget {
     required this.rightHeader,
     required this.rightBody,
     this.backgroundColor,
-    this.borderColor = Colors.grey,
-    this.borderWidth = 1.0,
+    this.borderColor = Colors.transparent,
+    this.borderWidth = 0.0,
   }) : super(key: key);
 
   @override
@@ -61,14 +61,14 @@ class HomeLayout extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Container(
-              decoration: BoxDecoration(
+              decoration: borderWidth > 0 ? BoxDecoration(
                 border: Border(
                   right: BorderSide(
                     color: borderColor,
                     width: borderWidth,
                   ),
                 ),
-              ),
+              ) : null,
               child: leftColumn,
             ),
           ),
@@ -78,26 +78,26 @@ class HomeLayout extends StatelessWidget {
             flex: 7,
             child: Column(
               children: [
-                // --- HEADER DERECHO (25% altura) ---
+                // --- HEADER DERECHO (10% altura) ---
                 Expanded(
-                  flex: 25,
+                  flex: 10,
                   child: Container(
                     width: double.infinity,
-                    decoration: BoxDecoration(
+                    decoration: borderWidth > 0 ? BoxDecoration(
                       border: Border(
                         bottom: BorderSide(
                           color: borderColor,
                           width: borderWidth,
                         ),
                       ),
-                    ),
+                    ) : null,
                     child: rightHeader,
                   ),
                 ),
 
-                // --- BODY DERECHO (75% altura) ---
+                // --- BODY DERECHO (90% altura) ---
                 Expanded(
-                  flex: 75,
+                  flex: 90,
                   child: Container(
                     width: double.infinity,
                     child: rightBody,
@@ -149,7 +149,7 @@ class UnderConstructionCard extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(18),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

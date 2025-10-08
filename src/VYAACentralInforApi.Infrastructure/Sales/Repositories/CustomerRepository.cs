@@ -1,4 +1,5 @@
 ﻿using MongoDB.Driver;
+using System.Text.RegularExpressions;
 using VYAACentralInforApi.ApplicationCore.Sales.Entities;
 using VYAACentralInforApi.ApplicationCore.Sales.Interfaces;
 using VYAACentralInforApi.Infrastructure.Sales.Data;
@@ -40,11 +41,22 @@ public class CustomerRepository : ICustomerRepository
 
     public async Task<IEnumerable<Customer>> GetCustomersByNameAsync(string name)
     {
-        var filter = Builders<Customer>.Filter.And(
-            Builders<Customer>.Filter.Regex(c => c.FullName, new MongoDB.Bson.BsonRegularExpression(name, "i")),
-            Builders<Customer>.Filter.Eq(c => c.Status, true)
-        );
-        return await _customers.Find(filter).ToListAsync();
+        // Escapar caracteres especiales para regex de MongoDB
+        var escapedName = Regex.Escape(name);
+        
+        // Crear un filtro que busque coincidencias parciales en cualquier parte del nombre
+        // La opción "i" hace que sea insensible a mayúsculas/minúsculas
+        var regexPattern = ".*" + escapedName + ".*";
+        var nameFilter = Builders<Customer>.Filter.Regex(c => c.FullName, 
+            new MongoDB.Bson.BsonRegularExpression(regexPattern, "i"));
+        
+        var statusFilter = Builders<Customer>.Filter.Eq(c => c.Status, true);
+        
+        var combinedFilter = Builders<Customer>.Filter.And(nameFilter, statusFilter);
+        
+        return await _customers.Find(combinedFilter)
+            .Sort(Builders<Customer>.Sort.Ascending(c => c.FullName))
+            .ToListAsync();
     }
 
     public async Task<Customer> CreateCustomerAsync(Customer customer)

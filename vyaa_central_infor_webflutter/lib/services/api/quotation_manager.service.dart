@@ -84,12 +84,15 @@ class QuotationManagerService {
   // En tu QuotationManagerService existente
 Future<ApiResponse<QuotationRes>> createQuotation({
   required QuotationReq quotationReq,
-  required String userId,
 }) async {
   try {
     final token = await CacheService.getToken();
+    final userId = await CacheService.getUserId();
     if (token == null) {
       return ApiResponse.error('No hay token guardado: Debe iniciar sesión');
+    }
+    if (userId == null) {
+      return ApiResponse.error('No hay UserId guardado: Debe iniciar sesión');
     }
 
     final uri = _url('/api/QuotationManager');

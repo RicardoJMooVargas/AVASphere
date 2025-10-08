@@ -32,6 +32,14 @@ class AuthService {
         final token = decoded['token'] as String? ?? decoded['access_token'] as String? ?? '';
         if (token.isNotEmpty) {
           await CacheService.saveToken(token);
+          
+          // Save user ID if available
+          final user = decoded['user'] as Map<String, dynamic>?;
+          if (user != null && user['id'] != null) {
+            final userId = user['id'].toString();
+            await CacheService.saveUserId(userId);
+          }
+          
           return ApiResponse.success(token);
         }
         return ApiResponse.error('Token no encontrado en la respuesta del servidor');
@@ -74,6 +82,7 @@ class AuthService {
 
       // If token is invalid, handle token expiration
       if (response.statusCode == 401) {
+        await CacheService.clearAll(); // Clear all cached data
         NotificationService.handleTokenExpired();
         return ApiResponse.error('Token expirado');
       }
@@ -91,5 +100,10 @@ class AuthService {
         return ApiResponse.error('Error inesperado: ${e.toString()}');
       }
     }
+  }
+
+  /// Logout - clears all cached authentication data
+  Future<void> logout() async {
+    await CacheService.clearAll();
   }
 }

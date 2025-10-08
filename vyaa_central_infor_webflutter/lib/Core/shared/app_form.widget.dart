@@ -13,6 +13,7 @@ enum FormFieldType {
   checkbox,
   textarea,
   phone,
+  suggest, // 👈 Nuevo tipo para entrada con sugerencias dinámicas
 }
 
 /// Configuración de un campo del formulario
@@ -39,6 +40,11 @@ class FormFieldConfig {
   final DateTime? firstDate;
   final DateTime? lastDate;
 
+  // 👇 Nuevas propiedades para el tipo suggest
+  final Future<List<dynamic>> Function(String)? onSearch;
+  final String Function(dynamic)? itemToString;
+  final ValueChanged<dynamic>? onItemSelected;
+
   FormFieldConfig({
     required this.label,
     this.hint,
@@ -61,6 +67,9 @@ class FormFieldConfig {
     this.initialDate,
     this.firstDate,
     this.lastDate,
+    this.onSearch,
+    this.itemToString,
+    this.onItemSelected,
   });
 }
 
@@ -127,12 +136,15 @@ class _AppFormState extends State<AppForm> {
   late GlobalKey<FormState> _formKey;
   final Map<String, bool> _sectionExpansionState = {};
 
+  // 👇 Estado para sugerencias
+  final Map<FormFieldConfig, List<dynamic>> _suggestions = {};
+  final Map<FormFieldConfig, bool> _isLoading = {};
+
   @override
   void initState() {
     super.initState();
     _formKey = widget.formKey ?? GlobalKey<FormState>();
-    
-    // Inicializar estado de expansión de secciones
+
     for (final section in widget.sections) {
       if (section.isCollapsible) {
         _sectionExpansionState[section.title] = section.initiallyExpanded;
@@ -154,9 +166,7 @@ class _AppFormState extends State<AppForm> {
               widget.header!,
               SizedBox(height: widget.sectionSpacing),
             ],
-            
             ...widget.sections.map((section) => _buildSection(section)).toList(),
-            
             if (widget.footer != null) ...[
               SizedBox(height: widget.sectionSpacing),
               widget.footer!,
@@ -175,7 +185,6 @@ class _AppFormState extends State<AppForm> {
           section.headerWidget!,
           SizedBox(height: widget.spacing),
         ],
-        
         ...section.fields.map((field) => Padding(
           padding: EdgeInsets.only(bottom: widget.spacing),
           child: _buildFormField(field),
@@ -191,8 +200,8 @@ class _AppFormState extends State<AppForm> {
             title: Text(
               section.title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             initiallyExpanded: _sectionExpansionState[section.title] ?? true,
             onExpansionChanged: (expanded) {
@@ -202,7 +211,7 @@ class _AppFormState extends State<AppForm> {
             },
             children: [
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: EdgeInsets.zero,
                 child: sectionContent,
               ),
             ],
@@ -220,8 +229,8 @@ class _AppFormState extends State<AppForm> {
             Text(
               section.title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             SizedBox(height: widget.spacing),
           ],
@@ -242,9 +251,93 @@ class _AppFormState extends State<AppForm> {
         return _buildDateField(config);
       case FormFieldType.textarea:
         return _buildTextAreaField(config);
+      case FormFieldType.suggest:
+        return _buildSuggestField(config);
       default:
         return _buildTextField(config);
     }
+  }
+
+  Widget _buildSuggestField(FormFieldConfig config) {
+    final controller = config.controller ?? TextEditingController();
+
+    _suggestions.putIfAbsent(config, () => []);
+    _isLoading.putIfAbsent(config, () => false);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: config.isRequired ? '${config.label} *' : config.label,
+            hintText: config.hint,
+            prefixIcon: config.prefixIcon,
+            suffixIcon: _isLoading[config] == true
+                ? const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : config.suffixIcon,
+            border: const OutlineInputBorder(),
+          ),
+          enabled: config.enabled,
+          onChanged: (value) async {
+            if (config.onSearch == null) return;
+            setState(() => _isLoading[config] = true);
+            final results = await config.onSearch!.call(value);
+            setState(() {
+              _suggestions[config] = results;
+              _isLoading[config] = false;
+            });
+          },
+          validator: config.validator ?? (config.isRequired ? (value) {
+            if (value == null || value.trim().isEmpty) {
+              return '${config.label} es requerido';
+            }
+            return null;
+          } : null),
+        ),
+        if (_suggestions[config]!.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                )
+              ],
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _suggestions[config]!.length,
+              itemBuilder: (context, index) {
+                final item = _suggestions[config]![index];
+                final label = config.itemToString?.call(item) ?? item.toString();
+                return ListTile(
+                  title: Text(label),
+                  onTap: () {
+                    controller.text = label;
+                    config.onItemSelected?.call(item);
+                    setState(() {
+                      _suggestions[config] = [];
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _buildTextField(FormFieldConfig config) {
@@ -385,7 +478,7 @@ class _AppFormState extends State<AppForm> {
             time.hour,
             time.minute,
           );
-          
+
           config.controller?.text = _formatDateTime(dateTime);
           config.onDateChanged?.call(dateTime);
         }
@@ -428,13 +521,7 @@ class _AppFormState extends State<AppForm> {
     return '${_formatDate(dateTime)} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 
-  /// Método público para validar el formulario
-  bool validate() {
-    return _formKey.currentState?.validate() ?? false;
-  }
+  bool validate() => _formKey.currentState?.validate() ?? false;
 
-  /// Método público para guardar el formulario
-  void save() {
-    _formKey.currentState?.save();
-  }
+  void save() => _formKey.currentState?.save();
 }

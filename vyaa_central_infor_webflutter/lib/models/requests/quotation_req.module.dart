@@ -4,20 +4,21 @@ import 'followups_req.module.dart';
 
 class QuotationReq {
   final TextEditingController generalCommentController;
+  final TextEditingController folioController;
   final List<TextEditingController> salesExecutiveControllers;
   final List<FollowupReq> followups;
   final CustomerReq customer;
   final DateTime saleDate;
-  final int folio;
 
   QuotationReq({
     String? generalComment,
+    int? folio,
     List<String>? salesExecutives,
     List<FollowupReq>? followups,
     CustomerReq? customer,
     DateTime? saleDate,
-    this.folio = 0,
   })  : generalCommentController = TextEditingController(text: generalComment ?? ''),
+        folioController = TextEditingController(text: (folio ?? 0).toString()),
         salesExecutiveControllers = (salesExecutives ?? ['']).map((exec) => TextEditingController(text: exec)).toList(),
         followups = followups ?? [],
         customer = customer ?? CustomerReq(),
@@ -26,17 +27,18 @@ class QuotationReq {
   /// Create from existing controllers and objects
   QuotationReq.fromComponents({
     required this.generalCommentController,
+    required this.folioController,
     required this.salesExecutiveControllers,
     required this.followups,
     required this.customer,
     required this.saleDate,
-    required this.folio,
   });
 
   /// Produce a Map ready for JSON encoding (solo campos necesarios según el JSON)
   Map<String, dynamic> toJson() {
+    final folioValue = int.tryParse(folioController.text.trim()) ?? 0;
     return {
-      'folio': folio,
+      'folio': folioValue,
       'saleDate': saleDate.toIso8601String(),
       'generalComment': generalCommentController.text.trim(),
       'customer': customer.toJson(),
@@ -47,19 +49,19 @@ class QuotationReq {
   /// Convenience factory from raw data
   factory QuotationReq.fromRaw({
     String? generalComment,
+    int? folio,
     List<String>? salesExecutives,
     List<FollowupReq>? followups,
     CustomerReq? customer,
     DateTime? saleDate,
-    int folio = 0,
   }) =>
       QuotationReq(
         generalComment: generalComment,
+        folio: folio,
         salesExecutives: salesExecutives,
         followups: followups,
         customer: customer,
         saleDate: saleDate,
-        folio: folio,
       );
 
   /// Add a new sales executive controller
@@ -91,6 +93,7 @@ class QuotationReq {
   /// Dispose all controllers
   void dispose() {
     generalCommentController.dispose();
+    folioController.dispose();
     
     for (final controller in salesExecutiveControllers) {
       controller.dispose();

@@ -62,7 +62,7 @@ class HomeScreenController extends GetxController {
   }
 
   /// Crear una nueva cotización
-  Future<void> createQuotation({required String userId}) async {
+  Future<void> createQuotation() async {
     try {
       isCreating.value = true;
       errorMessage.value = '';
@@ -73,9 +73,14 @@ class HomeScreenController extends GetxController {
         return;
       }
 
+      // Validar que el folio sea válido
+      if (currentQuotation.value.folioController.text.trim().isEmpty) {
+        NotificationService.showWarning('El folio es requerido');
+        return;
+      }
+
       final response = await _quotationService.createQuotation(
         quotationReq: currentQuotation.value,
-        userId: userId,
       );
 
       if (response.isSuccess && response.data != null) {

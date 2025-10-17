@@ -16,7 +16,6 @@ public class SalesMongoDbContext
     // CONTEXTO DEL MÓDULO SALES
     public IMongoCollection<Customer> Customers => _database.GetCollection<Customer>("customers");
     public IMongoCollection<Quotation> Quotations => _database.GetCollection<Quotation>("quotations");
-    public IMongoCollection<QuotationFollowups> QuotationFollowups => _database.GetCollection<QuotationFollowups>("quotationFollowups");
     public IMongoCollection<Sale> Sales => _database.GetCollection<Sale>("sales");
     
     // Aquí se pueden agregar más colecciones del módulo Sales cuando las necesites

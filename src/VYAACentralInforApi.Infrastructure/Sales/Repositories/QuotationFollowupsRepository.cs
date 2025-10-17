@@ -5,13 +5,20 @@ using VYAACentralInforApi.Infrastructure.Sales.Data;
 
 namespace VYAACentralInforApi.Infrastructure.Sales.Repositories;
 
+// OBSOLETO: Este repositorio ya no es necesario.
+// Los followups ahora se manejan directamente dentro de QuotationRepository
+// como parte de la entidad Quotation.
+[Obsolete("Los followups ahora se manejan directamente en QuotationRepository")]
 public class QuotationFollowupsRepository : IQuotationFollowupsRepository
 {
+    // Este repositorio puede ser eliminado
+    // Los métodos han sido movidos a QuotationRepository como parte de la entidad Quotation
+       
     private readonly IMongoCollection<QuotationFollowups> _followups;
 
     public QuotationFollowupsRepository(SalesMongoDbContext context)
     {
-        _followups = context.QuotationFollowups;
+        //_followups = context.QuotationFollowups;
     }
 
     public async Task<IEnumerable<QuotationFollowups>> GetAllFollowupsAsync()

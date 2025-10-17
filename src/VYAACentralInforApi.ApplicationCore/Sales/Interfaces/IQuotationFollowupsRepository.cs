@@ -2,6 +2,10 @@
 
 namespace VYAACentralInforApi.ApplicationCore.Sales.Interfaces;
 
+// OBSOLETO: Esta interfaz ya no es necesaria.
+// Los followups ahora se manejan directamente dentro de IQuotationRepository
+// como parte de la entidad Quotation.
+[Obsolete("Los followups ahora se manejan directamente en IQuotationRepository")]
 public interface IQuotationFollowupsRepository
 {
     Task<IEnumerable<QuotationFollowups>> GetAllFollowupsAsync();

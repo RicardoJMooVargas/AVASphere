@@ -163,6 +163,134 @@ public class QuotationManagerController : ControllerBase
         }
     }
 
+    [HttpPost("{quotationId}/followups")]
+    public async Task<ActionResult<QuotationFollowupResponseDto>> AddFollowupToQuotation(
+        string quotationId, 
+        [FromBody] CreateFollowupDto createFollowupDto, 
+        [FromHeader(Name = "UserId")] string userId)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("El ID del usuario es requerido en el header 'UserId'.");
+            }
+
+            if (string.IsNullOrWhiteSpace(createFollowupDto.Comment))
+            {
+                return BadRequest("El comentario del seguimiento es obligatorio.");
+            }
+
+            var followup = new QuotationFollowups
+            {
+                Comment = createFollowupDto.Comment,
+                Date = createFollowupDto.Date ?? DateTime.UtcNow
+            };
+
+            var createdFollowup = await _quotationService.AddFollowupToQuotationAsync(quotationId, followup, userId);
+
+            var response = new QuotationFollowupResponseDto
+            {
+                Id = createdFollowup.Id,
+                Date = createdFollowup.Date,
+                Comment = createdFollowup.Comment,
+                UserId = createdFollowup.UserId,
+                CreatedAt = createdFollowup.CreatedAt
+            };
+
+            return CreatedAtAction(
+                nameof(GetQuotationById),
+                new { id = quotationId },
+                response);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+        }
+    }
+
+    [HttpPut("{quotationId}/followups/{followupId}")]
+    public async Task<ActionResult<QuotationFollowupResponseDto>> UpdateFollowupInQuotation(
+        string quotationId, 
+        string followupId, 
+        [FromBody] UpdateFollowupDto updateFollowupDto)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(updateFollowupDto.Comment))
+            {
+                return BadRequest("El comentario del seguimiento es obligatorio.");
+            }
+
+            var updatedFollowup = new QuotationFollowups
+            {
+                Comment = updateFollowupDto.Comment,
+                Date = updateFollowupDto.Date ?? DateTime.UtcNow
+            };
+
+            var result = await _quotationService.UpdateFollowupInQuotationAsync(quotationId, followupId, updatedFollowup);
+
+            var response = new QuotationFollowupResponseDto
+            {
+                Id = result.Id,
+                Date = result.Date,
+                Comment = result.Comment,
+                UserId = result.UserId,
+                CreatedAt = result.CreatedAt
+            };
+
+            return Ok(response);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+        }
+    }
+
+    [HttpDelete("{quotationId}/followups/{followupId}")]
+    public async Task<ActionResult> DeleteFollowupFromQuotation(string quotationId, string followupId)
+    {
+        try
+        {
+            var deleted = await _quotationService.DeleteFollowupFromQuotationAsync(quotationId, followupId);
+
+            if (!deleted)
+            {
+                return NotFound($"No se encontró el seguimiento con ID {followupId} en la cotización {quotationId}.");
+            }
+
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno del servidor: {ex.Message}");
+        }
+    }
+
     private static QuotationResponseDto MapToQuotationResponseDto(Quotation quotation)
     {
         return new QuotationResponseDto

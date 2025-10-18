@@ -121,13 +121,12 @@ public static class DependencyInjection
         // REPOSITORIOS DEL MÓDULO SALES
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IQuotationRepository, QuotationRepository>();
-        services.AddScoped<IQuotationFollowupsRepository, QuotationFollowupsRepository>();
         services.AddScoped<ISaleRepository, SaleRepository>();
         
         // SERVICIOS DEL MÓDULO SALES
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IQuotationService, QuotationService>();
-        //services.AddScoped<IQuotationFollowupsService, QuotationFollowupsService>();
+        //services.AddScoped<IQuotationFollowupsService, QuotationFollowupsService>(); // OBSOLETO: Los followups ahora se manejan en QuotationService
         //services.AddScoped<ISaleService, SaleService>();
     }
 }

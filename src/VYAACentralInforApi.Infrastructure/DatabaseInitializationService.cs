@@ -86,7 +86,7 @@ public class DatabaseInitializationService : IHostedService
             throw;
         }
     }
-
+    /*
     private async Task MigrateQuotationsAsync()
     {
         try
@@ -102,4 +102,5 @@ public class DatabaseInitializationService : IHostedService
             throw;
         }
     }
+    */
 }

@@ -8,16 +8,13 @@ public class QuotationService : IQuotationService
 {
     private readonly IQuotationRepository _quotationRepository;
     private readonly ICustomerRepository _customerRepository;
-    private readonly IQuotationFollowupsRepository _followupsRepository;
 
     public QuotationService(
         IQuotationRepository quotationRepository,
-        ICustomerRepository customerRepository,
-        IQuotationFollowupsRepository followupsRepository)
+        ICustomerRepository customerRepository)
     {
         _quotationRepository = quotationRepository;
         _customerRepository = customerRepository;
-        _followupsRepository = followupsRepository;
     }
 
     public async Task<Quotation> CreateQuotationAsync(Quotation quotation, string createdByUserId)
@@ -219,5 +216,124 @@ public class QuotationService : IQuotationService
         }
 
         return await _quotationRepository.DeleteQuotationAsync(id);
+    }
+
+    public async Task<QuotationFollowups> AddFollowupToQuotationAsync(string quotationId, QuotationFollowups followup, string userId)
+    {
+        if (string.IsNullOrEmpty(quotationId))
+        {
+            throw new ArgumentException("El ID de la cotización es requerido.", nameof(quotationId));
+        }
+
+        if (followup == null)
+        {
+            throw new ArgumentNullException(nameof(followup));
+        }
+
+        if (string.IsNullOrEmpty(userId))
+        {
+            throw new ArgumentException("El ID del usuario es requerido.", nameof(userId));
+        }
+
+        // Verificar que la cotización existe
+        var quotation = await _quotationRepository.GetQuotationByIdAsync(quotationId);
+        if (quotation == null)
+        {
+            throw new InvalidOperationException($"No se encontró la cotización con ID {quotationId}.");
+        }
+
+        // Configurar el followup
+        followup.Id = ObjectId.GenerateNewId().ToString();
+        followup.Date = DateTime.UtcNow;
+        followup.CreatedAt = DateTime.UtcNow;
+        followup.UserId = userId;
+
+        // Agregar el followup a la lista
+        quotation.Followups.Add(followup);
+        quotation.UpdatedAt = DateTime.UtcNow;
+
+        // Actualizar la cotización
+        await _quotationRepository.UpdateQuotationAsync(quotation);
+
+        return followup;
+    }
+
+    public async Task<QuotationFollowups> UpdateFollowupInQuotationAsync(string quotationId, string followupId, QuotationFollowups updatedFollowup)
+    {
+        if (string.IsNullOrEmpty(quotationId))
+        {
+            throw new ArgumentException("El ID de la cotización es requerido.", nameof(quotationId));
+        }
+
+        if (string.IsNullOrEmpty(followupId))
+        {
+            throw new ArgumentException("El ID del followup es requerido.", nameof(followupId));
+        }
+
+        if (updatedFollowup == null)
+        {
+            throw new ArgumentNullException(nameof(updatedFollowup));
+        }
+
+        // Verificar que la cotización existe
+        var quotation = await _quotationRepository.GetQuotationByIdAsync(quotationId);
+        if (quotation == null)
+        {
+            throw new InvalidOperationException($"No se encontró la cotización con ID {quotationId}.");
+        }
+
+        // Buscar el followup específico
+        var existingFollowup = quotation.Followups.FirstOrDefault(f => f.Id == followupId);
+        if (existingFollowup == null)
+        {
+            throw new InvalidOperationException($"No se encontró el followup con ID {followupId} en la cotización {quotationId}.");
+        }
+
+        // Actualizar los campos del followup (mantener ID original, Date y CreatedAt)
+        existingFollowup.Comment = updatedFollowup.Comment;
+        existingFollowup.Date = updatedFollowup.Date;
+
+        // Actualizar la fecha de modificación de la cotización
+        quotation.UpdatedAt = DateTime.UtcNow;
+
+        // Actualizar la cotización
+        await _quotationRepository.UpdateQuotationAsync(quotation);
+
+        return existingFollowup;
+    }
+
+    public async Task<bool> DeleteFollowupFromQuotationAsync(string quotationId, string followupId)
+    {
+        if (string.IsNullOrEmpty(quotationId))
+        {
+            throw new ArgumentException("El ID de la cotización es requerido.", nameof(quotationId));
+        }
+
+        if (string.IsNullOrEmpty(followupId))
+        {
+            throw new ArgumentException("El ID del followup es requerido.", nameof(followupId));
+        }
+
+        // Verificar que la cotización existe
+        var quotation = await _quotationRepository.GetQuotationByIdAsync(quotationId);
+        if (quotation == null)
+        {
+            throw new InvalidOperationException($"No se encontró la cotización con ID {quotationId}.");
+        }
+
+        // Buscar y eliminar el followup
+        var followupToRemove = quotation.Followups.FirstOrDefault(f => f.Id == followupId);
+        if (followupToRemove == null)
+        {
+            return false;
+        }
+
+        quotation.Followups.Remove(followupToRemove);
+        quotation.UpdatedAt = DateTime.UtcNow;
+
+        // Actualizar la cotización
+        await _quotationRepository.UpdateQuotationAsync(quotation);
+
+        return true;
     }
 }

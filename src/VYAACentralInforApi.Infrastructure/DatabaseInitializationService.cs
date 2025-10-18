@@ -92,8 +92,8 @@ public class DatabaseInitializationService : IHostedService
         try
         {
             _logger.LogInformation("Iniciando migración de cotizaciones...");
-            var migrationService = new QuotationMigrationService(_salesContext);
-            await migrationService.MigrateQuotationsAsync();
+            //var migrationService = new QuotationMigrationService(_salesContext);
+            //await migrationService.MigrateQuotationsAsync();
             _logger.LogInformation("Migración de cotizaciones completada.");
         }
         catch (Exception ex)

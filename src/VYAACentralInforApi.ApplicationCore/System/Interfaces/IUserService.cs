@@ -6,7 +6,7 @@ namespace VYAACentralInforApi.ApplicationCore.System.Interfaces
     {
         Task<IEnumerable<Users>> GetAllUsersAsync();
         Task<Users?> GetUserByIdAsync(string id);
-        Task<Users?> GetUserByUserNameAsync(string userName);
+        Task<Users?> GetUserByUserNameAsync(string userName); // REQUIERE UN DTO
         Task<Users> CreateUserAsync(Users user);
         Task<Users> UpdateUserAsync(Users user);
         Task<bool> DeleteUserAsync(string id);

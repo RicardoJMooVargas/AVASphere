@@ -12,6 +12,7 @@ using AVASphere.Infrastructure.System.Configuration;
 using AVASphere.Infrastructure.System.Data;
 using AVASphere.Infrastructure.System.Repositories;
 using AVASphere.Infrastructure.Sales.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace AVASphere.Infrastructure;
 
@@ -54,6 +55,19 @@ public static class DependencyInjection
         services.AddSingleton<SalesMongoDbContext>(sp => new SalesMongoDbContext(connectionString, databaseName));
     }
 
+    private static void AddPostgreSqlConfiguration(IServiceCollection services, IConfiguration configuration)
+    {
+        var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING")
+                               ?? configuration.GetConnectionString("PostgreSql")
+                               ?? "Host=localhost;Database=VYAA_DB;Username=postgres;Password=postgres";
+
+        services.AddDbContext<CommonDbContext>(options =>
+            options.UseNpgsql(connectionString));
+
+        // Registrar Repositorio y Servicio
+        services.AddScoped<IConfigSysRepository, ConfigSysRepository>();
+        services.AddScoped<IConfigSysService, ConfigSysService>();
+    }
     private static void AddJwtAuthentication(IServiceCollection services, IConfiguration configuration)
     {
         // Configuración de JWT Settings usando variables de entorno del archivo .env

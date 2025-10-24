@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using AVASphere.ApplicationCore.System.Interfaces;
 using AVASphere.ApplicationCore.Sales.Interfaces;
+using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.Infrastructure.System.Services;
 using AVASphere.Infrastructure.Sales.Data;
 using AVASphere.Infrastructure.Sales.Repositories;
@@ -12,6 +13,9 @@ using AVASphere.Infrastructure.System.Configuration;
 using AVASphere.Infrastructure.System.Data;
 using AVASphere.Infrastructure.System.Repositories;
 using AVASphere.Infrastructure.Sales.Services;
+using AVASphere.Infrastructure.Common.Repositories;
+using AVASphere.Infrastructure.Common.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace AVASphere.Infrastructure;
 
@@ -19,27 +23,24 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Configuración de MongoDB
-        AddMongoDbConfiguration(services, configuration);
+        // CONFIGURACIONES DE BASES DE DATOS 
+        //AddMongoDbConfiguration(services, configuration); // migración a PostgreSQL
+        AddPostgreSqlConfiguration(services, configuration);
         
         // Configuración de JWT Authentication
         AddJwtAuthentication(services, configuration);
         
-        // Registrar servicios del módulo System
-        AddSystemServices(services);
-        
-        // Registrar servicios generales de inicialización
+        // Registrar servicios por módulo
         AddInitializationServices(services);
-
-        // Registrar servicios del módulo Sales
+        AddSystemServices(services);
         AddSalesServices(services);
-
+        AddCommonServices(services);
+        
         return services;
     }
-
+    /*
     private static void AddMongoDbConfiguration(IServiceCollection services, IConfiguration configuration)
     {
-        // Usar variables de entorno del archivo .env con fallback a configuración tradicional
         var connectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING") 
                               ?? configuration.GetSection("MongoDB:ConnectionString").Value 
                               ?? "mongodb://localhost:27017";
@@ -47,16 +48,22 @@ public static class DependencyInjection
                           ?? configuration.GetSection("MongoDB:DatabaseName").Value 
                           ?? "VYAACentralInforDB";
 
-        // Registrar SystemMongoDbContext como Singleton
         services.AddSingleton<SystemMongoDbContext>(sp => new SystemMongoDbContext(connectionString, databaseName));
-        
-        // Registrar SalesMongoDbContext como Singleton
         services.AddSingleton<SalesMongoDbContext>(sp => new SalesMongoDbContext(connectionString, databaseName));
+    }
+    */
+    private static void AddPostgreSqlConfiguration(IServiceCollection services, IConfiguration configuration)
+    {
+        var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING")
+                               ?? configuration.GetSection("DbSettings:ConnectionString").Value
+                               ?? "Host=localhost;Port=5432;Database=AVASphereDB;Username=postgres;Password=postgres;";
+            
+        services.AddDbContext<MasterDbContext>(options =>
+            options.UseNpgsql(connectionString));
     }
 
     private static void AddJwtAuthentication(IServiceCollection services, IConfiguration configuration)
     {
-        // Configuración de JWT Settings usando variables de entorno del archivo .env
         var jwtSettings = new JwtSettings
         {
             Key = Environment.GetEnvironmentVariable("JWT_KEY") 
@@ -74,11 +81,8 @@ public static class DependencyInjection
         };
 
         services.AddSingleton(jwtSettings);
-
-        // Registrar el servicio de Token
         services.AddTransient<ITokenService, TokenService>();
 
-        // Configuración de Authentication
         services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -102,30 +106,32 @@ public static class DependencyInjection
 
     private static void AddInitializationServices(IServiceCollection services)
     {
-        // Servicio general de inicialización de base de datos para todos los módulos
         services.AddHostedService<DatabaseInitializationService>();
     }
 
     private static void AddSystemServices(IServiceCollection services)
     {
-        // REPOSITORIOS DEL MÓDULO SYSTEM
+        /*
         services.AddScoped<IUserRepository, UserRepository>();
-
-        // SERVICIOS DEL MÓDULO SYSTEM
         services.AddScoped<IUserService, UserService>();
+        */
+        services.AddScoped<DbToolsServices>();
     }
-    
+
     private static void AddSalesServices(IServiceCollection services)
     {
-        // REPOSITORIOS DEL MÓDULO SALES
+        /*
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IQuotationRepository, QuotationRepository>();
         services.AddScoped<ISaleRepository, SaleRepository>();
-        
-        // SERVICIOS DEL MÓDULO SALES
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IQuotationService, QuotationService>();
-        //services.AddScoped<IQuotationFollowupsService, QuotationFollowupsService>(); // OBSOLETO: Los followups ahora se manejan en QuotationService
-        //services.AddScoped<ISaleService, SaleService>();
+        */
+    }
+
+    private static void AddCommonServices(IServiceCollection services)
+    {
+        services.AddScoped<IConfigSysRepository, ConfigSysRepository>();
+        services.AddScoped<IConfigSysService, ConfigSysService>();
     }
 }

@@ -26,7 +26,7 @@ public class DatabaseInitializationService : IHostedService
             _logger.LogInformation("Iniciando inicialización general de la base de datos...");
 
             // Inicializar datos del módulo System (Mongo)
-            await InitializeSystemModuleAsync(scope.ServiceProvider);
+            //await InitializeSystemModuleAsync(scope.ServiceProvider);
 
             // Inicializar datos del módulo Sales (Mongo)
             await InitializeSalesModuleAsync(scope.ServiceProvider);
@@ -46,6 +46,7 @@ public class DatabaseInitializationService : IHostedService
         return Task.CompletedTask;
     }
     // Método específico para inicializar el módulo System
+    /*
     private async Task InitializeSystemModuleAsync(IServiceProvider serviceProvider)
     {
         try
@@ -62,6 +63,7 @@ public class DatabaseInitializationService : IHostedService
             throw;
         }
     }
+    */
     // Método para futuras inicializaciones de otros módulos
     private async Task InitializeSalesModuleAsync(IServiceProvider serviceProvider)
     {

@@ -24,7 +24,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         // CONFIGURACIONES DE BASES DE DATOS 
-        AddMongoDbConfiguration(services, configuration);
+        //AddMongoDbConfiguration(services, configuration); // migración a PostgreSQL
         AddPostgreSqlConfiguration(services, configuration);
         
         // Configuración de JWT Authentication
@@ -38,7 +38,7 @@ public static class DependencyInjection
         
         return services;
     }
-
+    /*
     private static void AddMongoDbConfiguration(IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING") 
@@ -51,7 +51,7 @@ public static class DependencyInjection
         services.AddSingleton<SystemMongoDbContext>(sp => new SystemMongoDbContext(connectionString, databaseName));
         services.AddSingleton<SalesMongoDbContext>(sp => new SalesMongoDbContext(connectionString, databaseName));
     }
-
+    */
     private static void AddPostgreSqlConfiguration(IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING")
@@ -111,18 +111,22 @@ public static class DependencyInjection
 
     private static void AddSystemServices(IServiceCollection services)
     {
+        /*
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserService, UserService>();
+        */
         services.AddScoped<DbToolsServices>();
     }
 
     private static void AddSalesServices(IServiceCollection services)
     {
+        /*
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IQuotationRepository, QuotationRepository>();
         services.AddScoped<ISaleRepository, SaleRepository>();
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IQuotationService, QuotationService>();
+        */
     }
 
     private static void AddCommonServices(IServiceCollection services)

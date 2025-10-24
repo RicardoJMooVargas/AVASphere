@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using AVASphere.ApplicationCore.System.Interfaces;
 using AVASphere.ApplicationCore.Sales.Interfaces;
+using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.Infrastructure.System.Services;
 using AVASphere.Infrastructure.Sales.Data;
 using AVASphere.Infrastructure.Sales.Repositories;
@@ -12,6 +13,10 @@ using AVASphere.Infrastructure.System.Configuration;
 using AVASphere.Infrastructure.System.Data;
 using AVASphere.Infrastructure.System.Repositories;
 using AVASphere.Infrastructure.Sales.Services;
+using AVASphere.Infrastructure.Common.Data;
+using AVASphere.Infrastructure.Common.Repositories;
+using AVASphere.Infrastructure.Common.Services;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace AVASphere.Infrastructure;
@@ -20,21 +25,19 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Configuración de MongoDB
+        // CONFIGURACIONES DE BASES DE DATOS 
         AddMongoDbConfiguration(services, configuration);
+        AddPostgreSqlConfiguration(services, configuration);
         
         // Configuración de JWT Authentication
         AddJwtAuthentication(services, configuration);
         
-        // Registrar servicios del módulo System
-        AddSystemServices(services);
-        
-        // Registrar servicios generales de inicialización
+        // Registrar servicios por módulo
         AddInitializationServices(services);
-
-        // Registrar servicios del módulo Sales
-        AddSalesServices(services);
-
+        AddSystemServices(services); // USA MONGODB CAMBIAR
+        AddSalesServices(services); // USA MONGODB
+        AddCommonServices(services); // USA POSTGRESQL
+        
         return services;
     }
 
@@ -54,19 +57,15 @@ public static class DependencyInjection
         // Registrar SalesMongoDbContext como Singleton
         services.AddSingleton<SalesMongoDbContext>(sp => new SalesMongoDbContext(connectionString, databaseName));
     }
-
     private static void AddPostgreSqlConfiguration(IServiceCollection services, IConfiguration configuration)
     {
+        // Intenta leer desde variables de entorno primero
         var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING")
-                               ?? configuration.GetConnectionString("PostgreSql")
-                               ?? "Host=localhost;Database=VYAA_DB;Username=postgres;Password=postgres";
+                               ?? configuration.GetSection("DbSettings:ConnectionString").Value
+                               ?? "Host=localhost;Port=5432;Database=AVASphereDB;Username=postgres;Password=postgres;";
 
         services.AddDbContext<CommonDbContext>(options =>
             options.UseNpgsql(connectionString));
-
-        // Registrar Repositorio y Servicio
-        services.AddScoped<IConfigSysRepository, ConfigSysRepository>();
-        services.AddScoped<IConfigSysService, ConfigSysService>();
     }
     private static void AddJwtAuthentication(IServiceCollection services, IConfiguration configuration)
     {
@@ -113,13 +112,11 @@ public static class DependencyInjection
                 };
             });
     }
-
     private static void AddInitializationServices(IServiceCollection services)
     {
         // Servicio general de inicialización de base de datos para todos los módulos
         services.AddHostedService<DatabaseInitializationService>();
     }
-
     private static void AddSystemServices(IServiceCollection services)
     {
         // REPOSITORIOS DEL MÓDULO SYSTEM
@@ -128,7 +125,6 @@ public static class DependencyInjection
         // SERVICIOS DEL MÓDULO SYSTEM
         services.AddScoped<IUserService, UserService>();
     }
-    
     private static void AddSalesServices(IServiceCollection services)
     {
         // REPOSITORIOS DEL MÓDULO SALES
@@ -141,5 +137,13 @@ public static class DependencyInjection
         services.AddScoped<IQuotationService, QuotationService>();
         //services.AddScoped<IQuotationFollowupsService, QuotationFollowupsService>(); // OBSOLETO: Los followups ahora se manejan en QuotationService
         //services.AddScoped<ISaleService, SaleService>();
+    }
+    private static void AddCommonServices(IServiceCollection services)
+    {
+        // REPOSITORIOS DEL MÓDULO COMMON
+        services.AddScoped<IConfigSysRepository, ConfigSysRepository>();
+
+        // SERVICIOS DEL MÓDULO COMMON
+        services.AddScoped<IConfigSysService, ConfigSysService>();
     }
 }

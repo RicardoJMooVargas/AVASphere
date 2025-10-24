@@ -1,51 +1,51 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using AVASphere.Infrastructure.System.Services;
-namespace AVASphere.WebApi.System.Controllers;
+﻿    using Microsoft.AspNetCore.Mvc;
+    using AVASphere.Infrastructure.System.Services;
+    namespace AVASphere.WebApi.System.Controllers;
 
 
-[ApiController]
-[Route("api/system/[controller]")]
-[ApiExplorerSettings(GroupName = "System")]
-[Tags("System - Database Tools")]
-public class DbToolsController : ControllerBase
-{
-    private readonly DbToolsServices _dbTools;
-
-    public DbToolsController(DbToolsServices dbTools)
+    [ApiController]
+    [Route("api/system/[controller]")]
+    [ApiExplorerSettings(GroupName = "System")]
+    [Tags("System - Database Tools")]
+    public class DbToolsController : ControllerBase
     {
-        _dbTools = dbTools;
-    }
+        private readonly DbToolsServices _dbTools;
 
-    [HttpGet("check")]
-    public async Task<IActionResult> CheckConnection()
-    {
-        var (isConnected, hasData, message) = await _dbTools.CheckConnectionAsync();
-        return Ok(new
+        public DbToolsController(DbToolsServices dbTools)
         {
-            IsConnected = isConnected,
-            HasData = hasData,
-            Message = message
-        });
-    }
+            _dbTools = dbTools;
+        }
 
-    [HttpPost("create-migration")]
-    public async Task<IActionResult> CreateMigration([FromQuery] string name)
-    {
-        var result = await _dbTools.CreateMigrationAsync(name);
-        return Ok(new { Result = result });
-    }
+        [HttpGet("check")]
+        public async Task<IActionResult> CheckConnection()
+        {
+            var (isConnected, hasData, message) = await _dbTools.CheckConnectionAsync();
+            return Ok(new
+            {
+                IsConnected = isConnected,
+                HasData = hasData,
+                Message = message
+            });
+        }
 
-    [HttpPost("apply-migration")]
-    public async Task<IActionResult> ApplyMigration()
-    {
-        var result = await _dbTools.ApplyMigrationAsync();
-        return Ok(new { Result = result });
-    }
+        [HttpPost("create-migration")]
+        public async Task<IActionResult> CreateMigration([FromQuery] string name)
+        {
+            var result = await _dbTools.CreateMigrationAsync(name);
+            return Ok(new { Result = result });
+        }
 
-    [HttpDelete("drop")]
-    public async Task<IActionResult> DropDatabase()
-    {
-        var result = await _dbTools.DropDatabaseAsync();
-        return Ok(new { Result = result });
+        [HttpPost("apply-migration")]
+        public async Task<IActionResult> ApplyMigration()
+        {
+            var result = await _dbTools.ApplyMigrationAsync();
+            return Ok(new { Result = result });
+        }
+
+        [HttpDelete("drop")]
+        public async Task<IActionResult> DropDatabase()
+        {
+            var result = await _dbTools.DropTablesAsync();
+            return Ok(new { Result = result });
+        }
     }
-}

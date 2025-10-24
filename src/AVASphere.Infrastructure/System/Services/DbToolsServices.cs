@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace AVASphere.Infrastructure.System.Services
 {
@@ -175,6 +176,72 @@ namespace AVASphere.Infrastructure.System.Services
             {
                 _logger.LogError(ex, "Error eliminando la base de datos");
                 return $"❌ Error eliminando base de datos: {ex.Message}";
+            }
+        }
+
+        // 3️⃣ Eliminar solo las tablas (VERSIÓN DETALLADA CON CONFIGURACIÓN)
+        public async Task<string> DropTablesAsync()
+        {
+            try
+            {
+                // Obtener connectionString desde IConfiguration
+                var connectionString = _configuration.GetConnectionString("DefaultConnection")
+                                      ?? _configuration.GetSection("DbSettings:ConnectionString").Value
+                                      ?? "Host=localhost;Port=5432;Database=AVASphereDB;Username=postgres;Password=postgres;";
+
+                await using var connection = new NpgsqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                // 1. Obtener lista de tablas
+                await using var getTablesCmd = new NpgsqlCommand(@"
+                    SELECT tablename 
+                    FROM pg_tables 
+                    WHERE schemaname = 'public' 
+                    AND tablename != '__EFMigrationsHistory'", connection);
+                
+                var tables = new List<string>();
+                await using (var reader = await getTablesCmd.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        tables.Add(reader.GetString(0));
+                    }
+                }
+
+                if (!tables.Any())
+                {
+                    return "ℹ️ No hay tablas que eliminar";
+                }
+
+                // 2. Deshabilitar constraints
+                await using var disableCmd = new NpgsqlCommand("SET session_replication_role = 'replica'", connection);
+                await disableCmd.ExecuteNonQueryAsync();
+
+                // 3. Eliminar cada tabla
+                foreach (var table in tables)
+                {
+                    try
+                    {
+                        await using var dropCmd = new NpgsqlCommand($"DROP TABLE IF EXISTS \"{table}\" CASCADE", connection);
+                        await dropCmd.ExecuteNonQueryAsync();
+                        _logger.LogInformation($"Tabla eliminada: {table}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Error eliminando tabla {table}: {ex.Message}");
+                    }
+                }
+
+                // 4. Rehabilitar constraints
+                await using var enableCmd = new NpgsqlCommand("SET session_replication_role = 'origin'", connection);
+                await enableCmd.ExecuteNonQueryAsync();
+
+                return $"🗑️ {tables.Count} tablas eliminadas exitosamente";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando tablas");
+                return $"❌ Error eliminando tablas: {ex.Message}";
             }
         }
 

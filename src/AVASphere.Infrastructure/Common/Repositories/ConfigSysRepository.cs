@@ -1,29 +1,29 @@
 ﻿using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Common.Entities;
-using AVASphere.Infrastructure.Common.Data;
 using Microsoft.EntityFrameworkCore;
+
 namespace AVASphere.Infrastructure.Common.Repositories;
 
 public class ConfigSysRepository : IConfigSysRepository
 {
-    private readonly CommonDbContext _context;
+    private readonly MasterDbContext _context;
 
-    public ConfigSysRepository(CommonDbContext context)
+    public ConfigSysRepository(MasterDbContext context)
     {
         _context = context;
     }
 
     public async Task<ConfigSys?> GetAsync()
     {
-        return await _context.Configurations.FirstOrDefaultAsync();
+        return await _context.ConfigSys.FirstOrDefaultAsync();
     }
 
     public async Task AddOrUpdateAsync(ConfigSys config)
     {
-        var existing = await _context.Configurations.FirstOrDefaultAsync();
+        var existing = await _context.ConfigSys.FirstOrDefaultAsync();
         if (existing == null)
         {
-            await _context.Configurations.AddAsync(config);
+            await _context.ConfigSys.AddAsync(config);
         }
         else
         {

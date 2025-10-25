@@ -10,4 +10,15 @@ public class IndividualProjectQuote
   public double Amount { get; set; }
   public double Total { get; set; }
   public double TotalWaste { get; set; }
+  
+  // FK
+  public int IdProjectQuotes { get; set; }
+  public ProjectQuotes ProjectQuotes { get; set; } = null!;
+  
+  public int IdProjectCategory { get; set; }
+  public ProjectCategory ProjectCategory { get; set; } = null!;
+  
+  public ICollection<IndividualListingProperties> IndividualListingProperties { get; set; } = new List<IndividualListingProperties>();
+  public ICollection<ListOfProductsToQuot> ListOfProductsToQuot { get; set; } = new List<ListOfProductsToQuot>();
+
 }

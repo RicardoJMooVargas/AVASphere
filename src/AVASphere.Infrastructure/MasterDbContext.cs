@@ -8,20 +8,27 @@ namespace AVASphere.Infrastructure;
 public class MasterDbContext : DbContext
 {
     public MasterDbContext(DbContextOptions<MasterDbContext> options)
-        : base(options) { }
-
+        : base(options)
+    {
+    }
+    // MODULO DE COMMON
     public DbSet<Users> Users { get; set; } = null!;
     public DbSet<Rols> Rols { get; set; } = null!;
     public DbSet<Areas> Areas { get; set; } = null!;
     public DbSet<ConfigSys> ConfigSys { get; set; } = null!;
+    // MODULO DE SALES
+    
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        // MODULE Common
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ConfigSysEntitieConfig).Assembly);
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(UsersEntitieConfig).Assembly);
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(RolsEntitieConfig).Assembly);
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AreasEntitieConfig).Assembly);
+
+        // MODULO DE COMMON
+        modelBuilder.ApplyConfiguration(new ConfigSysEntitieConfig());
+        modelBuilder.ApplyConfiguration(new UsersEntitieConfig());
+        modelBuilder.ApplyConfiguration(new RolsEntitieConfig());
+        modelBuilder.ApplyConfiguration(new AreasEntitieConfig());
+        // MODULO DE SALES
+        //........
     }
 }

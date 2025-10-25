@@ -1,6 +1,4 @@
-﻿
-
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using AVASphere.ApplicationCore.Common.Entities;
 
@@ -12,8 +10,11 @@ namespace AVASphere.Infrastructure.Common.Configuration
         {
             entity.ToTable("Users");
             entity.HasKey(e => e.IdUsers);
-
-            entity.Property(e => e.UserName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.UserName)
+                .HasMaxLength(100)
+                .IsRequired();
+            entity.HasIndex(e => e.UserName)
+                .IsUnique();
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.LastName).HasMaxLength(100);
             entity.Property(e => e.Password).HasMaxLength(255);

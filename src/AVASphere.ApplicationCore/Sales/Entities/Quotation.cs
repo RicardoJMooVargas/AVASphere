@@ -29,7 +29,7 @@ public class Quotation
     public string? GeneralComment { get; set; }
 
     [BsonElement("followups")]
-    public List<QuotationFollowups> Followups { get; set; } = new List<QuotationFollowups>();
+    public List<QuotationFollowups> Followups { get; set; } = new List<QuotationFollowups>(); // CONVERTIR A UN JSON CUANDO SE MIGRE A POSTGRESQL
 
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

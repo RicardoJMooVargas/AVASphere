@@ -112,21 +112,19 @@ public static class DependencyInjection
     private static void AddSystemServices(IServiceCollection services)
     {
         /*
-        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUsersRepository, UserRepository>();
         services.AddScoped<IUserService, UserService>();
         */
         services.AddScoped<DbToolsServices>();
     }
-
+    
     private static void AddSalesServices(IServiceCollection services)
     {
-        /*
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IQuotationRepository, QuotationRepository>();
         services.AddScoped<ISaleRepository, SaleRepository>();
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IQuotationService, QuotationService>();
-        */
     }
 
     private static void AddCommonServices(IServiceCollection services)

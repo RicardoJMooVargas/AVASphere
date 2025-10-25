@@ -44,26 +44,7 @@ public class DatabaseInitializationService : IHostedService
     {
         _logger.LogInformation("Deteniendo servicio de inicialización general de base de datos...");
         return Task.CompletedTask;
-    }
-    // Método específico para inicializar el módulo System
-    /*
-    private async Task InitializeSystemModuleAsync(IServiceProvider serviceProvider)
-    {
-        try
-        {
-            var userService = serviceProvider.GetRequiredService<IUserService>();
-            
-            _logger.LogInformation("Inicializando datos por defecto del módulo System...");
-            await userService.InitializeDefaultUserAsync();
-            _logger.LogInformation("Módulo System inicializado correctamente.");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al inicializar el módulo System");
-            throw;
-        }
-    }
-    */
+    } 
     // Método para futuras inicializaciones de otros módulos
     private async Task InitializeSalesModuleAsync(IServiceProvider serviceProvider)
     {

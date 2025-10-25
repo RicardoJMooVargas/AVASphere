@@ -2,7 +2,7 @@
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace AVASphere.ApplicationCore.Sales.Entities;
-
+// CONVERTIR A JSON DENTRO DE COTIZACIONES
 public class QuotationFollowups
 {
     [BsonId]

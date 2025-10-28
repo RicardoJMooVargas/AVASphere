@@ -4,18 +4,14 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using AVASphere.ApplicationCore.System.Interfaces;
-using AVASphere.ApplicationCore.Sales.Interfaces;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.Infrastructure.System.Services;
-using AVASphere.Infrastructure.Sales.Data;
-using AVASphere.Infrastructure.Sales.Repositories;
 using AVASphere.Infrastructure.System.Configuration;
-using AVASphere.Infrastructure.System.Data;
-using AVASphere.Infrastructure.System.Repositories;
-using AVASphere.Infrastructure.Sales.Services;
 using AVASphere.Infrastructure.Common.Data.Repositories;
+using AVASphere.Infrastructure.Common.Security;
 using AVASphere.Infrastructure.Common.Services;
 using Microsoft.EntityFrameworkCore;
+using Npgsql; // ✅ AGREGAR ESTE USING
 
 namespace AVASphere.Infrastructure;
 
@@ -24,7 +20,6 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         // CONFIGURACIONES DE BASES DE DATOS 
-        //AddMongoDbConfiguration(services, configuration); // migración a PostgreSQL
         AddPostgreSqlConfiguration(services, configuration);
         
         // Configuración de JWT Authentication
@@ -38,28 +33,23 @@ public static class DependencyInjection
         
         return services;
     }
-    /*
-    private static void AddMongoDbConfiguration(IServiceCollection services, IConfiguration configuration)
-    {
-        var connectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING") 
-                              ?? configuration.GetSection("MongoDB:ConnectionString").Value 
-                              ?? "mongodb://localhost:27017";
-        var databaseName = Environment.GetEnvironmentVariable("MONGODB_DATABASE_NAME") 
-                          ?? configuration.GetSection("MongoDB:DatabaseName").Value 
-                          ?? "VYAACentralInforDB";
 
-        services.AddSingleton<SystemMongoDbContext>(sp => new SystemMongoDbContext(connectionString, databaseName));
-        services.AddSingleton<SalesMongoDbContext>(sp => new SalesMongoDbContext(connectionString, databaseName));
-    }
-    */
     private static void AddPostgreSqlConfiguration(IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING")
                                ?? configuration.GetSection("DbSettings:ConnectionString").Value
                                ?? "Host=localhost;Port=5432;Database=AVASphereDB;Username=postgres;Password=postgres;";
-            
+        
+        // Configurar Npgsql para JSON dinámico
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+        
+        // Configurar el data source con JSON dinámico habilitado
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+        dataSourceBuilder.EnableDynamicJson();
+        var dataSource = dataSourceBuilder.Build();
+        
         services.AddDbContext<MasterDbContext>(options =>
-            options.UseNpgsql(connectionString));
+            options.UseNpgsql(dataSource));
     }
 
     private static void AddJwtAuthentication(IServiceCollection services, IConfiguration configuration)
@@ -111,26 +101,26 @@ public static class DependencyInjection
 
     private static void AddSystemServices(IServiceCollection services)
     {
-        /*
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IUserService, UserService>();
-        */
         services.AddScoped<DbToolsServices>();
     }
     
     private static void AddSalesServices(IServiceCollection services)
     {
-        // generan erores.
-        //services.AddScoped<ICustomerRepository, CustomerRepository>();
-        //services.AddScoped<IQuotationRepository, QuotationRepository>();
-        //services.AddScoped<ISaleRepository, SaleRepository>();
-        //services.AddScoped<ICustomerService, CustomerService>();
-        //services.AddScoped<IQuotationService, QuotationService>();
+        // servicios de ventas si los necesitas
     }
 
     private static void AddCommonServices(IServiceCollection services)
     {
         services.AddScoped<IConfigSysRepository, ConfigSysRepository>();
         services.AddScoped<IConfigSysService, ConfigSysService>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IAreaRepository, AreaRepository>();
+        services.AddScoped<IAreaService, AreaService>();
+        services.AddScoped<IRolRepository, RolRepository>();
+        services.AddScoped<IRolService, RolService>();
+        // Servicios de seguridad
+        services.AddScoped<IEncryptionService, EncryptionService>();
+        
     }
 }

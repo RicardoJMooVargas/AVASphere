@@ -38,32 +38,23 @@ public class UsersController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Solicitando usuario con ID: {IdUsers}", idUsers);
+            _logger.LogInformation("Solicitando usuario con ID: {IdUser}", idUsers);
             
-            var user = await _userService.SearchUsersAsync(idUsers);
+            var user = await _userService.SearchUsersAsync(idUsers, null);
             return Ok(user);
         }
         catch (KeyNotFoundException ex)
         {
-            _logger.LogWarning(ex, "Usuario con ID {IdUsers} no encontrado", idUsers);
+            _logger.LogWarning(ex, "Usuario con ID {IdUser} no encontrado", idUsers);
             return NotFound(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener usuario con ID {IdUsers}", idUsers);
+            _logger.LogError(ex, "Error al obtener usuario con ID {IdUser}", idUsers);
             return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error interno del servidor" });
         }
     }
 
-    /// <summary>
-    /// Crea un nuevo usuario
-    /// </summary>
-    /// <param name="request">Datos del usuario a crear</param>
-    /// <returns>Usuario creado</returns>
-    /// <response code="201">Usuario creado exitosamente</response>
-    /// <response code="400">Solicitud inválida</response>
-    /// <response code="409">El nombre de usuario ya existe</response>
-    /// <response code="500">Error interno del servidor</response>
     [HttpPost]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -74,9 +65,9 @@ public class UsersController : ControllerBase
         try
         {
             _logger.LogInformation("Creando nuevo usuario: {UserName}", request.UserName);
-            
+        
             var user = await _userService.NewUsersAsync(request);
-            
+        
             return CreatedAtAction(
                 nameof(GetUser), 
                 new { idUsers = user.IdUsers }, 
@@ -87,6 +78,11 @@ public class UsersController : ControllerBase
         {
             _logger.LogWarning(ex, "Intento de crear usuario duplicado: {UserName}", request.UserName);
             return Conflict(new { message = ex.Message });
+        }
+        catch (ArgumentException ex) when (ex.Message.Contains("contraseña"))
+        {
+            _logger.LogWarning(ex, "Contraseña inválida para usuario: {UserName}", request.UserName);
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -122,14 +118,14 @@ public class UsersController : ControllerBase
                 return BadRequest(new { message = "El ID de la ruta no coincide con el ID del usuario" });
             }
 
-            _logger.LogInformation("Actualizando usuario con ID: {IdUsers}", idUsers);
+            _logger.LogInformation("Actualizando usuario con ID: {IdUser}", idUsers);
             
             var user = await _userService.EditUsersAsync(request);
             return Ok(user);
         }
         catch (KeyNotFoundException ex)
         {
-            _logger.LogWarning(ex, "Usuario con ID {IdUsers} no encontrado para actualizar", idUsers);
+            _logger.LogWarning(ex, "Usuario con ID {IdUser} no encontrado para actualizar", idUsers);
             return NotFound(new { message = ex.Message });
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("ya está en uso"))
@@ -139,7 +135,7 @@ public class UsersController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al actualizar usuario con ID {IdUsers}", idUsers);
+            _logger.LogError(ex, "Error al actualizar usuario con ID {IdUser}", idUsers);
             return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error interno del servidor" });
         }
     }

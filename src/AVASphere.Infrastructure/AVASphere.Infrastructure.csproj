@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Common\Data\" />
+    <Folder Include="System\Data\" />
     <Folder Include="System\Migrations\" />
   </ItemGroup>
 

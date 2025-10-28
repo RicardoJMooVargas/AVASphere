@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using AVASphere.ApplicationCore.System.Interfaces;
 using AVASphere.ApplicationCore.System;
-
+/*
 namespace AVASphere.WebApi.System.Controllers
 {
     [ApiController]
@@ -86,3 +86,4 @@ namespace AVASphere.WebApi.System.Controllers
         }
     }
 }
+*/

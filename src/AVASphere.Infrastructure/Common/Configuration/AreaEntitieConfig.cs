@@ -13,16 +13,16 @@ public class AreaEntitieConfig : IEntityTypeConfiguration<Area>
 
         entity.Property(e => e.Name)
             .HasMaxLength(100)
-            .IsRequired(); // Agregar si es requerido
+            .IsRequired();
 
         entity.Property(e => e.NormalizedName)
             .HasMaxLength(100)
-            .IsRequired(); // Agregar si es requerido
+            .IsRequired();
 
-        // Configurar la relación con Rol si es necesario
+        // SOLO UNA configuración de relación
         entity.HasMany(a => a.Rol)
-            .WithOne() // O .WithOne(r => r.Area) si tienes propiedad de navegación en Rol
-            .HasForeignKey("AreaId") // Especificar FK si es necesario
-            .OnDelete(DeleteBehavior.Cascade); // O el comportamiento que necesites
+            .WithOne(r => r.Area)
+            .HasForeignKey(r => r.IdArea) // Usar solo IdArea
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

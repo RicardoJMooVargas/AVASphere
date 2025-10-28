@@ -9,7 +9,7 @@ namespace AVASphere.Infrastructure.Common.Configuration
         public void Configure(EntityTypeBuilder<User> entity)
         {
             entity.ToTable("User");
-            entity.HasKey(e => e.IdUsers);
+            entity.HasKey(e => e.IdUser);
             entity.Property(e => e.UserName)
                 .HasMaxLength(100)
                 .IsRequired();

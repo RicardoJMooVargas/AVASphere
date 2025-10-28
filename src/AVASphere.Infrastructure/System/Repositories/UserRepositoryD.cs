@@ -1,15 +1,16 @@
 using MongoDB.Driver;
 using AVASphere.ApplicationCore.System;
 using AVASphere.ApplicationCore.System.Interfaces;
-using AVASphere.Infrastructure.System.Data;
+
+/*
 
 namespace AVASphere.Infrastructure.System.Repositories
 {
-    public class UserRepository : IUserRepository
+    public class UserRepositoryD : IUserRepository
     {
         private readonly IMongoCollection<Users> _usersCollection;
 
-        public UserRepository(SystemMongoDbContext context)
+        public UserRepositoryD(SystemMongoDbContext context)
         {
             _usersCollection = context.Users;
         }
@@ -21,7 +22,7 @@ namespace AVASphere.Infrastructure.System.Repositories
 
         public async Task<Users?> GetUserByIdAsync(string id)
         {
-            return await _usersCollection.Find(x => x.IdUsers == id).FirstOrDefaultAsync();
+            return await _usersCollection.Find(x => x.IdUser == id).FirstOrDefaultAsync();
         }
 
         public async Task<Users?> GetUserByUserNameAsync(string userName)
@@ -37,13 +38,13 @@ namespace AVASphere.Infrastructure.System.Repositories
 
         public async Task<Users> UpdateUserAsync(Users user)
         {
-            await _usersCollection.ReplaceOneAsync(x => x.IdUsers == user.IdUsers, user);
+            await _usersCollection.ReplaceOneAsync(x => x.IdUser == user.IdUser, user);
             return user;
         }
 
         public async Task<bool> DeleteUserAsync(string id)
         {
-            var result = await _usersCollection.DeleteOneAsync(x => x.IdUsers == id);
+            var result = await _usersCollection.DeleteOneAsync(x => x.IdUser == id);
             return result.DeletedCount > 0;
         }
 
@@ -54,3 +55,4 @@ namespace AVASphere.Infrastructure.System.Repositories
         }
     }
 }
+*/

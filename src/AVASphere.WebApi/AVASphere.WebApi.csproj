@@ -20,4 +20,8 @@
     <ProjectReference Include="..\AVASphere.Infrastructure\AVASphere.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Common\Filters\" />
+  </ItemGroup>
+
 </Project>

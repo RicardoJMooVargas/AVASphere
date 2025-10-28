@@ -1,11 +1,11 @@
 namespace AVASphere.ApplicationCore.Common.Entities;
 public class User
 {
-    public int IdUsers { get; set; }
+    public int IdUser { get; set; }
     public string UserName { get; set; } = null!;
     public string? Name { get; set; }
     public string? LastName { get; set; }
-    public string? Password { get; set; }
+    public string? Password { get; set; } // TERMINA SIENDO NULL NO GUARDAR EN BD O QUITAR EL CAMPO.
     public string? HashPassword { get; set; }
     public string? Status { get; set; }
     public string? Aux { get; set; }

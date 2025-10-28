@@ -2,7 +2,7 @@ using AVASphere.ApplicationCore.System.Interfaces;
 using AVASphere.ApplicationCore.System;
 using System.Security.Cryptography;
 using System.Text;
-
+/*
 namespace AVASphere.Infrastructure.System.Services
 {
     public class UserService : IUserService
@@ -94,3 +94,4 @@ namespace AVASphere.Infrastructure.System.Services
         }
     }
 }
+*/

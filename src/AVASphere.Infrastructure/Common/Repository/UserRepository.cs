@@ -23,8 +23,8 @@ public class UserRepository : IUserRepository
         var query = _context.Users.AsQueryable();
 
         // Aplicar filtros dinámicos basados en los campos no nulos/no vacíos
-        if (user.IdUsers > 0)
-            query = query.Where(u => u.IdUsers == user.IdUsers);
+        if (user.IdUser > 0)
+            query = query.Where(u => u.IdUser == user.IdUser);
 
         if (!string.IsNullOrEmpty(user.UserName))
             query = query.Where(u => u.UserName.ToLower() == user.UserName.ToLower());
@@ -58,7 +58,7 @@ public class UserRepository : IUserRepository
 
         return await _context.Users
             .Include(u => u.Rol)
-            .FirstOrDefaultAsync(u => u.IdUsers == idUsers);
+            .FirstOrDefaultAsync(u => u.IdUser == idUsers);
     }
 
     /// <inheritdoc/>
@@ -93,16 +93,16 @@ public class UserRepository : IUserRepository
         if (user == null)
             throw new ArgumentNullException(nameof(user));
 
-        if (user.IdUsers <= 0)
-            throw new ArgumentException("El ID de usuario debe ser mayor a 0", nameof(user.IdUsers));
+        if (user.IdUser <= 0)
+            throw new ArgumentException("El ID de usuario debe ser mayor a 0", nameof(user.IdUser));
 
         // Validar que el usuario existe
         var existingUser = await _context.Users
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.IdUsers == user.IdUsers);
+            .FirstOrDefaultAsync(u => u.IdUser == user.IdUser);
 
         if (existingUser == null)
-            throw new ArgumentException($"El usuario con ID {user.IdUsers} no existe");
+            throw new ArgumentException($"El usuario con ID {user.IdUser} no existe");
 
         // Validar que el Rol existe si se está actualizando
         if (user.IdRol > 0 && user.IdRol != existingUser.IdRol)

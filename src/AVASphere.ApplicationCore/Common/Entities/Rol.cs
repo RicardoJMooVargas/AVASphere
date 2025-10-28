@@ -7,8 +7,9 @@ public class Rols
     public string? NormalizedName { get; set; }
 
     // JSON
-    public string? Permissions { get; set; }
-    public string? Modules { get; set; }
+    public Permissions? Permissions { get; set; }
+    public Modules? Modules { get; set; }
+    
 
     // FK
     public int IdAreas { get; set; }

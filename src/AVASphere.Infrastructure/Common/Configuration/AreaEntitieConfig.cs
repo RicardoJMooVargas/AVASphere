@@ -4,12 +4,12 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace AVASphere.ApplicationCore.Common.Configuration;
 
-public class AreasEntitieConfig : IEntityTypeConfiguration<Areas>
+public class AreaEntitieConfig : IEntityTypeConfiguration<Area>
 {
-    public void Configure(EntityTypeBuilder<Areas> entity)
+    public void Configure(EntityTypeBuilder<Area> entity)
     {
-        entity.ToTable("Areas");
-        entity.HasKey(e => e.IdAreas);
+        entity.ToTable("Area");
+        entity.HasKey(e => e.IdArea);
 
         entity.Property(e => e.Name)
             .HasMaxLength(100)
@@ -19,9 +19,9 @@ public class AreasEntitieConfig : IEntityTypeConfiguration<Areas>
             .HasMaxLength(100)
             .IsRequired(); // Agregar si es requerido
 
-        // Configurar la relación con Rols si es necesario
-        entity.HasMany(a => a.Rols)
-            .WithOne() // O .WithOne(r => r.Area) si tienes propiedad de navegación en Rols
+        // Configurar la relación con Rol si es necesario
+        entity.HasMany(a => a.Rol)
+            .WithOne() // O .WithOne(r => r.Area) si tienes propiedad de navegación en Rol
             .HasForeignKey("AreaId") // Especificar FK si es necesario
             .OnDelete(DeleteBehavior.Cascade); // O el comportamiento que necesites
     }

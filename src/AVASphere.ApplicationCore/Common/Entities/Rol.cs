@@ -1,24 +1,24 @@
 namespace AVASphere.ApplicationCore.Common.Entities;
 
-public class Rols
+public class Rol
 {
-    public int IdRols { get; set; }
+    public int IdRol { get; set; }
     public string Name { get; set; } = null!;
     public string? NormalizedName { get; set; }
 
     // JSON
-    public string? Permissions { get; set; }
-    public string? Modules { get; set; }
+    public List<Permission>? Permissions { get; set; }
+    public List<Module>? Modules { get; set; }
 
     // FK
-    public int IdAreas { get; set; }
-    public Areas Areas { get; set; } = null!;
+    public int IdArea { get; set; }
+    public Area Area { get; set; } = null!;
 
-    public ICollection<Users> Users { get; set; } = new List<Users>();
+    public ICollection<User> User { get; set; } = new List<User>();
 }
 
 
-public class Permissions
+public class Permission
 {
     public int Index { get; set; }
     public string? Name { get; set; } 
@@ -27,7 +27,7 @@ public class Permissions
     public string? Status { get; set; }
     
 }
-public class Modules
+public class Module
 {
     public int Index { get; set; }
     public string? Name { get; set; } 

@@ -12,9 +12,9 @@ public class MasterDbContext : DbContext
     {
     }
     // MODULO DE COMMON
-    public DbSet<Users> Users { get; set; } = null!;
-    public DbSet<Rols> Rols { get; set; } = null!;
-    public DbSet<Areas> Areas { get; set; } = null!;
+    public DbSet<User> Users { get; set; } = null!;
+    public DbSet<Rol> Rols { get; set; } = null!;
+    public DbSet<Area> Areas { get; set; } = null!;
     public DbSet<ConfigSys> ConfigSys { get; set; } = null!;
     // MODULO DE SALES
     
@@ -25,9 +25,9 @@ public class MasterDbContext : DbContext
 
         // MODULO DE COMMON
         modelBuilder.ApplyConfiguration(new ConfigSysEntitieConfig());
-        modelBuilder.ApplyConfiguration(new UsersEntitieConfig());
-        modelBuilder.ApplyConfiguration(new RolsEntitieConfig());
-        modelBuilder.ApplyConfiguration(new AreasEntitieConfig());
+        modelBuilder.ApplyConfiguration(new UserEntitieConfig());
+        modelBuilder.ApplyConfiguration(new RolEntitieConfig());
+        modelBuilder.ApplyConfiguration(new AreaEntitieConfig());
         // MODULO DE SALES
         //........
     }

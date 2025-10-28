@@ -3,19 +3,19 @@ using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.Infrastructure;
 
-namespace AVASphere.Infrastructure.Common.Repositories;
+namespace AVASphere.Infrastructure.Common.Data.Repositories;
 
-public class UsersRepository : IUsersRepository
+public class UserRepository : IUserRepository
 {
     private readonly MasterDbContext _context;
 
-    public UsersRepository(MasterDbContext context)
+    public UserRepository(MasterDbContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }
 
     /// <inheritdoc/>
-    public async Task<Users> SelectUserAsync(Users user) 
+    public async Task<User> SelectUserAsync(User user) 
     {
         if (user == null)
             throw new ArgumentNullException(nameof(user));
@@ -41,28 +41,28 @@ public class UsersRepository : IUsersRepository
         if (!string.IsNullOrEmpty(user.Verified))
             query = query.Where(u => u.Verified == user.Verified);
 
-        if (user.IdRols > 0)
-            query = query.Where(u => u.IdRols == user.IdRols);
+        if (user.IdRol > 0)
+            query = query.Where(u => u.IdRol == user.IdRol);
 
-        // Incluir la relación con Rols
-        query = query.Include(u => u.Rols);
+        // Incluir la relación con Rol
+        query = query.Include(u => u.Rol);
 
         return await query.FirstOrDefaultAsync();
     }
 
     /// <inheritdoc/>
-    public async Task<Users> SelectByIdAsync(int idUsers)
+    public async Task<User> SelectByIdAsync(int idUsers)
     {
         if (idUsers <= 0)
             throw new ArgumentException("El ID de usuario debe ser mayor a 0", nameof(idUsers));
 
         return await _context.Users
-            .Include(u => u.Rols)
+            .Include(u => u.Rol)
             .FirstOrDefaultAsync(u => u.IdUsers == idUsers);
     }
 
     /// <inheritdoc/>
-    public async Task CreateUsersAsync(Users user)
+    public async Task CreateUsersAsync(User user)
     {
         if (user == null)
             throw new ArgumentNullException(nameof(user));
@@ -72,9 +72,9 @@ public class UsersRepository : IUsersRepository
             throw new ArgumentException("El nombre de usuario no puede estar vacío", nameof(user.UserName));
 
         // Validar que el Rol existe
-        var rolExists = await _context.Rols.AnyAsync(r => r.IdRols == user.IdRols);
+        var rolExists = await _context.Rols.AnyAsync(r => r.IdRol == user.IdRol);
         if (!rolExists)
-            throw new ArgumentException($"El rol con ID {user.IdRols} no existe");
+            throw new ArgumentException($"El rol con ID {user.IdRol} no existe");
 
         // Establecer valores por defecto si no se proporcionan
         if (string.IsNullOrEmpty(user.Status))
@@ -88,7 +88,7 @@ public class UsersRepository : IUsersRepository
     }
 
     /// <inheritdoc/>
-    public async Task UpdateUsersAsync(Users user)
+    public async Task UpdateUsersAsync(User user)
     {
         if (user == null)
             throw new ArgumentNullException(nameof(user));
@@ -105,11 +105,11 @@ public class UsersRepository : IUsersRepository
             throw new ArgumentException($"El usuario con ID {user.IdUsers} no existe");
 
         // Validar que el Rol existe si se está actualizando
-        if (user.IdRols > 0 && user.IdRols != existingUser.IdRols)
+        if (user.IdRol > 0 && user.IdRol != existingUser.IdRol)
         {
-            var rolExists = await _context.Rols.AnyAsync(r => r.IdRols == user.IdRols);
+            var rolExists = await _context.Rols.AnyAsync(r => r.IdRol == user.IdRol);
             if (!rolExists)
-                throw new ArgumentException($"El rol con ID {user.IdRols} no existe");
+                throw new ArgumentException($"El rol con ID {user.IdRol} no existe");
         }
 
         // Actualizar el usuario

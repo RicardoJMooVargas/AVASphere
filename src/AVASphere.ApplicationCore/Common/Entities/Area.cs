@@ -1,11 +1,11 @@
 namespace AVASphere.ApplicationCore.Common.Entities;
 
 
-public class Areas
+public class Area
 {
-    public int IdAreas { get; set; }
+    public int IdArea { get; set; }
     public string? Name { get; set; }
     public string? NormalizedName { get; set; }
 
-    public ICollection<Rols> Rols { get; set; } = new List<Rols>();
+    public ICollection<Rol> Rol { get; set; } = new List<Rol>();
 }

@@ -2,7 +2,7 @@
 using AVASphere.ApplicationCore.Common.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace AVASphere.Infrastructure.Common.Repositories;
+namespace AVASphere.Infrastructure.Common.Data.Repositories;
 
 public class ConfigSysRepository : IConfigSysRepository
 {

@@ -1,5 +1,5 @@
 namespace AVASphere.ApplicationCore.Common.Entities;
-public class Users
+public class User
 {
     public int IdUsers { get; set; }
     public string UserName { get; set; } = null!;
@@ -13,6 +13,6 @@ public class Users
     public string? Verified { get; set; }
 
     // FK
-    public int IdRols { get; set; }
-    public Rols Rols { get; set; } = null!;
+    public int IdRol { get; set; }
+    public Rol Rol { get; set; } = null!;
 }

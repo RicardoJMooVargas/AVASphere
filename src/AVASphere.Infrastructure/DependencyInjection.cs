@@ -13,7 +13,7 @@ using AVASphere.Infrastructure.System.Configuration;
 using AVASphere.Infrastructure.System.Data;
 using AVASphere.Infrastructure.System.Repositories;
 using AVASphere.Infrastructure.Sales.Services;
-using AVASphere.Infrastructure.Common.Repositories;
+using AVASphere.Infrastructure.Common.Data.Repositories;
 using AVASphere.Infrastructure.Common.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -112,7 +112,7 @@ public static class DependencyInjection
     private static void AddSystemServices(IServiceCollection services)
     {
         /*
-        services.AddScoped<IUsersRepository, UserRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserService, UserService>();
         */
         services.AddScoped<DbToolsServices>();
@@ -120,11 +120,12 @@ public static class DependencyInjection
     
     private static void AddSalesServices(IServiceCollection services)
     {
-        services.AddScoped<ICustomerRepository, CustomerRepository>();
-        services.AddScoped<IQuotationRepository, QuotationRepository>();
-        services.AddScoped<ISaleRepository, SaleRepository>();
-        services.AddScoped<ICustomerService, CustomerService>();
-        services.AddScoped<IQuotationService, QuotationService>();
+        // generan erores.
+        //services.AddScoped<ICustomerRepository, CustomerRepository>();
+        //services.AddScoped<IQuotationRepository, QuotationRepository>();
+        //services.AddScoped<ISaleRepository, SaleRepository>();
+        //services.AddScoped<ICustomerService, CustomerService>();
+        //services.AddScoped<IQuotationService, QuotationService>();
     }
 
     private static void AddCommonServices(IServiceCollection services)

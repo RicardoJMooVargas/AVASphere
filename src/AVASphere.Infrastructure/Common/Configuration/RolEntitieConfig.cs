@@ -3,19 +3,20 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace AVASphere.Infrastructure.Common.Configuration;
 
-public class RolsEntitieConfig : IEntityTypeConfiguration<Rols>
+public class RolEntitieConfig : IEntityTypeConfiguration<Rol>
 {
-    public void Configure(EntityTypeBuilder<Rols> entity)
+    public void Configure(EntityTypeBuilder<Rol> entity)
     {
-        entity.ToTable("Rols");
-        entity.HasKey(e => e.IdRols);
+        // PONER EN PLURAL LA TABLA
+        entity.ToTable("Rol");
+        entity.HasKey(e => e.IdRol);
 
         entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
         entity.Property(e => e.NormalizedName).HasMaxLength(100);
 
-        entity.HasOne(r => r.Areas)
-            .WithMany(a => a.Rols)
-            .HasForeignKey(r => r.IdAreas)
+        entity.HasOne(r => r.Area)
+            .WithMany(a => a.Rol)
+            .HasForeignKey(r => r.IdArea)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Campos JSONB
@@ -26,5 +27,6 @@ public class RolsEntitieConfig : IEntityTypeConfiguration<Rols>
         entity.Property(e => e.Modules)
             .HasColumnType("jsonb")
             .HasDefaultValueSql("'[]'::jsonb");
+
     }
 }

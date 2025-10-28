@@ -4,11 +4,11 @@ using AVASphere.ApplicationCore.Common.Entities;
 
 namespace AVASphere.Infrastructure.Common.Configuration
 {
-    public class UsersEntitieConfig : IEntityTypeConfiguration<Users>
+    public class UserEntitieConfig : IEntityTypeConfiguration<User>
     {
-        public void Configure(EntityTypeBuilder<Users> entity)
+        public void Configure(EntityTypeBuilder<User> entity)
         {
-            entity.ToTable("Users");
+            entity.ToTable("User");
             entity.HasKey(e => e.IdUsers);
             entity.Property(e => e.UserName)
                 .HasMaxLength(100)
@@ -24,9 +24,9 @@ namespace AVASphere.Infrastructure.Common.Configuration
             entity.Property(e => e.CreateAt).HasMaxLength(50);
             entity.Property(e => e.Verified).HasMaxLength(10);
 
-            entity.HasOne(u => u.Rols)
-                .WithMany(r => r.Users)
-                .HasForeignKey(u => u.IdRols)
+            entity.HasOne(u => u.Rol)
+                .WithMany(r => r.User)
+                .HasForeignKey(u => u.IdRol)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

@@ -5,6 +5,7 @@ using AVASphere.ApplicationCore.Common.DTOs;
 using Microsoft.IdentityModel.Tokens;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Common.Entities;
+using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.System.Interfaces;
 using AVASphere.Infrastructure.System.Configuration;
 
@@ -36,6 +37,7 @@ public class TokenService : ITokenService
     }
 
     // ✅ Sobrecarga para User (entidad)
+    
     public string GenerateToken(User user)
     {
         var claims = new List<Claim>
@@ -52,6 +54,7 @@ public class TokenService : ITokenService
     }
 
     // ✅ Método privado para crear el token
+    
     private string CreateToken(List<Claim> claims)
     {
         var tokenHandler = new JwtSecurityTokenHandler();

@@ -1,6 +1,6 @@
-﻿using AVASphere.ApplicationCore.Common.Configuration;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using AVASphere.ApplicationCore.Common.Entities;
+using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.Infrastructure.Common.Configuration;
 
 namespace AVASphere.Infrastructure;

@@ -1,4 +1,4 @@
-﻿namespace AVASphere.ApplicationCore.Common.Entities;
+﻿namespace AVASphere.ApplicationCore.Common.Entities.General;
 
 public class ConfigSys
 {

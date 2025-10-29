@@ -1,8 +1,9 @@
 ﻿using AVASphere.ApplicationCore.Common.Entities;
+using AVASphere.ApplicationCore.Common.Entities.General;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace AVASphere.ApplicationCore.Common.Configuration;
+namespace AVASphere.Infrastructure.Common.Configuration;
 
 public class ConfigSysEntitieConfig : IEntityTypeConfiguration<ConfigSys>
 {

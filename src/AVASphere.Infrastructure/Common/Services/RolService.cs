@@ -1,5 +1,6 @@
 ﻿using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Common.Entities;
+using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 

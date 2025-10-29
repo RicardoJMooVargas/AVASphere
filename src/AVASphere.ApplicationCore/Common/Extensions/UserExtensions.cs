@@ -1,5 +1,6 @@
 ﻿using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Common.Entities;
+using AVASphere.ApplicationCore.Common.Entities.General;
 
 namespace AVASphere.ApplicationCore.Common.Extensions;
 

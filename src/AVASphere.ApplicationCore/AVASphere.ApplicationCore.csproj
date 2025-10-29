@@ -14,4 +14,10 @@
       <Folder Include="Sales\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="Projects\Entities\IndividualProjectQuotes.cs" />
+      <Compile Remove="Projects\Entities\ProjectQuotes.cs" />
+      <Compile Remove="Projects\Entities\Visits.cs" />
+    </ItemGroup>
+
 </Project>

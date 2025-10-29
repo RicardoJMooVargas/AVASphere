@@ -1,7 +1,6 @@
 ﻿using AVASphere.ApplicationCore.Common.Entities.General;
 
 namespace AVASphere.ApplicationCore.Projects.Entities.General;
-using AVASphere.ApplicationCore.Common.Entities;
 
 public class Project
 {

@@ -7,5 +7,4 @@ public class IndividualListingProperties
     // FK
     public int IdIndividualProjectQuotes { get; set; }
     public IndividualProjectQuote IndividualProjectQuotes { get; set; } = null!;
-    
 }

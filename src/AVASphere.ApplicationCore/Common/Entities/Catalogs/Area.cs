@@ -9,5 +9,6 @@ public class Area
     public string? Name { get; set; }
     public string? NormalizedName { get; set; }
 
+    // RELACIONES
     public ICollection<Rol> Rol { get; set; } = new List<Rol>();
 }

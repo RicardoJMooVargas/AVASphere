@@ -9,4 +9,7 @@ public class PropertyValue
     // FK
     public int IdProperty { get; set; }
     public Property Property { get; set; } = null!;
+    
+    // RELACIONES
+    public ICollection<ProductProperties> ProductProperties { get; set; } = new List<ProductProperties>();
 }

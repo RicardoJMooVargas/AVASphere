@@ -1,4 +1,4 @@
-namespace AVASphere.ApplicationCore.Common.Entities.General;
+namespace AVASphere.ApplicationCore.Common.Entities.Jsons;
 
 public class SolutionsJson
 {

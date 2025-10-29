@@ -1,6 +1,6 @@
 ﻿using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
 
-namespace AVASphere.ApplicationCore.Projects.Entities;
+namespace AVASphere.ApplicationCore.Projects.Entities.General;
 
 public class TechnicalDesign
 {

@@ -1,4 +1,5 @@
 ﻿using AVASphere.ApplicationCore.Common.Entities.General;
+using AVASphere.ApplicationCore.Common.Entities.Jsons;
 
 namespace AVASphere.ApplicationCore.Common.Entities.Products;
 
@@ -15,6 +16,8 @@ public class Product
     // FK
     public int IdSupplier { get; set; }
     public Supplier Supplier { get; set; } = null!;
+    
+    // RELACIONES
     public ICollection<ProductProperties> ProductProperties { get; set; } = new List<ProductProperties>();
     
     //JSON

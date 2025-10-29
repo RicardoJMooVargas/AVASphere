@@ -8,19 +8,19 @@ namespace AVASphere.WebApi.Common.Controllers;
 [ApiController]
 [Route("api/common/[controller]")]
 [ApiExplorerSettings(GroupName = nameof(SystemModule.Common))]
-[Tags("Common - Areas")]
-public class AreaController : ControllerBase
+[Tags("Common - Catalogs")]
+public class CatalogsController : ControllerBase
 {
     private readonly IAreaService _areaService;
-    private readonly ILogger<AreaController> _logger;
+    private readonly ILogger<CatalogsController> _logger;
     
-    public AreaController(IAreaService areaService, ILogger<AreaController> logger)
+    public CatalogsController(IAreaService areaService, ILogger<CatalogsController> logger)
     {
         _areaService = areaService;
         _logger = logger;
     }
     
-    [HttpPost("new")]
+    [HttpPost("new-area")]
     public async Task<IActionResult> NewArea([FromBody] AreaRequestDto areaRequest)
     {
         try
@@ -42,7 +42,7 @@ public class AreaController : ControllerBase
             return StatusCode(500, "Internal server error");
         }
     }
-    [HttpGet("get")]
+    [HttpGet("get-areas")]
     public async Task<IActionResult> GetAreas([FromQuery] int? id, [FromQuery] string? name)
     {
         try
@@ -77,9 +77,7 @@ public class AreaController : ControllerBase
             return StatusCode(500, "Internal server error");
         }
     }
-
-
-    [HttpPut("edit/{id}")]
+    [HttpPut("edit-areas/{id}")]
     public async Task<IActionResult> UpdateArea(int id, [FromBody] AreaRequestDto areaRequest)
     {
         try
@@ -104,8 +102,7 @@ public class AreaController : ControllerBase
             return StatusCode(500, "Internal server error");
         }
     }
-
-    [HttpDelete("delete/{id}")]
+    [HttpDelete("delete-areas/{id}")]
     public async Task<IActionResult> DeleteArea(int id)
     {
         try

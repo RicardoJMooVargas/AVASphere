@@ -13,5 +13,4 @@ public class Visit
     
     public int IdCustomer { get; set; }
     public Customer Customer { get; set; } = null!;
-    
 }

@@ -1,4 +1,5 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.Products;
+﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
+using AVASphere.ApplicationCore.Common.Entities.Products;
 
 namespace AVASphere.ApplicationCore.Common.Entities.General;
 // CATALOGO DE PROVEEDORES
@@ -15,13 +16,14 @@ public class Supplier
     public DateTime RegistrationDate { get; set;}
     public string? Observations { get; set; }
     
-    // FK
+    // RELACIONES
     public ICollection<Product> Product { get; set; } = new List<Product>();
     
     // JSON
     public ContactsJson? ContactsJson { get; set; } 
-    public PaymentTerms? PaymentTerms { get; set; } // NO USAR POR EL MOMENTO
-    public PaymentMethods? PaymentMethods { get; set; } // NO USAR POR EL MOMENTO
+    public PaymentTermsJson? PaymentTermsJson { get; set; }
+    public PaymentMethodsJson? PaymentMethodsJson { get; set; } // NO USAR POR EL MOMENTO
+    
 }
 
 public class ContactsJson
@@ -32,21 +34,4 @@ public class ContactsJson
     public string? Email { get; set; }
 }
 
-public class PaymentTerms
-{
-    public int Index { get; set; }
-    public string? PaymentType { get; set; }
-    public DateTime ExpirationDate { get; set; }
-    public string? TypeOfCurrency { get; set;}
-}
 
-public class PaymentMethods
-{
-    public int Index { get; set; }
-    public string? Code { get; set; }
-    public string? Description { get; set; }
-    public string? Bank { get; set; }
-    public int AccountNumber { get; set; }
-    public string? ReferencePayment { get; set; }
-    public string? Currency { get; set; }
-}

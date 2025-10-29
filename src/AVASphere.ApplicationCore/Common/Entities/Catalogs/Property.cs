@@ -4,8 +4,9 @@ public class Property
 {
     public int IdCatalog { get; set; }
     public string? Name { get; set; }
+    public string? NormalizedName { get; set; }
     
-    // FK
+    
+    // RELACIONES
     public ICollection<PropertyValue> CatalogValue { get; set; } = new List<PropertyValue>();
-
 }

@@ -8,7 +8,7 @@ public class ProjectCategory
     public string? Name { get; set; }
     public string? NormalizedName { get; set; }
     
-    // FK
+    // Relaciones
     public ICollection<IndividualProjectQuote> IndividualProjectQuotes { get; set; } = new List<IndividualProjectQuote>();
     public ICollection<ListOfCategories> ListOfCategories { get; set; } = new List<ListOfCategories>();
     public ICollection<ListOfProductsByCategory> ListOfProductsByCategory { get; set; } = new List<ListOfProductsByCategory>();

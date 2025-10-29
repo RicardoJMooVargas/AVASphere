@@ -1,8 +1,10 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using AVASphere.ApplicationCore.Common.DTOs;
 using Microsoft.IdentityModel.Tokens;
-using AVASphere.ApplicationCore.System;
+using AVASphere.ApplicationCore.Common.Interfaces;
+using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.System.Interfaces;
 using AVASphere.Infrastructure.System.Configuration;
 
@@ -17,20 +19,43 @@ public class TokenService : ITokenService
         _jwtSettings = jwtSettings;
     }
 
-    public string GenerateToken(Users user)
+    // ✅ Sobrecarga para UserResponse
+    public string GenerateToken(UserResponse user)
+    {
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.IdUsers.ToString()),
+            new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
+            new Claim("Name", user.Name ?? string.Empty),
+            new Claim("LastName", user.LastName ?? string.Empty),
+            new Claim(ClaimTypes.Role, user.RolName ?? "User"),
+            new Claim("Status", user.Status ?? "Unknown")
+        };
+
+        return CreateToken(claims);
+    }
+
+    // ✅ Sobrecarga para User (entidad)
+    public string GenerateToken(User user)
+    {
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.IdUser.ToString()),
+            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim("Name", user.Name ?? string.Empty),
+            new Claim("LastName", user.LastName ?? string.Empty),
+            new Claim(ClaimTypes.Role, user.Rol?.Name ?? "User"),
+            new Claim("Status", user.Status ?? "Unknown")
+        };
+
+        return CreateToken(claims);
+    }
+
+    // ✅ Método privado para crear el token
+    private string CreateToken(List<Claim> claims)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_jwtSettings.Key);
-
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.IdUsers),
-            new Claim(ClaimTypes.Name, user.UserName),
-            new Claim("Name", user.Name),
-            new Claim("LastName", user.LastName),
-            new Claim(ClaimTypes.Role, user.Rol),
-            new Claim("Status", user.Status.ToString())
-        };
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {

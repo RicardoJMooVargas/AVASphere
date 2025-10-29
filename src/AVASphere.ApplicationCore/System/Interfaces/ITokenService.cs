@@ -1,6 +1,10 @@
-﻿namespace AVASphere.ApplicationCore.System.Interfaces;
+﻿using AVASphere.ApplicationCore.Common.DTOs;
+using AVASphere.ApplicationCore.Common.Entities;
+
+namespace AVASphere.ApplicationCore.System.Interfaces;
 
 public interface ITokenService
 {
-    string GenerateToken(Users user);
+    string GenerateToken(UserResponse user);
+    string GenerateToken(User user);
 }

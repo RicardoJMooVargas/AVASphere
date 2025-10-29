@@ -23,4 +23,21 @@
 - test/test-name : para agregar o modificar pruebas
 - refactor/refactor-name : para reestructurar codigo sin cambiar funcionalidad
 
-## testings 
+## Reglas de migración
+
+```bash
+dotnet ef migrations add Initial `
+  --project src/AVASphere.Infrastructure `
+  --startup-project src/AVASphere.Infrastructure `
+  --context MasterDbContext `
+  --output-dir System/Migrations
+
+```
+
+```bash
+dotnet ef database update `
+  --project src/AVASphere.Infrastructure `
+  --startup-project src/AVASphere.Infrastructure `
+  --context MasterDbContext
+
+```

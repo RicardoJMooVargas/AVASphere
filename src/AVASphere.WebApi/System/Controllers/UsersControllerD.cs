@@ -1,13 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using AVASphere.ApplicationCore.System.Interfaces;
 using AVASphere.ApplicationCore.System;
-
+/*
 namespace AVASphere.WebApi.System.Controllers
 {
     [ApiController]
     [Route("api/system/[controller]")]
     [ApiExplorerSettings(GroupName = "System")]
-    [Tags("System - Users")]
+    [Tags("System - User")]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -86,3 +86,4 @@ namespace AVASphere.WebApi.System.Controllers
         }
     }
 }
+*/

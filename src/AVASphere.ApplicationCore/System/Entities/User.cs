@@ -1,13 +1,13 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-
+/*
 namespace AVASphere.ApplicationCore.System
 {
     public class Users
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
-        public string IdUsers { get; set; } = string.Empty;
+        public string IdUser { get; set; } = string.Empty;
 
         [BsonElement("userName")]
         public string UserName { get; set; } = string.Empty;
@@ -40,3 +40,4 @@ namespace AVASphere.ApplicationCore.System
         public bool Verified { get; set; } = false;
     }
 }
+*/

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Common.DTOs;
+using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Extensions;
 
 namespace AVASphere.Infrastructure.Common.Services;

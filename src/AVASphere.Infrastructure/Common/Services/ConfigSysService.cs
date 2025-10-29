@@ -1,5 +1,7 @@
 ﻿using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Common.Entities;
+using AVASphere.ApplicationCore.Common.Entities.General;
+
 namespace AVASphere.Infrastructure.Common.Services;
 
 public class ConfigSysService : IConfigSysService

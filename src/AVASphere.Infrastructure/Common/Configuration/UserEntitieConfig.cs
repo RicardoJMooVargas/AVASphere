@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using AVASphere.ApplicationCore.Common.Entities;
+using AVASphere.ApplicationCore.Common.Entities.General;
 
 namespace AVASphere.Infrastructure.Common.Configuration
 {

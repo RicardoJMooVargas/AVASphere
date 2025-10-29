@@ -8,6 +8,7 @@ using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.Infrastructure.System.Services;
 using AVASphere.Infrastructure.System.Configuration;
 using AVASphere.Infrastructure.Common.Data.Repositories;
+using AVASphere.Infrastructure.Common.Repository;
 using AVASphere.Infrastructure.Common.Security;
 using AVASphere.Infrastructure.Common.Services;
 using Microsoft.EntityFrameworkCore;

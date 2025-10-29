@@ -24,8 +24,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="System\Data\" />
     <Folder Include="System\Migrations\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="System\Migrations\20251028194207_Initial.cs" />
+    <Compile Remove="System\Migrations\20251028194207_Initial.Designer.cs" />
   </ItemGroup>
 
 </Project>

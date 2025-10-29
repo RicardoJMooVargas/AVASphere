@@ -1,8 +1,9 @@
 ﻿using AVASphere.ApplicationCore.Common.Entities;
+using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace AVASphere.Infrastructure.Common.Data.Repositories;
+namespace AVASphere.Infrastructure.Common.Repository;
 public class RolRepository : IRolRepository
 {
     private readonly MasterDbContext _context;

@@ -1,5 +1,6 @@
 ﻿using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
 using AVASphere.ApplicationCore.Projects.Entities.General;
+using AVASphere.ApplicationCore.Sales.Entities;
 
 namespace AVASphere.ApplicationCore.Common.Entities.General
 {
@@ -15,7 +16,7 @@ namespace AVASphere.ApplicationCore.Common.Entities.General
         public ICollection<NotUseModuleJson> NotUseModules { get; set; } = new List<NotUseModuleJson>();
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        
+
         // FK DESACTIVADO, FUERA DE USO
         //public int IdBranchOffice { get; set; } = 0;
         //public BranchOffice? BranchOffice { get; set; } = null;
@@ -24,9 +25,9 @@ namespace AVASphere.ApplicationCore.Common.Entities.General
         // TOCA ENTIDAD ANCLA DE SU MODULO DEBE IR AQUÍ
         public ICollection<User> Users { get; set; } = new List<User>();
         // public ICollection<Project> Projects { get; set; } = new List<Project>();
-        // public ICollection<Quotation> Quotations { get; set; } = new List<Quotation>();
+        public ICollection<Quotation> Quotations { get; set; } = new List<Quotation>();
         // public ICollection<Sale> Sales { get; set; } = new List<Sale>();
-        
+
     }
 
     public class ColorsJson

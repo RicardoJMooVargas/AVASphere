@@ -5,6 +5,8 @@ using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
 using AVASphere.Infrastructure.Common.Configuration;
 using AVASphere.Infrastructure.Projects.Configuration;
+using AVASphere.Infrastructure.Sales.Configuration;
+using AVASphere.ApplicationCore.Sales.Entities;
 
 namespace AVASphere.Infrastructure;
 
@@ -20,9 +22,10 @@ public class MasterDbContext : DbContext
     public DbSet<Area> Areas { get; set; } = null!;
     public DbSet<ConfigSys> ConfigSys { get; set; } = null!;
     public DbSet<Customer> Customers { get; set; } = null!;
+
     //public DbSet<BranchOffice> BranchOffices { get; set; } = null!;
     // MODULO DE SALES
-    
+    public DbSet<Quotation> Quotations { get; set; } = null!;
     // MODULO PROJECTS
     public DbSet<ProjectCategory> ProjectCategory { get; set; } = null!;
     
@@ -39,7 +42,7 @@ public class MasterDbContext : DbContext
         modelBuilder.ApplyConfiguration(new CustomerEntitieConfig());
         //modelBuilder.ApplyConfiguration(new BranchOfficeEntitieConfig());
         // MODULO DE SALES
-        
+        modelBuilder.ApplyConfiguration(new QuotationEntititeConfig());
         // MODULO DE PROJECTS
         modelBuilder.ApplyConfiguration(new ProjectCategoryEntitieConfig());
         //........

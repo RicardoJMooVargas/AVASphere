@@ -1,25 +1,38 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using AVASphere.ApplicationCore.Common.Entities.General;
 namespace AVASphere.ApplicationCore.Sales.Entities;
 
 public class Quotation
 {
     public int QuotationId { get; set; }
+
     public DateTime SaleDate { get; set; } = DateTime.UtcNow;
+
     public string Status { get; set; } = "PENDIENTE";
+
     // Lista de IDs de ejecutivos de venta; si tus user ids son ints, cambia a List<int>
     public List<string> SalesExecutives { get; set; } = new List<string>();
+
     public int Folio { get; set; }
+
     // FK al cliente; usando int según tu decisión
     public int CustomerId { get; set; }
+
     public string? GeneralComment { get; set; }
+
     // Campo que se mantendrá como JSONB en Postgres (serialización de la clase QuotationFollowupsJson)
     public List<QuotationFollowupsJson> Followups { get; set; } = new List<QuotationFollowupsJson>();
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
     // Propiedad de navegación opcional para incluir datos del cliente (si lo necesitas)
     public Customer? Customer { get; set; }
+
+    // Propiedad de navegación para ConfigSys
+    public ConfigSys? ConfigSys { get; set; }
 }
 
 public class QuotationFollowupsJson

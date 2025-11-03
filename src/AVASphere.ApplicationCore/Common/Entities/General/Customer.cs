@@ -1,4 +1,5 @@
 ﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
+using AVASphere.ApplicationCore.Sales.Entities;
 namespace AVASphere.ApplicationCore.Common.Entities.General;
 
 
@@ -6,19 +7,20 @@ public class Customer
 {
     public int IdCustomer { get; set; }
     public int ExternalId { get; set; }
-    public string? Name { get; set;}
+    public string? Name { get; set; }
     public string? LastName { get; set; }
     public int PhoneNumber { get; set; }
-    public string? Email { get; set;}
-    public string? TaxId {get; set;}
+    public string? Email { get; set; }
+    public string? TaxId { get; set; }
     // JSON
     public SettingsCustomerJson? SettingsCustomerJson { get; set; } = null!;
     public DirectionJson DirectionJson { get; set; } = null!;
-    public PaymentMethodsJson? PaymentMethodsJson { get; set;} = null!;
+    public PaymentMethodsJson? PaymentMethodsJson { get; set; } = null!;
     public PaymentTermsJson? PaymentTermsJson { get; set; } = null!;
     // FALTARIAN CFDI Y REGIMEN FISCAL ??
-    
+
     // Relaciones
+    public List<Quotation> Quotations { get; set; } = new List<Quotation>();
 }
 
 public class SettingsCustomerJson

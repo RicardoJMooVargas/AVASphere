@@ -6,61 +6,61 @@ using System.Text.Json;
 
 namespace AVASphere.Infrastructure.Sales.Configuration;
 
-public class QuotationEntititeConfig
+public class QuotationEntititeConfig : IEntityTypeConfiguration<Quotation>
 {
-    public void Configure(EntityTypeBuilder<Quotation> builder)
+    public void Configure(EntityTypeBuilder<Quotation> entity)
     {
-        builder.ToTable("Quotations");
+        entity.ToTable("Quotations");
 
         // PK entero autoincremental
-        builder.HasKey(q => q.QuotationId);
-        builder.Property(q => q.QuotationId)
-        .HasColumnName("quotation_id")
+        entity.HasKey(q => q.QuotationId);
+        entity.Property(q => q.QuotationId)
+        .HasColumnName("IdQuotation")
         .ValueGeneratedOnAdd();
 
-        builder.Property(q => q.SaleDate)
-            .HasColumnName("sale_date")
+        entity.Property(q => q.SaleDate)
+            .HasColumnName("SaleDate")
             .IsRequired();
 
-        builder.Property(q => q.Status)
-            .HasColumnName("status")
+        entity.Property(q => q.Status)
+            .HasColumnName("Status")
             .IsRequired()
             .HasMaxLength(50);
 
         // SalesExecutives: guardado como JSONB (lista de strings o ints)
-        builder.Property(q => q.SalesExecutives)
-            .HasColumnName("sales_executives")
+        entity.Property(q => q.SalesExecutives)
+            .HasColumnName("SalesExecutives")
             .HasColumnType("jsonb")
-            .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-                v => string.IsNullOrEmpty(v) ? new List<string>() : JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>()
-            )
+            .HasDefaultValueSql("'[]'::jsonb");
+
+        entity.Property(q => q.Folio)
+        .HasColumnName("Folio");
+
+        entity.Property(q => q.CustomerId)
+            .HasColumnName("IdCustomer")
             .IsRequired();
 
-        builder.Property(q => q.Folio)
-        .HasColumnName("folio");
+        entity.Property(q => q.GeneralComment)
+            .HasColumnName("GeneralComment")
+            .HasColumnType("text");
 
-        builder.Property(q => q.CustomerId)
-            .HasColumnName("customer_id")
-            .IsRequired();
+        entity.Property(q => q.Followups)
+        .HasColumnName("FollowupsJson")
+           .HasColumnType("jsonb")
+            .HasDefaultValueSql("'[]'::jsonb");
 
-        builder.Property(q => q.GeneralComment)
-            .HasColumnName("general_comment")
-            .HasMaxLength("text");
+        entity.Property(q => q.CreatedAt)
+            .HasColumnName("CreatedAt");
 
-        builder.Property(q => q.Followups)
-            .HasColumnName("followups")
-            .HasColumnType("jsonb")
-            .HasConversion(
-                v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
-                v => string.IsNullOrEmpty(v) ? new List<QuotationFollowupsJson>() : JsonSerializer.Deserialize<List<QuotationFollowupsJson>>(v, (JsonSerializerOptions?)null) ?? new List<QuotationFollowupsJson>()
-            );
+        entity.Property(q => q.UpdatedAt)
+            .HasColumnName("UpdatedAt");
 
-        builder.Property(q => q.CreatedAt)
-            .HasColumnName("created_at");
-
-        builder.Property(q => q.UpdatedAt)
-            .HasColumnName("updated_at");
+        // Relación con Customer (bidireccional)
+        entity.HasOne(q => q.Customer)
+              .WithMany(c => c.Quotations)
+              .HasForeignKey(q => q.CustomerId)
+              .HasConstraintName("FK_Quotations_Customers_IdCustomer")
+              .OnDelete(DeleteBehavior.Restrict);
 
 
 

@@ -107,7 +107,8 @@ public static class DependencyInjection
     
     private static void AddSalesServices(IServiceCollection services)
     {
-        // servicios de ventas si los necesitas
+        // placeholder para registrar servicios del módulo Sales
+        _ = services; // evitar advertencia de parámetro no usado
     }
 
     private static void AddCommonServices(IServiceCollection services)
@@ -120,6 +121,8 @@ public static class DependencyInjection
         services.AddScoped<IAreaService, AreaService>();
         services.AddScoped<IRolRepository, RolRepository>();
         services.AddScoped<IRolService, RolService>();
+        services.AddScoped<ICustomerRepository, CustomerRepository>();
+        services.AddScoped<ICustomerService, CustomerService>();
         // Servicios de seguridad
         services.AddScoped<IEncryptionService, EncryptionService>();
         

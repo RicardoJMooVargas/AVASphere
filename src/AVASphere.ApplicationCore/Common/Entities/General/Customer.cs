@@ -17,6 +17,8 @@ public class Customer
     public PaymentMethodsJson? PaymentMethodsJson { get; set;} = null!;
     public PaymentTermsJson? PaymentTermsJson { get; set; } = null!;
     // FALTARIAN CFDI Y REGIMEN FISCAL ??
+    
+    // Relaciones
 }
 
 public class SettingsCustomerJson

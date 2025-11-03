@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.Entities;
+﻿using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

@@ -1,6 +1,6 @@
 using AVASphere.ApplicationCore.Common.Entities.General;
 
-namespace AVASphere.ApplicationCore.Common.Entities;
+namespace AVASphere.ApplicationCore.Common.Entities.Catalogs;
 
 // CATALOG AREA
 public class Area
@@ -11,4 +11,5 @@ public class Area
 
     // RELACIONES
     public ICollection<Rol> Rol { get; set; } = new List<Rol>();
+    
 }

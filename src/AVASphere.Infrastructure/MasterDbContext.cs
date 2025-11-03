@@ -1,7 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using AVASphere.ApplicationCore.Common.Entities;
+using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.General;
+using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
 using AVASphere.Infrastructure.Common.Configuration;
+using AVASphere.Infrastructure.Projects.Configuration;
 
 namespace AVASphere.Infrastructure;
 
@@ -19,6 +22,9 @@ public class MasterDbContext : DbContext
     //public DbSet<BranchOffice> BranchOffices { get; set; } = null!;
     // MODULO DE SALES
     
+    // MODULO PROJECTS
+    public DbSet<ProjectCategory> ProjectCategory { get; set; } = null!;
+    
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,6 +37,9 @@ public class MasterDbContext : DbContext
         modelBuilder.ApplyConfiguration(new AreaEntitieConfig());
         //modelBuilder.ApplyConfiguration(new BranchOfficeEntitieConfig());
         // MODULO DE SALES
+        
+        // MODULO DE PROJECTS
+        modelBuilder.ApplyConfiguration(new ProjectCategoryEntitieConfig());
         //........
     }
 }

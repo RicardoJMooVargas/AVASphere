@@ -1,3 +1,5 @@
+using AVASphere.ApplicationCore.Common.Entities.Catalogs;
+
 namespace AVASphere.ApplicationCore.Common.Entities.General;
 
 public class Rol
@@ -13,6 +15,7 @@ public class Rol
     // FK
     public int IdArea { get; set; }
     public Area Area { get; set; } = null!;
+    
 
     public ICollection<User> Users { get; set; } = new List<User>();
 }

@@ -15,6 +15,9 @@ public class Project
     public int IdProjectQuotes { get; set; }
     public ProjectQuote ProjectQuote { get; set; } = null!;
     
+    public int IdConfigSys { get; set; }
+    public ConfigSys ConfigSys { get; set; } = null!;
+    
     public int IdVisits { get; set; }
     public Visit Visit { get; set; } = null!;
     

@@ -11,10 +11,10 @@ public class ProjectCategory
     
     // Relaciones
     
-    public int IdConfigSys { get; set; }
-    public ConfigSys ConfigSys { get; set; } = null!;
-    public ICollection<IndividualProjectQuote> IndividualProjectQuotes { get; set; } = new List<IndividualProjectQuote>();
-    public ICollection<ListOfCategories> ListOfCategories { get; set; } = new List<ListOfCategories>();
-    public ICollection<ListOfProductsByCategory> ListOfProductsByCategory { get; set; } = new List<ListOfProductsByCategory>();
-    public ICollection<TechnicalDesign> TechnicalDesigns { get; set; } = new List<TechnicalDesign>();
+   // public int IdConfigSys { get; set; }
+   // public ConfigSys ConfigSys { get; set; } = null!;
+   // public ICollection<IndividualProjectQuote> IndividualProjectQuotes { get; set; } = new List<IndividualProjectQuote>();
+   // public ICollection<ListOfCategories> ListOfCategories { get; set; } = new List<ListOfCategories>();
+   // public ICollection<ListOfProductsByCategory> ListOfProductsByCategory { get; set; } = new List<ListOfProductsByCategory>();
+   // public ICollection<TechnicalDesign> TechnicalDesigns { get; set; } = new List<TechnicalDesign>();
 }

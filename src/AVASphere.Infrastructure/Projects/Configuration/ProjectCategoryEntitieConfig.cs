@@ -21,9 +21,10 @@ namespace AVASphere.Infrastructure.Projects.Configuration;
                 .IsRequired();
             
             // RELACIONES
-            entity.HasMany(pc => pc.IndividualProjectQuotes) // ICollection<IndividualProjectQuote>
+           /* entity.HasMany(pc => pc.IndividualProjectQuotes) // ICollection<IndividualProjectQuote>
                 .WithOne(ipq => ipq.ProjectCategory) // IndividualProjectQuote.ProjectCategory
                 .HasForeignKey(ipq => ipq.IdProjectCategory) // FK en IndividualProjectQuote
                 .OnDelete(DeleteBehavior.Cascade);
+                */
         }
     }

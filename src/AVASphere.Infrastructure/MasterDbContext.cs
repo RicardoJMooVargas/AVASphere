@@ -19,6 +19,7 @@ public class MasterDbContext : DbContext
     public DbSet<Rol> Rols { get; set; } = null!;
     public DbSet<Area> Areas { get; set; } = null!;
     public DbSet<ConfigSys> ConfigSys { get; set; } = null!;
+    public DbSet<Customer> Customers { get; set; } = null!;
     //public DbSet<BranchOffice> BranchOffices { get; set; } = null!;
     // MODULO DE SALES
     
@@ -35,6 +36,7 @@ public class MasterDbContext : DbContext
         modelBuilder.ApplyConfiguration(new UserEntitieConfig());
         modelBuilder.ApplyConfiguration(new RolEntitieConfig());
         modelBuilder.ApplyConfiguration(new AreaEntitieConfig());
+        modelBuilder.ApplyConfiguration(new CustomerEntitieConfig());
         //modelBuilder.ApplyConfiguration(new BranchOfficeEntitieConfig());
         // MODULO DE SALES
         

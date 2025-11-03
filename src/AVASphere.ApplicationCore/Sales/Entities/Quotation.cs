@@ -1,43 +1,49 @@
-﻿using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
-
+﻿using System;
+using System.Collections.Generic;
+using AVASphere.ApplicationCore.Common.Entities.General;
 namespace AVASphere.ApplicationCore.Sales.Entities;
 
 public class Quotation
 {
-    [BsonId]
-    [BsonRepresentation(BsonType.ObjectId)]
-    public string QuotationId { get; set; } = string.Empty;
+    public int QuotationId { get; set; }
 
-    [BsonElement("saleDate")]
     public DateTime SaleDate { get; set; } = DateTime.UtcNow;
 
-    [BsonElement("status")]
-    public string Status { get; set; } = "PENDIENTE"; // Pending, Accepted, Rejected
+    public string Status { get; set; } = "PENDIENTE";
 
-    [BsonElement("salesExecutives")]
-    public List<string> SalesExecutives { get; set; } = new List<string>(); // User IDs, first one is the creator/owner
+    // Lista de IDs de ejecutivos de venta; si tus user ids son ints, cambia a List<int>
+    public List<string> SalesExecutives { get; set; } = new List<string>();
 
-    [BsonElement("folio")]
     public int Folio { get; set; }
 
-    [BsonElement("customerId")]
-    [BsonRepresentation(BsonType.ObjectId)]
-    public string CustomerId { get; set; } = string.Empty;
+    // FK al cliente; usando int según tu decisión
+    public int CustomerId { get; set; }
 
-    [BsonElement("generalComment")]
     public string? GeneralComment { get; set; }
 
-    [BsonElement("followups")]
-    public List<QuotationFollowups> Followups { get; set; } = new List<QuotationFollowups>(); // CONVERTIR A UN JSON CUANDO SE MIGRE A POSTGRESQL
+    // Campo que se mantendrá como JSONB en Postgres (serialización de la clase QuotationFollowupsJson)
+    public List<QuotationFollowupsJson> Followups { get; set; } = new List<QuotationFollowupsJson>();
 
-    [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    [BsonElement("updatedAt")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    // Propiedad no persistida para obtener los datos del cliente cuando sea necesario
-    [BsonIgnore]
+    // Propiedad de navegación opcional para incluir datos del cliente (si lo necesitas)
     public Customer? Customer { get; set; }
+
+    // Propiedad de navegación para ConfigSys
+    public ConfigSys? ConfigSys { get; set; }
+}
+
+public class QuotationFollowupsJson
+{
+    public string Id { get; set; } = string.Empty;
+
+    public DateTime Date { get; set; } = DateTime.UtcNow;
+
+    public string Comment { get; set; } = string.Empty;
+
+    public string UserId { get; set; } = string.Empty; // ID del usuario que hace el seguimiento
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

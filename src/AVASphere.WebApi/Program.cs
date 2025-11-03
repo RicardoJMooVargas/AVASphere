@@ -1,5 +1,6 @@
 using AVASphere.ApplicationCore.Common.Enums;
 using AVASphere.Infrastructure;
+using AVASphere.WebApi.Common.Filters;
 
 // Manual .env file loader
 LoadEnvironmentVariables();
@@ -7,7 +8,12 @@ LoadEnvironmentVariables();
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Agregar filtros globales para estandarizar respuestas
+    options.Filters.Add<ValidateModelStateFilter>();
+    options.Filters.Add<StandardizeResponseFilter>();
+});
 
 // Configure CORS
 builder.Services.AddCors(options =>

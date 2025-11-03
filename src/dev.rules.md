@@ -39,5 +39,4 @@ dotnet ef database update `
   --project src/AVASphere.Infrastructure `
   --startup-project src/AVASphere.Infrastructure `
   --context MasterDbContext
-
 ```

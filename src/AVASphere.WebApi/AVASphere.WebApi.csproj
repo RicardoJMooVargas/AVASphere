@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Common\Filters\" />
+    <Folder Include="Common\Middleware\" />
   </ItemGroup>
 
 </Project>

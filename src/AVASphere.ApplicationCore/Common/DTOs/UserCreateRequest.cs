@@ -18,9 +18,6 @@ public class UserCreateRequest
     [StringLength(255, MinimumLength = 6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
     public string Password { get; set; } = null!;
 
-    // Remover HashPassword del request - se genera automáticamente
-    // public string? HashPassword { get; set; }
-
     [StringLength(100, ErrorMessage = "El campo auxiliar no puede exceder 100 caracteres")]
     public string? Aux { get; set; }
 
@@ -30,4 +27,9 @@ public class UserCreateRequest
     [Required(ErrorMessage = "El ID del rol es requerido")]
     [Range(1, int.MaxValue, ErrorMessage = "El ID del rol debe ser mayor a 0")]
     public int IdRols { get; set; }
+
+    // ✅ NUEVO: Campo requerido para ConfigSys
+    [Required(ErrorMessage = "El ID de configuración del sistema es requerido")]
+    [Range(1, int.MaxValue, ErrorMessage = "El ID de configuración del sistema debe ser mayor a 0")]
+    public int IdConfigSys { get; set; }
 }

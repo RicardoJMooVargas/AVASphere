@@ -3,57 +3,57 @@ using AVASphere.ApplicationCore.System.Interfaces;
 using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using Microsoft.Extensions.Logging;
+using AVASphere.WebApi.Common.Extensions;
 
 namespace AVASphere.WebApi.Common.Controllers
 {
     [ApiController]
-    [Route("api/system/[controller]")]
-    [ApiExplorerSettings(GroupName = "System")]
-    [Tags("System - Authentication")]
+    [Route("api/common/[controller]")]
+    [ApiExplorerSettings(GroupName = "Common")]
+    [Tags("Common - Authentication")]
     public class AuthController : ControllerBase
     {
         private readonly IUserService _userService;
         private readonly ITokenService _tokenService;
         private readonly ILogger<AuthController> _logger;
 
-        // ✅ CORREGIR: Agregar ILogger al constructor
         public AuthController(IUserService userService, ITokenService tokenService, ILogger<AuthController> logger)
         {
             _userService = userService;
             _tokenService = tokenService;
-            _logger = logger; // ✅ Inicializar el logger
+            _logger = logger;
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult> Login([FromBody] LoginRequest loginRequest)
+        public async Task<ActionResult> Login([FromBody] LoginDTOs loginDtOs)
         {
             try
             {
-                _logger.LogInformation("Solicitud de login recibida para usuario: {UserName}", loginRequest.UserName);
+                _logger.LogInformation("Solicitud de login recibida para usuario: {UserName}", loginDtOs.UserName);
 
-                if (string.IsNullOrEmpty(loginRequest.UserName) || string.IsNullOrEmpty(loginRequest.Password))
+                if (string.IsNullOrEmpty(loginDtOs.UserName) || string.IsNullOrEmpty(loginDtOs.Password))
                 {
-                    return BadRequest(new { message = "Username and password are required" });
+                    return BadRequest(new ApiResponse("Username and password are required", 400));
                 }
 
                 // 🔐 Usar el nuevo método de autenticación
-                var authResult = await _userService.AuthenticateUserAsync(loginRequest);
+                var authResult = await _userService.AuthenticateUserAsync(loginDtOs);
         
                 if (!authResult.Success)
                 {
                     _logger.LogWarning("Autenticación fallida para usuario: {UserName} - {Message}", 
-                        loginRequest.UserName, authResult.Message);
-                    return Unauthorized(new { message = authResult.Message });
+                        loginDtOs.UserName, authResult.Message);
+                    return Unauthorized(new ApiResponse(authResult.Message, 401));
                 }
 
                 // ✅ Usar GenerateToken con UserResponse
                 var token = _tokenService.GenerateToken(authResult.User!);
 
-                _logger.LogInformation("Login exitoso para usuario: {UserName}", loginRequest.UserName);
+                _logger.LogInformation("Login exitoso para usuario: {UserName}", loginDtOs.UserName);
 
-                return Ok(new
+                // ✅ RESPONSE ACTUALIZADO CON CONFIG SYS
+                var loginData = new
                 {
-                    message = "Authentication successful",
                     token = token,
                     user = new
                     {
@@ -61,14 +61,18 @@ namespace AVASphere.WebApi.Common.Controllers
                         userName = authResult.User.UserName,
                         name = authResult.User.Name,
                         lastName = authResult.User.LastName,
-                        rol = authResult.User.RolName
-                    }
-                });
+                        rol = authResult.User.RolName,
+                        idConfigSys = authResult.User.IdConfigSys
+                    },
+                    configSys = authResult.ConfigSys
+                };
+
+                return Ok(new ApiResponse(loginData, "Authentication successful", 200));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error durante el login para usuario: {UserName}", loginRequest.UserName);
-                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+                _logger.LogError(ex, "Error durante el login para usuario: {UserName}", loginDtOs.UserName);
+                return StatusCode(500, new ApiResponse("Internal server error", 500, new { error = ex.Message }));
             }
         }
 
@@ -80,25 +84,13 @@ namespace AVASphere.WebApi.Common.Controllers
         public ActionResult ValidateToken()
         {
             // This endpoint will validate the JWT token through middleware
-            return Ok(new
+            var tokenData = new
             {
-                message = "Token is valid",
                 user = HttpContext.User.Identity?.Name,
-                timestamp = DateTime.UtcNow
-            });
-        }
+                isAuthenticated = HttpContext.User.Identity?.IsAuthenticated ?? false
+            };
 
-        // ❌ ELIMINAR este método - ya no es necesario porque usas EncryptionService
-        // private static bool VerifyPassword(string inputPassword, string hashedPassword)
-        // {
-        //     if (string.IsNullOrEmpty(hashedPassword))
-        //         return false;
-        //
-        //     using var sha256 = SHA256.Create();
-        //     var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(inputPassword));
-        //     var hashedInput = Convert.ToBase64String(hashedBytes);
-        //     
-        //     return hashedInput == hashedPassword;
-        // }
+            return Ok(new ApiResponse(tokenData, "Token is valid", 200));
+        }
     }
 }

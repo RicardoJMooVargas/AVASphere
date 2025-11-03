@@ -31,8 +31,8 @@ public class ConfigSysRepository : IConfigSysRepository
             existing.CompanyName = config.CompanyName;
             existing.BranchName = config.BranchName;
             existing.LogoUrl = config.LogoUrl;
-            existing.PrimaryColor = config.PrimaryColor;
-            existing.SecondaryColor = config.SecondaryColor;
+            existing.Colors = config.Colors;
+            existing.NotUseModules = config.NotUseModules;
         }
 
         await _context.SaveChangesAsync();

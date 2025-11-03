@@ -77,7 +77,7 @@ public class RolService : IRolService
                 NormalizedName = rol.NormalizedName,
                 IdArea = rol.IdArea,
                 AreaName = rol.Area?.Name ?? "N/A",
-                UserCount = rol.User?.Count ?? 0
+                UserCount = rol.Users?.Count ?? 0
             };
         }
         catch (Exception ex)
@@ -101,7 +101,7 @@ public class RolService : IRolService
                 NormalizedName = rol.NormalizedName,
                 IdArea = rol.IdArea,
                 AreaName = rol.Area?.Name ?? "N/A",
-                UserCount = rol.User?.Count ?? 0
+                UserCount = rol.Users?.Count ?? 0
             };
         }
         catch (Exception ex)
@@ -124,7 +124,7 @@ public class RolService : IRolService
                 NormalizedName = rol.NormalizedName,
                 IdArea = rol.IdArea,
                 AreaName = rol.Area?.Name ?? "N/A",
-                UserCount = rol.User?.Count ?? 0
+                UserCount = rol.Users?.Count ?? 0
             });
         }
         catch (Exception ex)
@@ -171,7 +171,7 @@ public class RolService : IRolService
                 NormalizedName = updatedRol.NormalizedName,
                 IdArea = updatedRol.IdArea,
                 AreaName = area.Name,
-                UserCount = updatedRol.User?.Count ?? 0
+                UserCount = updatedRol.Users?.Count ?? 0
             };
         }
         catch (Exception ex)
@@ -187,7 +187,7 @@ public class RolService : IRolService
         {
             // Verificar si el rol tiene usuarios asociados
             var rol = await _rolRepository.GetByIdAsync(id);
-            if (rol?.User?.Any() == true)
+            if (rol?.Users?.Any() == true)
             {
                 throw new InvalidOperationException("No se puede eliminar el rol porque tiene usuarios asociados");
             }

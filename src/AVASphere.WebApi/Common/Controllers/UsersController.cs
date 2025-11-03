@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.Common.Enums;
+using AVASphere.WebApi.Common.Extensions;
 
 namespace AVASphere.WebApi.Common.Controllers;
 
@@ -31,36 +32,36 @@ public class UsersController : ControllerBase
     /// <response code="404">Usuario no encontrado</response>
     /// <response code="500">Error interno del servidor</response>
     [HttpGet("{idUsers:int}")]
-    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<UserResponse>> GetUser(int idUsers)
+    public async Task<ActionResult> GetUser(int idUsers)
     {
         try
         {
             _logger.LogInformation("Solicitando usuario con ID: {IdUser}", idUsers);
             
             var user = await _userService.SearchUsersAsync(idUsers, null);
-            return Ok(user);
+            return Ok(new ApiResponse(user, "Usuario encontrado exitosamente", 200));
         }
         catch (KeyNotFoundException ex)
         {
             _logger.LogWarning(ex, "Usuario con ID {IdUser} no encontrado", idUsers);
-            return NotFound(new { message = ex.Message });
+            return NotFound(new ApiResponse(ex.Message, 404));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al obtener usuario con ID {IdUser}", idUsers);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error interno del servidor" });
+            return StatusCode(500, new ApiResponse("Error interno del servidor", 500));
         }
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<UserResponse>> CreateUser(UserCreateRequest request)
+    public async Task<ActionResult> CreateUser(UserCreateRequest request)
     {
         try
         {
@@ -68,26 +69,23 @@ public class UsersController : ControllerBase
         
             var user = await _userService.NewUsersAsync(request);
         
-            return CreatedAtAction(
-                nameof(GetUser), 
-                new { idUsers = user.IdUsers }, 
-                user
-            );
+            return CreatedAtAction(nameof(GetUser), new { idUsers = user.IdUsers }, 
+                new ApiResponse(user, "Usuario creado exitosamente", 201));
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("ya está en uso"))
+        catch (InvalidOperationException opEx) when (opEx.Message.Contains("ya está en uso"))
         {
-            _logger.LogWarning(ex, "Intento de crear usuario duplicado: {UserName}", request.UserName);
-            return Conflict(new { message = ex.Message });
+            _logger.LogWarning(opEx, "Intento de crear usuario duplicado: {UserName}", request.UserName);
+            return Conflict(new ApiResponse(opEx.Message, 409));
         }
-        catch (ArgumentException ex) when (ex.Message.Contains("contraseña"))
+        catch (ArgumentException argEx) when (argEx.Message.Contains("contraseña"))
         {
-            _logger.LogWarning(ex, "Contraseña inválida para usuario: {UserName}", request.UserName);
-            return BadRequest(new { message = ex.Message });
+            _logger.LogWarning(argEx, "Contraseña inválida para usuario: {UserName}", request.UserName);
+            return BadRequest(new ApiResponse(argEx.Message, 400));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al crear usuario: {UserName}", request.UserName);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error interno del servidor" });
+            return StatusCode(500, new ApiResponse("Error interno del servidor", 500));
         }
     }
 
@@ -103,40 +101,40 @@ public class UsersController : ControllerBase
     /// <response code="409">El nombre de usuario ya existe</response>
     /// <response code="500">Error interno del servidor</response>
     [HttpPut("{idUsers:int}")]
-    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<UserResponse>> UpdateUser(int idUsers, UserUpdateRequest request)
+    public async Task<ActionResult> UpdateUser(int idUsers, UserUpdateRequest request)
     {
         try
         {
             // Asegurar que el ID de la ruta coincide con el del request
             if (idUsers != request.IdUsers)
             {
-                return BadRequest(new { message = "El ID de la ruta no coincide con el ID del usuario" });
+                return BadRequest(new ApiResponse("El ID de la ruta no coincide con el ID del usuario", 400));
             }
 
             _logger.LogInformation("Actualizando usuario con ID: {IdUser}", idUsers);
             
             var user = await _userService.EditUsersAsync(request);
-            return Ok(user);
+            return Ok(new ApiResponse(user, "Usuario actualizado exitosamente", 200));
         }
-        catch (KeyNotFoundException ex)
+        catch (KeyNotFoundException keyEx)
         {
-            _logger.LogWarning(ex, "Usuario con ID {IdUser} no encontrado para actualizar", idUsers);
-            return NotFound(new { message = ex.Message });
+            _logger.LogWarning(keyEx, "Usuario con ID {IdUser} no encontrado para actualizar", idUsers);
+            return NotFound(new ApiResponse(keyEx.Message, 404));
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("ya está en uso"))
+        catch (InvalidOperationException opEx) when (opEx.Message.Contains("ya está en uso"))
         {
-            _logger.LogWarning(ex, "Intento de actualizar a nombre de usuario duplicado");
-            return Conflict(new { message = ex.Message });
+            _logger.LogWarning(opEx, "Intento de actualizar a nombre de usuario duplicado");
+            return Conflict(new ApiResponse(opEx.Message, 409));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al actualizar usuario con ID {IdUser}", idUsers);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error interno del servidor" });
+            return StatusCode(500, new ApiResponse("Error interno del servidor", 500));
         }
     }
 
@@ -144,9 +142,9 @@ public class UsersController : ControllerBase
     /// Opciones preflight para CORS
     /// </summary>
     [HttpOptions]
-    public IActionResult Options()
+    public ActionResult Options()
     {
         Response.Headers.Append("Allow", "GET,POST,PUT,OPTIONS");
-        return Ok();
+        return Ok(new ApiResponse(null, "Options request successful", 200));
     }
 }

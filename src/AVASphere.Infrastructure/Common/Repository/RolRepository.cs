@@ -24,7 +24,7 @@ public class RolRepository : IRolRepository
     {
         return await _context.Rols
             .Include(r => r.Area)
-            .Include(r => r.User)
+            .Include(r => r.Users)
             .FirstOrDefaultAsync(r => r.IdRol == id);
     }
 

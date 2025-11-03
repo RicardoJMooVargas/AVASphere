@@ -14,7 +14,7 @@ public class Rol
     public int IdArea { get; set; }
     public Area Area { get; set; } = null!;
 
-    public ICollection<User> User { get; set; } = new List<User>();
+    public ICollection<User> Users { get; set; } = new List<User>();
 }
 
 

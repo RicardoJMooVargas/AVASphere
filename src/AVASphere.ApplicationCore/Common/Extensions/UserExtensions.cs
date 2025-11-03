@@ -1,12 +1,11 @@
 ﻿using AVASphere.ApplicationCore.Common.DTOs;
-using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.Common.Entities.General;
 
 namespace AVASphere.ApplicationCore.Common.Extensions;
 
 public static class UserExtensions
 {
-    // Para UserCreateRequest
+    // ✅ MÉTODO ToEntity PARA UserCreateRequest
     public static User ToEntity(this UserCreateRequest request)
     {
         if (request == null)
@@ -22,11 +21,12 @@ public static class UserExtensions
             Status = "Active",
             Aux = request.Aux,
             Verified = request.Verified ?? "No",
-            IdRol = request.IdRols
+            IdRol = request.IdRols,
+            IdConfigSys = request.IdConfigSys // ✅ INCLUIR IdConfigSys
         };
     }
 
-    // Para UserUpdateRequest - método CORREGIDO
+    // ✅ MÉTODO ToEntity PARA UserUpdateRequest
     public static User ToEntity(this UserUpdateRequest request, User existingUser)
     {
         if (request == null)
@@ -57,12 +57,17 @@ public static class UserExtensions
         if (request.IdRols > 0)
             existingUser.IdRol = request.IdRols;
 
+        // ✅ ACTUALIZAR IdConfigSys SI SE PROPORCIONA
+        if (request.IdConfigSys.HasValue && request.IdConfigSys.Value > 0)
+            existingUser.IdConfigSys = request.IdConfigSys.Value;
+
         // La contraseña se maneja en el servicio, no aquí
         // CreateAt no se debe modificar en una actualización
 
         return existingUser;
     }
 
+    // ✅ MÉTODO ToResponse PARA UserResponse
     public static UserResponse ToResponse(this User user)
     {
         if (user == null)
@@ -79,7 +84,41 @@ public static class UserExtensions
             CreateAt = user.CreateAt,
             Verified = user.Verified,
             IdRols = user.IdRol,
-            RolName = user.Rol?.Name
+            RolName = user.Rol?.Name,
+            // ✅ INCLUIR PROPIEDADES DE CONFIG SYS
+            IdConfigSys = user.IdConfigSys,
+            ConfigSysName = user.ConfigSys?.CompanyName,
+            CompanyName = user.ConfigSys?.CompanyName,
+            BranchName = user.ConfigSys?.BranchName,
+            LogoUrl = user.ConfigSys?.LogoUrl
+        };
+    }
+
+    // ✅ MÉTODO ToAuthResponse PARA AuthUserResponse
+    public static AuthUserResponse ToAuthResponse(this User user)
+    {
+        if (user == null)
+            throw new ArgumentNullException(nameof(user));
+
+        return new AuthUserResponse
+        {
+            IdUsers = user.IdUser,
+            UserName = user.UserName,
+            Name = user.Name,
+            LastName = user.LastName,
+            Status = user.Status,
+            Aux = user.Aux,
+            Hash = user.HashPassword,
+            CreateAt = user.CreateAt,
+            Verified = user.Verified,
+            IdRols = user.IdRol,
+            RolName = user.Rol?.Name,
+            // ✅ INCLUIR PROPIEDADES DE CONFIG SYS
+            IdConfigSys = user.IdConfigSys,
+            ConfigSysName = user.ConfigSys?.CompanyName,
+            CompanyName = user.ConfigSys?.CompanyName,
+            BranchName = user.ConfigSys?.BranchName,
+            LogoUrl = user.ConfigSys?.LogoUrl
         };
     }
 }

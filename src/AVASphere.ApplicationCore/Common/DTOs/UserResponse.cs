@@ -12,7 +12,15 @@ public class UserResponse
     public string? Verified { get; set; }
     public int IdRols { get; set; }
     public string? RolName { get; set; }
+    
+    // ✅ NUEVAS PROPIEDADES PARA CONFIG SYS
+    public int IdConfigSys { get; set; }
+    public string? ConfigSysName { get; set; }
+    public string? CompanyName { get; set; }
+    public string? BranchName { get; set; }
+    public string? LogoUrl { get; set; }
 }
+
 public class AuthUserResponse
 {
     public int IdUsers { get; set; }
@@ -26,4 +34,11 @@ public class AuthUserResponse
     public string? Verified { get; set; }
     public int IdRols { get; set; }
     public string? RolName { get; set; }
+    
+    // ✅ NUEVAS PROPIEDADES PARA CONFIG SYS
+    public int IdConfigSys { get; set; }
+    public string? ConfigSysName { get; set; }
+    public string? CompanyName { get; set; }
+    public string? BranchName { get; set; }
+    public string? LogoUrl { get; set; }
 }

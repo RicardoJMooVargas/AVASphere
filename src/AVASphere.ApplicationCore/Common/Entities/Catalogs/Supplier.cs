@@ -1,7 +1,7 @@
 ﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Common.Entities.Products;
 
-namespace AVASphere.ApplicationCore.Common.Entities.General;
+namespace AVASphere.ApplicationCore.Common.Entities.Catalogs;
 // CATALOGO DE PROVEEDORES
 public class Supplier
 {

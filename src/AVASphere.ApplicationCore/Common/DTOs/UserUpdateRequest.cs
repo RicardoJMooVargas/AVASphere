@@ -31,4 +31,8 @@ public class UserUpdateRequest
 
     [Range(1, int.MaxValue, ErrorMessage = "El ID del rol debe ser mayor a 0")]
     public int IdRols { get; set; }
+
+    // ✅ NUEVO: Campo para ConfigSys en actualización
+    [Range(1, int.MaxValue, ErrorMessage = "El ID de configuración del sistema debe ser mayor a 0")]
+    public int? IdConfigSys { get; set; }
 }

@@ -12,7 +12,12 @@ public class User
     public string? CreateAt { get; set; }
     public string? Verified { get; set; }
 
-    // FK
+    // 🔹 Relación con rol (1-N)
     public int IdRol { get; set; }
     public Rol Rol { get; set; } = null!;
+    // 🔹 Relación con rol (1-N)
+    public int IdConfigSys { get; set; }
+    public ConfigSys ConfigSys { get; set; } = null!;
+    
+    
 }

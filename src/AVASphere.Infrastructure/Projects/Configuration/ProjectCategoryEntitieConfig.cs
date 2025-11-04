@@ -9,7 +9,7 @@ namespace AVASphere.Infrastructure.Projects.Configuration;
         public void Configure(EntityTypeBuilder<ProjectCategory> entity)
         {
             // Ejemplo de configuración:
-            entity.ToTable("Project Category"); 
+            entity.ToTable("ProjectCategory");
             entity.HasKey(e => e.IdProjectCategory); 
             
             entity.Property(e => e.Name)

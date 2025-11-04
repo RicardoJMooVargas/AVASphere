@@ -10,7 +10,7 @@ public class CustomerEntitieConfig : IEntityTypeConfiguration<Customer>
 {
        public void Configure(EntityTypeBuilder<Customer> entity)
        {
-              entity.ToTable("Customers", "common");
+              entity.ToTable("Customers");
 
               // Clave primaria
               entity.HasKey(c => c.IdCustomer)

@@ -1,9 +1,5 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -34,27 +30,89 @@ namespace AVASphere.Infrastructure.System.Services
                 if (!canConnect)
                     return (false, false, "No se pudo conectar a la base de datos.");
 
-                // 2️⃣ Revisar si existen tablas (sin usar EF Query)
+                // 2️⃣ Revisar si existen tablas (excluyendo __EFMigrationsHistory)
                 int tableCount = 0;
+                bool configSysTableExists = false;
+                int configSysRecordsCount = 0;
+
                 await using (var connection = _dbContext.Database.GetDbConnection())
                 {
                     await connection.OpenAsync();
+                    
+                    // Verificar si existen tablas de datos
                     await using (var command = connection.CreateCommand())
                     {
                         command.CommandText = @"
                     SELECT COUNT(*) 
                     FROM information_schema.tables 
-                    WHERE table_schema = 'public';";
+                    WHERE table_schema = 'public'
+                    AND table_name != '__EFMigrationsHistory';";
 
                         var result = await command.ExecuteScalarAsync();
                         tableCount = Convert.ToInt32(result);
                     }
+
+                    // 3️⃣ Verificar específicamente si existe la tabla ConfigSys
+                    if (tableCount > 0)
+                    {
+                        await using (var configSysTableCommand = connection.CreateCommand())
+                        {
+                            configSysTableCommand.CommandText = @"
+                        SELECT COUNT(*) 
+                        FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'ConfigSys';";
+
+                            var configSysTableResult = await configSysTableCommand.ExecuteScalarAsync();
+                            configSysTableExists = Convert.ToInt32(configSysTableResult) > 0;
+                        }
+
+                        // 4️⃣ Si existe la tabla ConfigSys, verificar si tiene registros
+                        if (configSysTableExists)
+                        {
+                            try
+                            {
+                                await using (var configSysRecordsCommand = connection.CreateCommand())
+                                {
+                                    configSysRecordsCommand.CommandText = @"SELECT COUNT(*) FROM ""ConfigSys"";";
+                                    var configSysRecordsResult = await configSysRecordsCommand.ExecuteScalarAsync();
+                                    configSysRecordsCount = Convert.ToInt32(configSysRecordsResult);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning($"Error verificando registros en ConfigSys: {ex.Message}");
+                            }
+                        }
+                    }
                 }
 
-                var hasTables = tableCount > 0;
-                return hasTables
-                    ? (true, true, "Conexión OK. Existen tablas en la base de datos.")
-                    : (true, false, "Conexión OK. No existen tablas (base vacía o sin migrar).");
+                // 5️⃣ Determinar si hay datos significativos
+                var hasData = tableCount > 0;
+                var hasValidDatabase = configSysTableExists && configSysRecordsCount > 0;
+
+                // 6️⃣ Generar mensaje descriptivo
+                string message;
+                if (tableCount == 0)
+                {
+                    message = "Conexión OK. No existen tablas de datos (base vacía o solo con historial de migraciones).";
+                }
+                else if (!configSysTableExists)
+                {
+                    message = $"Conexión OK. Existen {tableCount} tablas pero NO existe la tabla ConfigSys (formato incorrecto).";
+                }
+                else if (configSysRecordsCount == 0)
+                {
+                    message = $"Conexión OK. Existen {tableCount} tablas y tabla ConfigSys existe pero está vacía (sin configuración inicial).";
+                }
+                else
+                {
+                    message = $"Conexión OK. Base de datos válida con {tableCount} tablas y {configSysRecordsCount} registro(s) en ConfigSys.";
+                }
+
+                _logger.LogInformation($"Estado DB - Tablas: {tableCount}, ConfigSys existe: {configSysTableExists}, Registros ConfigSys: {configSysRecordsCount}");
+
+                return (true, hasData, message);
             }
             catch (Exception ex)
             {
@@ -63,80 +121,37 @@ namespace AVASphere.Infrastructure.System.Services
             }
         }
 
-        // 2️⃣ Crear una migración (solo si DB vacía)
+        // 2️⃣ Crear una migración usando EF CLI directamente
         public async Task<string> CreateMigrationAsync(string migrationName)
         {
-            var (connected, hasData, msg) = await CheckConnectionAsync();
-            if (!connected) return $"❌ {msg}";
-            if (hasData) return "⚠️ La base contiene datos. No se puede crear una nueva migración.";
-
             try
             {
-                // Obtener rutas desde la configuración inyectada
-                var infraPath = _configuration["EfTools:InfrastructureProjectPath"];
-                var startupPath = _configuration["EfTools:StartupProjectPath"];
-                var migrationsFolder = _configuration["EfTools:MigrationsFolder"];
-
-                // Si no hay configuración, usar valores por defecto basados en tu estructura
-                if (string.IsNullOrEmpty(infraPath))
-                {
-                    infraPath = "../AVASphere.Infrastructure/AVASphere.Infrastructure.csproj";
-                }
-
-                if (string.IsNullOrEmpty(startupPath))
-                {
-                    startupPath = "../AVASphere.WebApi/AVASphere.WebApi.csproj";
-                }
-
-                if (string.IsNullOrEmpty(migrationsFolder))
-                {
-                    migrationsFolder = "Common/Migrations";
-                }
-
-                // Construir rutas absolutas
-                var basePath = Directory.GetCurrentDirectory();
-                var absoluteInfraPath = Path.GetFullPath(Path.Combine(basePath, infraPath));
-                var absoluteStartupPath = Path.GetFullPath(Path.Combine(basePath, startupPath));
-
-                _logger.LogInformation($"Buscando proyecto Infra en: {absoluteInfraPath}");
-                _logger.LogInformation($"Buscando proyecto WebApi en: {absoluteStartupPath}");
-
-                // Verificar que los archivos .csproj existen
-                if (!File.Exists(absoluteInfraPath))
-                {
-                    // Intentar encontrar el proyecto automáticamente
-                    absoluteInfraPath = FindProjectFile("AVASphere.Infrastructure.csproj");
-                    if (string.IsNullOrEmpty(absoluteInfraPath))
-                    {
-                        return $"❌ No se encuentra el proyecto de infraestructura. Buscado en: {Path.Combine(basePath, infraPath)}";
-                    }
-                }
-
-                if (!File.Exists(absoluteStartupPath))
-                {
-                    // Intentar encontrar el proyecto automáticamente
-                    absoluteStartupPath = FindProjectFile("AVASphere.WebApi.csproj");
-                    if (string.IsNullOrEmpty(absoluteStartupPath))
-                    {
-                        return $"❌ No se encuentra el proyecto WebApi. Buscado en: {Path.Combine(basePath, startupPath)}";
-                    }
-                }
-
-                // Construir comando EF
+                // Construir rutas absolutas correctas
+                var basePath = @"C:\Users\AcerLapTablet\repos\AVASphere";
+                var infraProject = Path.Combine(basePath, "src", "AVASphere.Infrastructure", "AVASphere.Infrastructure.csproj");
+                
                 var command = $"dotnet ef migrations add {migrationName} " +
-                             $"--project \"{absoluteInfraPath}\" " +
-                             $"--startup-project \"{absoluteStartupPath}\" " +
-                             $"--output-dir \"{migrationsFolder}\"";
+                             $"--project \"{infraProject}\" " +
+                             $"--startup-project \"{infraProject}\" " +
+                             $"--context MasterDbContext " +
+                             $"--output-dir System/Migrations";
 
                 _logger.LogInformation($"Ejecutando comando EF: {command}");
                 var result = await ExecuteEfCommandAsync(command);
+
+                if (result.Contains("Build failed"))
+                {
+                    return $"❌ Error de compilación. Ejecuta 'dotnet build' para ver los errores detallados.";
+                }
 
                 if (result.Contains("ERROR:") || result.Contains("error"))
                 {
                     return $"❌ Error en EF: {result}";
                 }
 
-                return string.IsNullOrEmpty(result) ? "✅ Migración creada exitosamente." : $"✅ {result}";
+                return result.Contains("Done") || string.IsNullOrWhiteSpace(result) ? 
+                    "✅ Migración creada exitosamente." : 
+                    $"✅ {result}";
             }
             catch (Exception ex)
             {
@@ -145,17 +160,31 @@ namespace AVASphere.Infrastructure.System.Services
             }
         }
 
-        // 3️⃣ Aplicar migraciones (solo si DB vacía)
+        // 3️⃣ Aplicar migraciones usando EF CLI (igual que manual)
         public async Task<string> ApplyMigrationAsync()
         {
-            var (connected, hasData, msg) = await CheckConnectionAsync();
-            if (!connected) return $"❌ {msg}";
-            if (hasData) return "⚠️ La base contiene datos. No se puede aplicar migraciones.";
-
             try
             {
-                await _dbContext.Database.MigrateAsync();
-                return "✅ Migraciones aplicadas correctamente.";
+                // Construir rutas absolutas correctas
+                var basePath = @"C:\Users\AcerLapTablet\repos\AVASphere";
+                var infraProject = Path.Combine(basePath, "src", "AVASphere.Infrastructure", "AVASphere.Infrastructure.csproj");
+                
+                var command = $"dotnet ef database update " +
+                             $"--project \"{infraProject}\" " +
+                             $"--startup-project \"{infraProject}\" " +
+                             $"--context MasterDbContext";
+
+                _logger.LogInformation($"Ejecutando comando EF CLI: {command}");
+                var result = await ExecuteEfCommandAsync(command);
+
+                if (result.Contains("ERROR:") || result.Contains("error"))
+                {
+                    return $"❌ Error en EF CLI: {result}";
+                }
+
+                return result.Contains("Done") || string.IsNullOrWhiteSpace(result) ? 
+                    "✅ Migraciones aplicadas correctamente." : 
+                    $"✅ {result}";
             }
             catch (Exception ex)
             {
@@ -267,7 +296,8 @@ namespace AVASphere.Infrastructure.System.Services
             process.StartInfo.RedirectStandardError = true;
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.WorkingDirectory = Directory.GetCurrentDirectory();
+            // Establecer working directory desde la raíz del proyecto
+            process.StartInfo.WorkingDirectory = @"C:\Users\AcerLapTablet\repos\AVASphere";
 
             process.Start();
 
@@ -286,36 +316,40 @@ namespace AVASphere.Infrastructure.System.Services
             return result;
         }
 
-        // Método auxiliar para encontrar archivos de proyecto
-        private string FindProjectFile(string projectFileName)
+        // 5️⃣ Proceso simplificado: eliminar tablas, crear y aplicar migración
+        public async Task<string> RecreateDatabaseAsync(string migrationName = "Initial")
         {
             try
             {
-                var currentDir = Directory.GetCurrentDirectory();
-                var files = Directory.GetFiles(currentDir, projectFileName, SearchOption.AllDirectories);
-                
-                if (files.Length > 0)
+                _logger.LogInformation("🔄 Iniciando recreación de base de datos...");
+                var results = new List<string>();
+
+                // 1. Eliminar todas las tablas
+                _logger.LogInformation("🗑️ Eliminando tablas...");
+                var dropResult = await DropTablesAsync();
+                results.Add(dropResult);
+
+                // 2. Crear migración
+                _logger.LogInformation($"📝 Creando migración: {migrationName}...");
+                var createResult = await CreateMigrationAsync(migrationName);
+                results.Add(createResult);
+
+                if (createResult.Contains("❌"))
                 {
-                    return files[0];
+                    return string.Join("\n", results);
                 }
 
-                // Buscar en directorio padre
-                var parentDir = Directory.GetParent(currentDir);
-                if (parentDir != null)
-                {
-                    files = Directory.GetFiles(parentDir.FullName, projectFileName, SearchOption.AllDirectories);
-                    if (files.Length > 0)
-                    {
-                        return files[0];
-                    }
-                }
+                // 3. Aplicar migración
+                _logger.LogInformation("⚙️ Aplicando migración...");
+                var applyResult = await ApplyMigrationAsync();
+                results.Add(applyResult);
 
-                return null;
+                return string.Join("\n", results);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error buscando archivo {projectFileName}");
-                return null;
+                _logger.LogError(ex, "Error en recreación de base de datos");
+                return $"❌ Error: {ex.Message}";
             }
         }
     }

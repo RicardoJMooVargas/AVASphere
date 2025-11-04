@@ -1,49 +1,53 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using AVASphere.ApplicationCore.Common.Entities.General;
+using AVASphere.ApplicationCore.Common.Entities.Jsons;
+
 namespace AVASphere.ApplicationCore.Sales.Entities;
 
 public class Quotation
 {
     public int QuotationId { get; set; }
-
     public DateTime SaleDate { get; set; } = DateTime.UtcNow;
-
     public string Status { get; set; } = "PENDIENTE";
-
-    // Lista de IDs de ejecutivos de venta; si tus user ids son ints, cambia a List<int>
     public List<string> SalesExecutives { get; set; } = new List<string>();
-
     public int Folio { get; set; }
-
-    // FK al cliente; usando int según tu decisión
     public int CustomerId { get; set; }
-
     public string? GeneralComment { get; set; }
-
-    // Campo que se mantendrá como JSONB en Postgres (serialización de la clase QuotationFollowupsJson)
+    
+    [Column(TypeName = "jsonb")]
     public List<QuotationFollowupsJson> Followups { get; set; } = new List<QuotationFollowupsJson>();
-
+    
+    // NUEVO: Lista simplificada de productos (JSONB) - opcional
+    [Column(TypeName = "jsonb")]
+    public List<SingleProductJson>? Products { get; set; }
+    
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    // Propiedad de navegación opcional para incluir datos del cliente (si lo necesitas)
-    public Customer? Customer { get; set; }
+    // NUEVO: Referencia a la venta vinculada (opcional)
+    public string? LinkedSaleId { get; set; }
+    public string? LinkedSaleFolio { get; set; }
 
-    // Propiedad de navegación para ConfigSys
+    // FK a ConfigSys (si es necesaria)
+    public int IdConfigSys { get; set; }
+
+    // Propiedades de navegación
+    public Customer? Customer { get; set; }
     public ConfigSys? ConfigSys { get; set; }
+
+    // Propiedad calculada para saber si está vinculada a una venta
+    [NotMapped]
+    public bool IsLinkedToSale => !string.IsNullOrEmpty(LinkedSaleId);
+
+    [NotMapped]
+    public bool HasProducts => Products?.Count > 0;
 }
 
 public class QuotationFollowupsJson
 {
     public string Id { get; set; } = string.Empty;
-
     public DateTime Date { get; set; } = DateTime.UtcNow;
-
     public string Comment { get; set; } = string.Empty;
-
-    public string UserId { get; set; } = string.Empty; // ID del usuario que hace el seguimiento
-
+    public string UserId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

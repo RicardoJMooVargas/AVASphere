@@ -25,6 +25,9 @@ public class Product
     public ICollection<CostsJson> CostsJson { get; set; } = new List<CostsJson>();
     public ICollection<CategoriesJson> CategoriesJsons { get; set; } = new List<CategoriesJson>();
     public ICollection<SolutionsJson> SolutionsJsons { get; set; } = new List<SolutionsJson>();
+    
+    // GETTERS
+    public string FirstCode => CodeJson?.FirstOrDefault()?.Code ?? string.Empty;
 }
 
 public class CodeJson

@@ -6,5 +6,5 @@ namespace AVASphere.Infrastructure.Sales.Repositories;
 
 public class QuotationRepository //: IQuotationRepository
 {
-    
+    private readonly MasterDbContext _context;
 }

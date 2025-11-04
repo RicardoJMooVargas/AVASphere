@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'modules/login/screens/login_page.dart';
+import 'modules/login/screens/setup_page.dart';
+
 import 'modules/dashboard/screens/home_page.dart';
 import 'modules/sales/screens/sales_page.dart';
 import 'modules/inventory/screens/inventory_page.dart';
@@ -29,6 +31,14 @@ class Principal extends StatelessWidget {
       darkTheme: AppTheme.dark(),
       initialRoute: initialRoute,
       getPages: [
+        // Rutas de configuración inicial del sistema
+        GetPage(
+          name: '/setup',
+          page: () => const NoSidebarLayout(
+            child: SetupPage(),
+          ),
+        ),
+
         // Rutas sin sidebar
         GetPage(
           name: '/login',

@@ -26,7 +26,7 @@ namespace AVASphere.ApplicationCore.Common.Entities.General
         public ICollection<User> Users { get; set; } = new List<User>();
         // public ICollection<Project> Projects { get; set; } = new List<Project>();
         public ICollection<Quotation> Quotations { get; set; } = new List<Quotation>();
-        // public ICollection<Sale> Sales { get; set; } = new List<Sale>();
+        public ICollection<Sale> Sales { get; set; } = new List<Sale>();
 
     }
 

@@ -103,6 +103,7 @@ public static class DependencyInjection
     private static void AddSystemServices(IServiceCollection services)
     {
         services.AddScoped<DbToolsServices>();
+        services.AddScoped<DatabaseMigrationService>();
     }
     
     private static void AddSalesServices(IServiceCollection services)

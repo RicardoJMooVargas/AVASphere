@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
@@ -26,6 +25,7 @@ public class MasterDbContext : DbContext
     //public DbSet<BranchOffice> BranchOffices { get; set; } = null!;
     // MODULO DE SALES
     public DbSet<Quotation> Quotations { get; set; } = null!;
+    public DbSet<Sale> Sales { get; set; } = null!;
     // MODULO PROJECTS
     public DbSet<ProjectCategory> ProjectCategory { get; set; } = null!;
     
@@ -42,7 +42,8 @@ public class MasterDbContext : DbContext
         modelBuilder.ApplyConfiguration(new CustomerEntitieConfig());
         //modelBuilder.ApplyConfiguration(new BranchOfficeEntitieConfig());
         // MODULO DE SALES
-        modelBuilder.ApplyConfiguration(new QuotationEntititeConfig());
+        modelBuilder.ApplyConfiguration(new QuotationEntitieConfig());
+        modelBuilder.ApplyConfiguration(new SaleEntitieConfig());
         // MODULO DE PROJECTS
         modelBuilder.ApplyConfiguration(new ProjectCategoryEntitieConfig());
         //........

@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using AVASphere.ApplicationCore.Common.Entities.General;
-using AVASphere.ApplicationCore.Sales.Entities;
 
 namespace AVASphere.Infrastructure.Common.Configuration
 {
@@ -41,9 +40,15 @@ namespace AVASphere.Infrastructure.Common.Configuration
                 .OnDelete(DeleteBehavior.Restrict);
 
             // 🔹 Relación 1-N (ConfigSys → Quotations)
-            entity.HasMany(q => q.Quotations)
+            entity.HasMany(c => c.Quotations)
               .WithOne(q => q.ConfigSys)
-              .HasForeignKey(q => q.QuotationId)
+              .HasForeignKey(q => q.IdConfigSys)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 🔹 Relación 1-N (ConfigSys → Sales)
+            entity.HasMany(c => c.Sales)
+              .WithOne(s => s.ConfigSys)
+              .HasForeignKey(s => s.IdConfigSys)
                 .OnDelete(DeleteBehavior.Restrict);
 
 

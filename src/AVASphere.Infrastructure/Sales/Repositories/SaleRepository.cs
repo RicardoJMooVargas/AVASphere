@@ -8,8 +8,4 @@ namespace AVASphere.Infrastructure.Sales.Repositories;
 public class SaleRepository // : ISaleRepository
 {
     private readonly MasterDbContext _context;
-    public SaleRepository(MasterDbContext context)
-    {
-        _context = context;
-    }
 }

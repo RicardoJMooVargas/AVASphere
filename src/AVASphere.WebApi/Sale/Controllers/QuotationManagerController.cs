@@ -12,6 +12,7 @@ namespace AVASphere.WebApi.Sale.Controllers;
 [Tags("Quotations")]
 public class QuotationManagerController : ControllerBase
 {
+    /*
     private readonly IQuotationService _quotationService;
     private readonly ICustomerService _customerService;
 
@@ -324,4 +325,5 @@ public class QuotationManagerController : ControllerBase
             UpdatedAt = quotation.UpdatedAt
         };
     }
+    */
 }

@@ -11,7 +11,5 @@ public interface IQuotationService
     Task<bool> DeleteQuotationAsync(string id);
     
     // Métodos para manejar followups dentro de las cotizaciones
-    Task<QuotationFollowups> AddFollowupToQuotationAsync(string quotationId, QuotationFollowups followup, string userId);
-    Task<QuotationFollowups> UpdateFollowupInQuotationAsync(string quotationId, string followupId, QuotationFollowups updatedFollowup);
     Task<bool> DeleteFollowupFromQuotationAsync(string quotationId, string followupId);
 }

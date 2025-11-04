@@ -1,6 +1,5 @@
 using MongoDB.Driver;
 using AVASphere.ApplicationCore.Sales.Entities;
-using AVASphere.Infrastructure.Sales.Data;
 using MongoDB.Bson;
 
 namespace AVASphere.Infrastructure.Sales.Services;

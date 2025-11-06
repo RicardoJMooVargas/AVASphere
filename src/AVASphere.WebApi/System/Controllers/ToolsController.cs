@@ -32,16 +32,4 @@ public class ToolsController : ControllerBase
             info = "Aplica migraciones suprimiendo PendingModelChangesWarning - Para inicialización de DB"
         });
     }
-
-
-
-    [HttpGet("diagnose-migrations")]
-    public async Task<IActionResult> DiagnoseMigrations()
-    {
-        var result = await _dbMigrationService.DiagnoseMigrationsAsync();
-        return Ok(new { 
-            diagnosis = result,
-            info = "Diagnóstico detallado del estado de las migraciones"
-        });
-    }
 }

@@ -9,19 +9,20 @@ import 'modules/sales/screens/sales_page.dart';
 import 'modules/inventory/screens/inventory_page.dart';
 import 'modules/supply/screens/supply_page.dart';
 import 'core/theme/app_theme.dart';
-import 'Core/services/data/cache.service.dart';
+import 'Core/screens/server_error_screen.dart';
+import 'Core/screens/not_found_screen.dart';
+import 'Core/screens/system_init_screen.dart';
 import 'Core/layouts/sidebar_layout.dart';
+import 'Core/middlewares/global_init.middleware.dart';
+import 'Core/middlewares/system_setup.middleware.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final token = await CacheService.getToken();
-  runApp(Principal(initialRoute: token == null ? '/login' : '/home'));
+  runApp(const Principal());
 }
 
 class Principal extends StatelessWidget {
-  final String initialRoute;
-
-  const Principal({super.key, required this.initialRoute});
+  const Principal({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,22 +30,48 @@ class Principal extends StatelessWidget {
       title: 'VYAACentral',
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      initialRoute: initialRoute,
+      initialRoute: '/',
+      unknownRoute: GetPage(
+        name: '/notfound',
+        page: () => const NotFoundScreen(),
+      ),
       getPages: [
-        // Rutas de configuración inicial del sistema
+        // Ruta de inicialización del sistema (debe ser la primera)
         GetPage(
-          name: '/setup',
-          page: () => const NoSidebarLayout(
-            child: SetupPage(),
-          ),
+          name: '/',
+          page: () {
+            debugPrint('📍 Cargando pantalla de inicialización del sistema');
+            return const SystemInitScreen();
+          },
         ),
-
         // Rutas sin sidebar
         GetPage(
           name: '/login',
-          page: () => const NoSidebarLayout(
-            child: LoginPage(),
-          ),
+          page: () {
+            debugPrint('📍 Cargando página: /login');
+            return const NoSidebarLayout(child: LoginPage());
+          },
+          middlewares: [GlobalInitMiddleware(), SystemSetupMiddleware()],
+        ),
+        
+        // Rutas de configuración inicial del sistema
+        GetPage(
+          name: '/setup',
+          page: () {
+            debugPrint('📍 Cargando página: /setup');
+            return const NoSidebarLayout(child: SetupPage());
+          },
+          middlewares: [GlobalInitMiddleware()],
+        ),
+
+        // Ruta de error de servidor (solo GlobalInitMiddleware)
+        GetPage(
+          name: '/server-error',
+          page: () {
+            debugPrint('📍 Cargando página: /server-error');
+            return const ServerErrorScreen();
+          },
+          middlewares: [GlobalInitMiddleware()],
         ),
         
         // Rutas con sidebar
@@ -54,6 +81,7 @@ class Principal extends StatelessWidget {
             userAvatarTooltip: 'Usuario Admin',
             child: HomePage(),
           ),
+          middlewares: [GlobalInitMiddleware(), SystemSetupMiddleware()],
         ),  
         GetPage(
           name: '/sales',
@@ -61,6 +89,7 @@ class Principal extends StatelessWidget {
             userAvatarTooltip: 'Usuario Admin',
             child: SalesPage(),
           ),
+          middlewares: [GlobalInitMiddleware(), SystemSetupMiddleware()],
         ),
         GetPage(
           name: '/inventory',
@@ -68,6 +97,7 @@ class Principal extends StatelessWidget {
             userAvatarTooltip: 'Usuario Admin',
             child: InventoryPage(),
           ),
+          middlewares: [GlobalInitMiddleware(), SystemSetupMiddleware()],
         ),
         GetPage(
           name: '/supply',
@@ -75,6 +105,7 @@ class Principal extends StatelessWidget {
             userAvatarTooltip: 'Usuario Admin',
             child: SupplyPage(),
           ),
+          middlewares: [GlobalInitMiddleware(), SystemSetupMiddleware()],
         ),
       ],
     );

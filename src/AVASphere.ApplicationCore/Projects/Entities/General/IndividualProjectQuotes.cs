@@ -20,6 +20,7 @@ public class IndividualProjectQuote
     public int IdProjectCategory { get; set; }
     public ProjectCategory ProjectCategory { get; set; } = null!;
   
+    // Relaciones
     public ICollection<IndividualListingProperties> IndividualListingProperties { get; set; } = new List<IndividualListingProperties>();
     public ICollection<ListOfProductsToQuot> ListOfProductsToQuot { get; set; } = new List<ListOfProductsToQuot>();
 

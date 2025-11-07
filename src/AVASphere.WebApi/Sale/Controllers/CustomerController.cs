@@ -10,8 +10,8 @@ namespace AVASphere.WebApi.Sale.Controllers;
 [Tags("Customers")]
 public class CustomerController : ControllerBase
 {
-    private readonly ICustomerService _customerService;
-
+    //private readonly ICustomerService _customerService;
+    /*
     public CustomerController(ICustomerService customerService)
     {
         _customerService = customerService;
@@ -57,4 +57,5 @@ public class CustomerController : ControllerBase
             return StatusCode(500, $"Error interno del servidor: {ex.Message}");
         }
     }
+    */
 }

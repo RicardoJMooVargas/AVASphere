@@ -1,43 +1,53 @@
-﻿using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using AVASphere.ApplicationCore.Common.Entities.General;
+using AVASphere.ApplicationCore.Common.Entities.Jsons;
 
 namespace AVASphere.ApplicationCore.Sales.Entities;
 
 public class Quotation
 {
-    [BsonId]
-    [BsonRepresentation(BsonType.ObjectId)]
-    public string QuotationId { get; set; } = string.Empty;
-
-    [BsonElement("saleDate")]
+    public int QuotationId { get; set; }
     public DateTime SaleDate { get; set; } = DateTime.UtcNow;
-
-    [BsonElement("status")]
-    public string Status { get; set; } = "PENDIENTE"; // Pending, Accepted, Rejected
-
-    [BsonElement("salesExecutives")]
-    public List<string> SalesExecutives { get; set; } = new List<string>(); // User IDs, first one is the creator/owner
-
-    [BsonElement("folio")]
+    public string Status { get; set; } = "PENDIENTE";
+    public List<string> SalesExecutives { get; set; } = new List<string>();
     public int Folio { get; set; }
-
-    [BsonElement("customerId")]
-    [BsonRepresentation(BsonType.ObjectId)]
-    public string CustomerId { get; set; } = string.Empty;
-
-    [BsonElement("generalComment")]
+    public int CustomerId { get; set; }
     public string? GeneralComment { get; set; }
-
-    [BsonElement("followups")]
-    public List<QuotationFollowups> Followups { get; set; } = new List<QuotationFollowups>();
-
-    [BsonElement("createdAt")]
+    
+    [Column(TypeName = "jsonb")]
+    public List<QuotationFollowupsJson> Followups { get; set; } = new List<QuotationFollowupsJson>();
+    
+    // NUEVO: Lista simplificada de productos (JSONB) - opcional
+    [Column(TypeName = "jsonb")]
+    public List<SingleProductJson>? Products { get; set; }
+    
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    [BsonElement("updatedAt")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    // Propiedad no persistida para obtener los datos del cliente cuando sea necesario
-    [BsonIgnore]
+    // NUEVO: Referencia a la venta vinculada (opcional)
+    public string? LinkedSaleId { get; set; }
+    public string? LinkedSaleFolio { get; set; }
+
+    // FK a ConfigSys (si es necesaria)
+    public int IdConfigSys { get; set; }
+
+    // Propiedades de navegación
     public Customer? Customer { get; set; }
+    public ConfigSys? ConfigSys { get; set; }
+
+    // Propiedad calculada para saber si está vinculada a una venta
+    [NotMapped]
+    public bool IsLinkedToSale => !string.IsNullOrEmpty(LinkedSaleId);
+
+    [NotMapped]
+    public bool HasProducts => Products?.Count > 0;
+}
+
+public class QuotationFollowupsJson
+{
+    public string Id { get; set; } = string.Empty;
+    public DateTime Date { get; set; } = DateTime.UtcNow;
+    public string Comment { get; set; } = string.Empty;
+    public string UserId { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

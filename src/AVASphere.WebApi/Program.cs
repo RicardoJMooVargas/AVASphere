@@ -1,4 +1,7 @@
+using AVASphere.ApplicationCore.Common.Enums;
 using AVASphere.Infrastructure;
+using AVASphere.Infrastructure.System.Services;
+using AVASphere.WebApi.Common.Filters;
 
 // Manual .env file loader
 LoadEnvironmentVariables();
@@ -6,7 +9,12 @@ LoadEnvironmentVariables();
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Agregar filtros globales para estandarizar respuestas
+    options.Filters.Add<ValidateModelStateFilter>();
+    options.Filters.Add<StandardizeResponseFilter>();
+});
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -34,47 +42,28 @@ builder.Services.AddCors(options =>
             .AllowCredentials();
     });
 });
-
 // Configure Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    // Documento principal
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    // Crear documentación Swagger solo para los módulos funcionales
+    foreach (var moduleValue in Enum.GetValues(typeof(SystemModule)))
     {
-        Title = "VYAA Central Infor API - General",
-        Version = "v1",
-        Description = "API para el sistema central de información VYAA - Endpoints generales",
-        Contact = new Microsoft.OpenApi.Models.OpenApiContact
-        {
-            Name = "VYAA Team"
-        }
-    });
+        var module = (SystemModule)moduleValue;
+        var name = module.ToString().ToLower();
 
-    // Documento para el módulo System
-    c.SwaggerDoc("system", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Title = "VYAA Central Infor API - System Module",
-        Version = "v1",
-        Description = "API para el módulo System - Gestión de usuarios, autenticación y configuración del sistema",
-        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        c.SwaggerDoc(name, new Microsoft.OpenApi.Models.OpenApiInfo
         {
-            Name = "VYAA Team"
-        }
-    });
+            Title = $"VYAA Central Infor API - {module} SystemModule",
+            Version = "v1",
+            Description = GetModuleDescription(module),
+            Contact = new Microsoft.OpenApi.Models.OpenApiContact
+            {
+                Name = "VYAA Team"
+            }
+        });
+    }
 
-    // Documento para el módulo Sales (futuro)
-    c.SwaggerDoc("sales", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Title = "VYAA Central Infor API - Sales Module",
-        Version = "v1",
-        Description = "API para el módulo Sales - Gestión de ventas y tracking",
-        Contact = new Microsoft.OpenApi.Models.OpenApiContact
-        {
-            Name = "VYAA Team"
-        }
-    });
-    
     // Configuración de seguridad JWT
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
@@ -100,8 +89,8 @@ builder.Services.AddSwaggerGen(c =>
             new string[] {}
         }
     });
-    
-    // Configurar qué endpoints van en cada documento
+
+    // Asignar controladores a su documento Swagger
     c.DocInclusionPredicate((docName, apiDescription) =>
     {
         if (apiDescription.GroupName != null)
@@ -109,11 +98,11 @@ builder.Services.AddSwaggerGen(c =>
             return docName == apiDescription.GroupName.ToLower();
         }
 
-        // Los endpoints sin grupo van al documento principal
-        return docName == "v1";
+        // 🔹 Ignorar controladores sin grupo (no mostrar "general")
+        return false;
     });
 
-    // Configuración simplificada para tags
+    // Configurar tags por controlador
     c.TagActionsBy(api =>
     {
         var controllerActionDescriptor = api.ActionDescriptor as Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor;
@@ -125,9 +114,10 @@ builder.Services.AddSwaggerGen(c =>
         return new[] { "Default" };
     });
 
-    c.OrderActionsBy((apiDesc) => $"{apiDesc.ActionDescriptor.RouteValues["controller"]}_{apiDesc.HttpMethod}");
-    
-    // Include XML comments if available
+    // Ordenar las acciones en Swagger
+    c.OrderActionsBy(apiDesc => $"{apiDesc.ActionDescriptor.RouteValues["controller"]}_{apiDesc.HttpMethod}");
+
+    // Incluir comentarios XML si existen
     var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     if (File.Exists(xmlPath))
@@ -135,6 +125,20 @@ builder.Services.AddSwaggerGen(c =>
         c.IncludeXmlComments(xmlPath);
     }
 });
+
+// Función auxiliar para descripciones de módulos
+static string GetModuleDescription(SystemModule module) => module switch
+{
+    SystemModule.Common => "Gestión de usuarios, autenticación y configuración del sistema",
+    SystemModule.Sales => "Gestión de ventas y seguimiento de clientes",
+    SystemModule.Projects => "Gestión y planificación de proyectos",
+    SystemModule.Inventory => "Control de inventarios y artículos para venta",
+    SystemModule.Shopping => "Gestión de compras y proveedores",
+    SystemModule.System => "Funciones de mantenimiento del sistema y administración",
+    _ => "Módulo no documentado",
+};
+
+
 
 // Add Infrastructure services (MongoDB, Repositories, Services, and Initialization)
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -149,15 +153,14 @@ if (app.Environment.IsDevelopment())
     {
         // Configurar múltiples endpoints de Swagger para cada área/módulo
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "General - API Status & Health");
-        c.SwaggerEndpoint("/swagger/system/swagger.json", "System Module - Users & Authentication");
-        c.SwaggerEndpoint("/swagger/sales/swagger.json", "Sales Module - Sales & Tracking");
+        c.SwaggerEndpoint("/swagger/common/swagger.json", "Common SystemModule - User & Authentication"); // <- AGREGAR ESTA LÍNEA
+        c.SwaggerEndpoint("/swagger/system/swagger.json", "System SystemModule - System Management");
+        c.SwaggerEndpoint("/swagger/sales/swagger.json", "Sales SystemModule - Sales & Tracking");
         
-        c.RoutePrefix = "swagger"; // Swagger UI will be available at /swagger
-        
-        // Configuraciones adicionales de UI
-        c.DefaultModelsExpandDepth(-1); // Ocultar modelos por defecto
-        c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None); // No expandir por defecto
-        c.DisplayRequestDuration(); // Mostrar duración de requests
+        c.RoutePrefix = "swagger";
+        c.DefaultModelsExpandDepth(-1);
+        c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
+        c.DisplayRequestDuration();
     });
 }
 
@@ -227,3 +230,4 @@ static void LoadEnvironmentVariables()
         }
     }
 }
+

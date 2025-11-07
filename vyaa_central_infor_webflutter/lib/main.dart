@@ -14,10 +14,22 @@ import 'Core/screens/not_found_screen.dart';
 import 'Core/screens/system_init_screen.dart';
 import 'Core/layouts/sidebar_layout.dart';
 import 'Core/middlewares/global_init.middleware.dart';
-import 'Core/middlewares/system_setup.middleware.dart';
+// Hive Database
+import 'Core/services/data/hive.service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicializar Hive Database antes de ejecutar la app
+  try {
+    debugPrint('🗃️ Inicializando Hive Database...');
+    await HiveService.initialize();
+    debugPrint('✅ Hive Database inicializada correctamente');
+  } catch (e) {
+    debugPrint('❌ Error inicializando Hive Database: $e');
+    // La app puede continuar, pero mostrará errores al usar la DB
+  }
+  
   runApp(const Principal());
 }
 
@@ -51,7 +63,7 @@ class Principal extends StatelessWidget {
             debugPrint('📍 Cargando página: /login');
             return const NoSidebarLayout(child: LoginPage());
           },
-          middlewares: [GlobalInitMiddleware(), SystemSetupMiddleware()],
+          middlewares: [GlobalInitMiddleware()],
         ),
         
         // Rutas de configuración inicial del sistema
@@ -64,7 +76,7 @@ class Principal extends StatelessWidget {
           middlewares: [GlobalInitMiddleware()],
         ),
 
-        // Ruta de error de servidor (solo GlobalInitMiddleware)
+        // Ruta de error de servidor
         GetPage(
           name: '/server-error',
           page: () {
@@ -74,14 +86,14 @@ class Principal extends StatelessWidget {
           middlewares: [GlobalInitMiddleware()],
         ),
         
-        // Rutas con sidebar
+        // Rutas con sidebar - todas requieren verificación inicial
         GetPage(
           name: '/home',
           page: () => const SidebarLayout(
             userAvatarTooltip: 'Usuario Admin',
             child: HomePage(),
           ),
-          middlewares: [GlobalInitMiddleware(), SystemSetupMiddleware()],
+          middlewares: [GlobalInitMiddleware()],
         ),  
         GetPage(
           name: '/sales',
@@ -89,7 +101,7 @@ class Principal extends StatelessWidget {
             userAvatarTooltip: 'Usuario Admin',
             child: SalesPage(),
           ),
-          middlewares: [GlobalInitMiddleware(), SystemSetupMiddleware()],
+          middlewares: [GlobalInitMiddleware()],
         ),
         GetPage(
           name: '/inventory',
@@ -97,7 +109,7 @@ class Principal extends StatelessWidget {
             userAvatarTooltip: 'Usuario Admin',
             child: InventoryPage(),
           ),
-          middlewares: [GlobalInitMiddleware(), SystemSetupMiddleware()],
+          middlewares: [GlobalInitMiddleware()],
         ),
         GetPage(
           name: '/supply',
@@ -105,7 +117,7 @@ class Principal extends StatelessWidget {
             userAvatarTooltip: 'Usuario Admin',
             child: SupplyPage(),
           ),
-          middlewares: [GlobalInitMiddleware(), SystemSetupMiddleware()],
+          middlewares: [GlobalInitMiddleware()],
         ),
       ],
     );

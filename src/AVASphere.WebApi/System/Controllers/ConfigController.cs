@@ -1,4 +1,5 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.General;
+﻿using AVASphere.ApplicationCore.Common.DTOs;
+using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Enums;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.System.DTOs;
@@ -45,14 +46,19 @@ public class ConfigController : ControllerBase
                 var canConnect = await _dbContext.Database.CanConnectAsync();
                 if (!canConnect)
                 {
-                    return Ok(new
+                    var response = new ApiResponse
                     {
-                        HasConfiguration = false,
-                        TableExists = false,
-                        RequiresMigration = true,
+                        Success = false,
+                        Data = new
+                        {
+                            HasConfiguration = false,
+                            TableExists = false,
+                            RequiresMigration = true
+                        },
                         Message = "No se puede conectar a la base de datos",
-                        Data = (object?)null
-                    });
+                        StatusCode = 200
+                    };
+                    return Ok(response);
                 }
 
                 config = await _dbContext.ConfigSys.FirstOrDefaultAsync();
@@ -82,56 +88,77 @@ public class ConfigController : ControllerBase
 
             if (!tableExists)
             {
-                return Ok(new
+                var response = new ApiResponse
                 {
-                    HasConfiguration = false,
-                    TableExists = false,
-                    RequiresMigration = true,
+                    Success = false,
+                    Data = new
+                    {
+                        HasConfiguration = false,
+                        TableExists = false,
+                        RequiresMigration = true
+                    },
                     Message = "La tabla ConfigSys no existe. Se requiere ejecutar migraciones.",
-                    Data = (object?)null
-                });
+                    StatusCode = 200
+                };
+                return Ok(response);
             }
 
             if (!hasConfiguration)
             {
-                return Ok(new
+                var response = new ApiResponse
                 {
-                    HasConfiguration = false,
-                    TableExists = true,
-                    RequiresMigration = false,
+                    Success = false,
+                    Data = new
+                    {
+                        HasConfiguration = false,
+                        TableExists = true,
+                        RequiresMigration = false
+                    },
                     Message = "La tabla ConfigSys existe pero no hay configuración inicial del sistema",
-                    Data = (object?)null
-                });
+                    StatusCode = 200
+                };
+                return Ok(response);
             }
 
-            return Ok(new
+            var successResponse = new ApiResponse
             {
-                HasConfiguration = true,
-                TableExists = true,
-                RequiresMigration = false,
-                Message = "Configuración inicial encontrada y tabla ConfigSys existe",
+                Success = true,
                 Data = new
                 {
-                    config!.IdConfigSys,
-                    config.CompanyName,
-                    config.BranchName,
-                    config.LogoUrl,
-                    ColorsCount = config.Colors?.Count ?? 0,
-                    NotUseModulesCount = config.NotUseModules?.Count ?? 0,
-                    config.CreatedAt
-                }
-            });
+                    HasConfiguration = true,
+                    TableExists = true,
+                    RequiresMigration = false,
+                    Configuration = new
+                    {
+                        config!.IdConfigSys,
+                        config.CompanyName,
+                        config.BranchName,
+                        config.LogoUrl,
+                        ColorsCount = config.Colors?.Count ?? 0,
+                        NotUseModulesCount = config.NotUseModules?.Count ?? 0,
+                        config.CreatedAt
+                    }
+                },
+                Message = "Configuración inicial encontrada y tabla ConfigSys existe",
+                StatusCode = 200
+            };
+            return Ok(successResponse);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new
+            var errorResponse = new ApiResponse
             {
-                HasConfiguration = false,
-                TableExists = false,
-                RequiresMigration = true,
+                Success = false,
+                Data = new
+                {
+                    HasConfiguration = false,
+                    TableExists = false,
+                    RequiresMigration = true
+                },
                 Message = $"Error al verificar la configuración inicial: {ex.Message}",
-                Data = (object?)null
-            });
+                StatusCode = 500
+            };
+            return StatusCode(500, errorResponse);
         }
     }
 
@@ -139,10 +166,17 @@ public class ConfigController : ControllerBase
     public async Task<IActionResult> DiagnoseMigrations()
     {
         var result = await _dbMigrationService.DiagnoseMigrationsAsync();
-        return Ok(new {
-            diagnosis = result,
-            info = "Diagnóstico detallado del estado de las migraciones"
-        });
+        var response = new ApiResponse
+        {
+            Success = true,
+            Data = new {
+                diagnosis = result,
+                info = "Diagnóstico detallado del estado de las migraciones"
+            },
+            Message = "Diagnóstico de migraciones completado",
+            StatusCode = 200
+        };
+        return Ok(response);
     }
 
     [HttpPost("configure-system")]
@@ -154,11 +188,13 @@ public class ConfigController : ControllerBase
             var existingConfig = await _dbContext.ConfigSys.FirstOrDefaultAsync();
             if (existingConfig != null)
             {
-                return BadRequest(new
+                var badResponse = new ApiResponse
                 {
                     Success = false,
-                    Message = "Ya existe una configuración del sistema. Use el endpoint de actualización."
-                });
+                    Message = "Ya existe una configuración del sistema. Use el endpoint de actualización.",
+                    StatusCode = 400
+                };
+                return BadRequest(badResponse);
             }
 
             // Crear los módulos no utilizados basados en el enum
@@ -199,10 +235,9 @@ public class ConfigController : ControllerBase
             _dbContext.ConfigSys.Add(config);
             await _dbContext.SaveChangesAsync();
 
-            return Ok(new
+            var response = new ApiResponse
             {
                 Success = true,
-                Message = "Configuración del sistema creada exitosamente",
                 Data = new
                 {
                     config.IdConfigSys,
@@ -212,16 +247,21 @@ public class ConfigController : ControllerBase
                     ColorsCount = config.Colors?.Count ?? 0,
                     NotUseModulesCount = config.NotUseModules?.Count ?? 0,
                     config.CreatedAt
-                }
-            });
+                },
+                Message = "Configuración del sistema creada exitosamente",
+                StatusCode = 200
+            };
+            return Ok(response);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new
+            var errorResponse = new ApiResponse
             {
                 Success = false,
-                Message = $"Error al configurar el sistema: {ex.Message}"
-            });
+                Message = $"Error al configurar el sistema: {ex.Message}",
+                StatusCode = 500
+            };
+            return StatusCode(500, errorResponse);
         }
     }
 
@@ -234,11 +274,13 @@ public class ConfigController : ControllerBase
             var configSys = await _dbContext.ConfigSys.FirstOrDefaultAsync();
             if (configSys == null)
             {
-                return BadRequest(new
+                var badResponse = new ApiResponse
                 {
                     Success = false,
-                    Message = "Debe configurar el sistema primero antes de crear el usuario administrador."
-                });
+                    Message = "Debe configurar el sistema primero antes de crear el usuario administrador.",
+                    StatusCode = 400
+                };
+                return BadRequest(badResponse);
             }
 
             // Verificar si ya existe un usuario administrador
@@ -248,11 +290,13 @@ public class ConfigController : ControllerBase
             
             if (existingAdmin != null)
             {
-                return BadRequest(new
+                var badResponse = new ApiResponse
                 {
                     Success = false,
-                    Message = "Ya existe un usuario administrador configurado."
-                });
+                    Message = "Ya existe un usuario administrador configurado.",
+                    StatusCode = 400
+                };
+                return BadRequest(badResponse);
             }
 
             // Crear o obtener el área de Sistema
@@ -320,10 +364,9 @@ public class ConfigController : ControllerBase
             _dbContext.Users.Add(adminUser);
             await _dbContext.SaveChangesAsync();
 
-            return Ok(new
+            var response = new ApiResponse
             {
                 Success = true,
-                Message = "Usuario administrador creado exitosamente",
                 Data = new
                 {
                     adminUser.IdUser,
@@ -342,19 +385,23 @@ public class ConfigController : ControllerBase
                         areaSystem.Name,
                         areaSystem.NormalizedName
                     }
-                }
-            });
+                },
+                Message = "Usuario administrador creado exitosamente",
+                StatusCode = 200
+            };
+            return Ok(response);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new
+            var errorResponse = new ApiResponse
             {
                 Success = false,
+                Data = new { Details = ex.InnerException?.Message },
                 Message = $"Error al crear el usuario administrador: {ex.Message}",
-                Details = ex.InnerException?.Message
-            });
+                StatusCode = 500
+            };
+            return StatusCode(500, errorResponse);
         }
     }
-    
-    
 }
+

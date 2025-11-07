@@ -1,10 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.Infrastructure.System.Services;
-using AVASphere.ApplicationCore.Common.Interfaces;
-using AVASphere.ApplicationCore.Common.Entities.General;
-using AVASphere.Infrastructure;
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace AVASphere.WebApi.System.Controllers;
 
@@ -25,20 +21,31 @@ public class DbToolsController : ControllerBase
     public async Task<IActionResult> CheckConnection()
     {
         var (isConnected, hasData, message) = await _dbTools.CheckConnectionAsync();
-        return Ok(new
+        var response = new ApiResponse
         {
-            IsConnected = isConnected,
-            HasData = hasData,
-            Message = message
-        });
+            Success = true,
+            Data = new
+            {
+                IsConnected = isConnected,
+                HasData = hasData
+            },
+            Message = message,
+            StatusCode = 200
+        };
+        return Ok(response);
     }
     
     [HttpDelete("drop-tables")]
     public async Task<IActionResult> DropTables()
     {
         var result = await _dbTools.DropTablesAsync();
-        return Ok(new { Result = result });
+        var response = new ApiResponse
+        {
+            Success = true,
+            Data = new { Result = result },
+            Message = "Operación de eliminación de tablas completada",
+            StatusCode = 200
+        };
+        return Ok(response);
     }
-
-    
 }

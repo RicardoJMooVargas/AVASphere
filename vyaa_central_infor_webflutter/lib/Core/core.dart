@@ -17,6 +17,7 @@ export 'models/responses/configsys.module.dart';
 
 //models/base
 export 'models/base/api_endpoints.module.dart';
+export 'models/base/route_config.module.dart';
 
 // themes
 export 'theme/app_theme.dart';

@@ -197,7 +197,7 @@ class NotificationService {
 
   /// Maneja el logout manual del usuario
   static void handleLogout() async {
-    await CacheService.removeToken();
+    await CacheService.clearSession();
     showSuccess('Sesión cerrada correctamente');
     
     // Esperar un momento para que el usuario vea el mensaje

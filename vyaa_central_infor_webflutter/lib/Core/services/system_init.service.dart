@@ -41,8 +41,8 @@ class SystemInitService {
         // Verificar si existe token válido
         final token = await CacheService.getToken();
         if (token != null && token.isNotEmpty) {
-          debugPrint('🔑 Token encontrado - Redirigiendo a home');
-          return '/home';
+          debugPrint('🔑 Token encontrado - Redirigiendo a aplicación principal');
+          return '/home'; // Siempre /home, MainAppLayout maneja el contenido específico
         } else {
           debugPrint('🚫 No hay token válido - Redirigiendo a login');
           return '/login';

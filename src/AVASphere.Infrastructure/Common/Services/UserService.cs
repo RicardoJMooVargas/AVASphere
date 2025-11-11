@@ -1,9 +1,10 @@
-﻿    using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
     using Microsoft.Extensions.Logging;
     using AVASphere.ApplicationCore.Common.Entities;
     using AVASphere.ApplicationCore.Common.Interfaces;
     using AVASphere.ApplicationCore.Common.DTOs;
     using AVASphere.ApplicationCore.Common.Entities.General;
+    using AVASphere.ApplicationCore.Common.Enums;
     using AVASphere.ApplicationCore.Common.Extensions;
 
     namespace AVASphere.Infrastructure.Common.Services;
@@ -13,17 +14,20 @@
         private readonly IUserRepository _userRepository;
         private readonly IEncryptionService _encryptionService;
         private readonly IConfigSysService _configSysService; // ✅ NUEVA DEPENDENCIA
+        private readonly IRolRepository _rolRepository; // ✅ NUEVA DEPENDENCIA
         private readonly ILogger<UserService> _logger;
 
         public UserService(
             IUserRepository userRepository, 
             IEncryptionService encryptionService,
             IConfigSysService configSysService, // ✅ INYECTAR
+            IRolRepository rolRepository, // ✅ INYECTAR
             ILogger<UserService> logger)
         {
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _encryptionService = encryptionService ?? throw new ArgumentNullException(nameof(encryptionService));
             _configSysService = configSysService ?? throw new ArgumentNullException(nameof(configSysService)); // ✅ INICIALIZAR
+            _rolRepository = rolRepository ?? throw new ArgumentNullException(nameof(rolRepository)); // ✅ INICIALIZAR
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -328,6 +332,73 @@
             {
                 _logger.LogError(ex, "Error durante la autenticación del usuario: {UserName}", loginDtOs.UserName);
                 return LoginResponse.FailureResponse("Error interno durante la autenticación");
+            }
+        }
+
+        public async Task<UserResponse> SetupAdminUserAsync(string userName, string password)
+        {
+            try
+            {
+                _logger.LogInformation("Configurando usuario administrador: {UserName}", userName);
+
+                // Validar parámetros
+                if (string.IsNullOrWhiteSpace(userName))
+                    throw new ArgumentException("El nombre de usuario es requerido");
+
+                if (string.IsNullOrWhiteSpace(password))
+                    throw new ArgumentException("La contraseña es requerida");
+
+                // Obtener configuración del sistema
+                var config = await _configSysService.GetConfigAsync();
+                if (config == null)
+                    throw new InvalidOperationException("La configuración del sistema debe estar configurada primero");
+
+                // Verificar si el rol administrador ya existe
+                var adminRol = await _rolRepository.GetByNameAsync("Administrador");
+                if (adminRol == null)
+                {
+                    // Crear el rol administrador
+                    adminRol = new Rol
+                    {
+                        Name = "Administrador",
+                        NormalizedName = "admin",
+                        Permissions = new List<Permission> { new Permission { Index = 0, Name = "All", Normalized = "all", Type = "All", Status = "Active" } },
+                        Modules = Enum.GetValues<SystemModule>().Select((m, i) => new Module { Index = i, Name = m.ToString() }).ToList(),
+                        IdArea = 1 // Asumir área 1
+                    };
+                    await _rolRepository.CreateAsync(adminRol);
+                    _logger.LogInformation("Rol administrador creado con ID: {IdRol}", adminRol.IdRol);
+                }
+
+                // Verificar si el usuario ya existe
+                var existingUser = await _userRepository.SelectUserAsync(new User { UserName = userName });
+                if (existingUser != null)
+                    throw new InvalidOperationException($"El usuario '{userName}' ya existe");
+
+                // Crear el usuario administrador
+                var user = new User
+                {
+                    UserName = userName,
+                    Name = userName,
+                    LastName = "",
+                    HashPassword = _encryptionService.HashPassword(password),
+                    Status = "Active",
+                    Aux = "",
+                    CreateAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Verified = "true",
+                    IdConfigSys = config.IdConfigSys,
+                    IdRol = adminRol.IdRol
+                };
+
+                await _userRepository.CreateUsersAsync(user);
+                _logger.LogInformation("Usuario administrador creado exitosamente con ID: {IdUser}", user.IdUser);
+
+                return user.ToResponse();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al configurar usuario administrador: {UserName}", userName);
+                throw new ApplicationException($"Error al configurar el usuario administrador: {ex.Message}", ex);
             }
         }
     }

@@ -37,4 +37,17 @@ public class ConfigSysRepository : IConfigSysRepository
 
         await _context.SaveChangesAsync();
     }
+
+    public async Task<bool> TablesExistAsync()
+    {
+        try
+        {
+            await _context.ConfigSys.AnyAsync();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

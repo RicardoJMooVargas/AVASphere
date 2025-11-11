@@ -7,4 +7,6 @@ public interface IConfigSysService
 {
     Task<ConfigSys?> GetConfigAsync();
     Task<ConfigSys> SaveConfigAsync(ConfigSys config);
+    Task<bool> HasInitialConfigAsync();
+    Task<bool> TablesExistAsync();
 }

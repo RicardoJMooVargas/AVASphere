@@ -1,4 +1,4 @@
-﻿﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Common.DTOs;
@@ -146,5 +146,37 @@ public class UsersController : ControllerBase
     {
         Response.Headers.Append("Allow", "GET,POST,PUT,OPTIONS");
         return Ok(new ApiResponse(null, "Options request successful", 200));
+    }
+
+    [HttpPost("setup-admin")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult> SetupAdminUser([FromBody] AdminSetupRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Configurando usuario administrador");
+
+            if (request == null || string.IsNullOrWhiteSpace(request.UserName) || string.IsNullOrWhiteSpace(request.Password))
+            {
+                return BadRequest(new ApiResponse("UserName y Password son requeridos", 400));
+            }
+
+            var user = await _userService.SetupAdminUserAsync(request.UserName, request.Password);
+
+            return CreatedAtAction(nameof(GetUser), new { idUsers = user.IdUsers }, 
+                new ApiResponse(user, "Usuario administrador configurado exitosamente", 201));
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Error de negocio al configurar admin");
+            return BadRequest(new ApiResponse(ex.Message, 400));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al configurar usuario administrador");
+            return StatusCode(500, new ApiResponse("Error interno del servidor", 500));
+        }
     }
 }

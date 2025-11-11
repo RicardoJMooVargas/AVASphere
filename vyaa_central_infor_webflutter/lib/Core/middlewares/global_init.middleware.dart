@@ -41,9 +41,25 @@ class GlobalInitMiddleware extends GetMiddleware {
       '/setup',
     ];
     
+    // Rutas de la aplicación principal que deben redirigir a /home
+    final appRoutes = [
+      '/sales',
+      '/inventory',
+      '/supply',
+    ];
+    
     if (systemRoutes.contains(route)) {
       debugPrint('✅ Permitiendo acceso directo a ruta del sistema: $route');
       return null;
+    }
+    
+    // Redirigir rutas de app internas a /home una vez verificada la configuración inicial
+    if (appRoutes.contains(route) && _hasCheckedInitialConfig) {
+      debugPrint('🔀 Redirigiendo ruta de app $route a /home con argumentos');
+      return RouteSettings(
+        name: '/home',
+        arguments: {'originalRoute': route},
+      );
     }
 
     // Para otras rutas, verificar si ya se determinó la ruta correcta
@@ -57,6 +73,8 @@ class GlobalInitMiddleware extends GetMiddleware {
       debugPrint('🔀 Redirigiendo de $route a $_determinedRoute (ruta determinada)');
       return RouteSettings(name: _determinedRoute);
     }
+    
+
 
     // Permitir navegación normal
     debugPrint('✅ Permitiendo navegación a: $route');

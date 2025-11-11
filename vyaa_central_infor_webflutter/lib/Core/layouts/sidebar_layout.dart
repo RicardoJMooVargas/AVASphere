@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../Widgets/app_sidebar.widget.dart';
+import '../controllers/sidebar_controller.dart';
 
 /// Wrapper que proporciona el sidebar a las páginas que lo necesiten
 class SidebarLayout extends StatelessWidget {

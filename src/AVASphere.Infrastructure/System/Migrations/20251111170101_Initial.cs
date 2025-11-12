@@ -174,16 +174,16 @@ namespace AVASphere.Infrastructure.System.Migrations
                 {
                     table.PrimaryKey("PK_Sales", x => x.IdSale);
                     table.ForeignKey(
-                        name: "FK_Sales_ConfigSys_IdConfigSys",
-                        column: x => x.IdConfigSys,
-                        principalTable: "ConfigSys",
-                        principalColumn: "IdConfigSys",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
                         name: "FK_Sales_Customers_IdCustomer",
                         column: x => x.IdCustomer,
                         principalTable: "Customers",
                         principalColumn: "IdCustomer",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "IdConfigSys",
+                        column: x => x.IdConfigSys,
+                        principalTable: "ConfigSys",
+                        principalColumn: "IdConfigSys",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -196,7 +196,7 @@ namespace AVASphere.Infrastructure.System.Migrations
                     UserName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     LastName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    Password = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Password = table.Column<string>(type: "text", nullable: true),
                     HashPassword = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
                     Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     Aux = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
@@ -220,6 +220,59 @@ namespace AVASphere.Infrastructure.System.Migrations
                         principalTable: "Rol",
                         principalColumn: "IdRol",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "QuotationVersions",
+                columns: table => new
+                {
+                    IdQuotationVersion = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    VersionNumber = table.Column<int>(type: "integer", nullable: false),
+                    Subtotal = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    TaxAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    TotalAmount = table.Column<decimal>(type: "numeric(18,2)", precision: 18, scale: 2, nullable: true),
+                    GeneralComment = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ProductsJson = table.Column<List<SingleProductJson>>(type: "jsonb", nullable: false, defaultValueSql: "'[]'::jsonb"),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedBy = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    IdQuotation = table.Column<int>(type: "integer", nullable: false),
+                    QuotationData = table.Column<Quotation>(type: "jsonb", nullable: false, defaultValueSql: "'{}'::jsonb")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_QuotationVersions", x => x.IdQuotationVersion);
+                    table.ForeignKey(
+                        name: "QuotationVersion",
+                        column: x => x.IdQuotation,
+                        principalTable: "Quotations",
+                        principalColumn: "IdQuotation",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SaleQuotations",
+                columns: table => new
+                {
+                    IdSaleQuotation = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedBy = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ProductsJson = table.Column<List<SingleProductJson>>(type: "jsonb", nullable: false, defaultValueSql: "'[]'::jsonb"),
+                    PriceSnapshotJson = table.Column<PriceSnapshotJson>(type: "jsonb", nullable: true, defaultValueSql: "'{}'::jsonb"),
+                    GeneralComment = table.Column<string>(type: "text", nullable: true),
+                    IdQuotation = table.Column<int>(type: "integer", nullable: false),
+                    IdSale = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SaleQuotations", x => x.IdSaleQuotation);
+                    table.ForeignKey(
+                        name: "FK_SaleQuotation_Quotation_IdQuotation",
+                        column: x => x.IdQuotation,
+                        principalTable: "Quotations",
+                        principalColumn: "IdQuotation",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateIndex(
@@ -261,9 +314,19 @@ namespace AVASphere.Infrastructure.System.Migrations
                 column: "IdCustomer");
 
             migrationBuilder.CreateIndex(
+                name: "IX_QuotationVersions_IdQuotation",
+                table: "QuotationVersions",
+                column: "IdQuotation");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Rol_IdArea",
                 table: "Rol",
                 column: "IdArea");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SaleQuotations_IdQuotation",
+                table: "SaleQuotations",
+                column: "IdQuotation");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Sales_IdConfigSys",
@@ -299,7 +362,10 @@ namespace AVASphere.Infrastructure.System.Migrations
                 name: "ProjectCategory");
 
             migrationBuilder.DropTable(
-                name: "Quotations");
+                name: "QuotationVersions");
+
+            migrationBuilder.DropTable(
+                name: "SaleQuotations");
 
             migrationBuilder.DropTable(
                 name: "Sales");
@@ -308,13 +374,16 @@ namespace AVASphere.Infrastructure.System.Migrations
                 name: "User");
 
             migrationBuilder.DropTable(
-                name: "Customers");
+                name: "Quotations");
+
+            migrationBuilder.DropTable(
+                name: "Rol");
 
             migrationBuilder.DropTable(
                 name: "ConfigSys");
 
             migrationBuilder.DropTable(
-                name: "Rol");
+                name: "Customers");
 
             migrationBuilder.DropTable(
                 name: "Area");

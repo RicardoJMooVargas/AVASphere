@@ -2,7 +2,7 @@
 using AVASphere.ApplicationCore.Sales.Interfaces;
 using AVASphere.ApplicationCore.Sales.Entities;
 using AVASphere.ApplicationCore.Sales.DTOs;
-using MongoDB.Bson;
+using AVASphere.ApplicationCore.Common.Entities.Jsons;
 
 namespace AVASphere.WebApi.Sale.Controllers;
 
@@ -12,318 +12,106 @@ namespace AVASphere.WebApi.Sale.Controllers;
 [Tags("Quotations")]
 public class QuotationManagerController : ControllerBase
 {
-    /*
     private readonly IQuotationService _quotationService;
-    private readonly ICustomerService _customerService;
 
-    public QuotationManagerController(
-        IQuotationService quotationService,
-        ICustomerService customerService)
+    public QuotationManagerController(IQuotationService quotationService)
     {
         _quotationService = quotationService;
-        _customerService = customerService;
+    }
+    // POST: api/QuotationManager
+    [HttpPost("Register/Quotation")]
+    public async Task<ActionResult> CreateQuotation(CreateQuotationDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var created = await _quotationService.CreateQuotationAsync(dto, User?.Identity?.Name ?? "system");
+        return CreatedAtRoute(
+            "GetQuotationById",
+            new { id = created.QuotationId },
+            created
+        );
     }
 
-    [HttpPost]
-    public async Task<ActionResult<QuotationResponseDto>> CreateQuotation([FromBody] CreateQuotationDto createQuotationDto, [FromHeader(Name = "UserId")] string createdByUserId)
+    // GET: api/QuotationManager
+    [HttpGet("GetAll/Quotations")]
+    public async Task<ActionResult> GetAll([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] string? customerName = null, [FromQuery] int? folio = null)
     {
-        try
-        {
-            if (string.IsNullOrEmpty(createdByUserId))
-            {
-                return BadRequest("El ID del usuario creador es requerido en el header 'UserId'.");
-            }
-
-            // Validar campos obligatorios de Customer
-            if (string.IsNullOrWhiteSpace(createQuotationDto.Customer.FullName))
-            {
-                return BadRequest("El nombre completo del cliente es obligatorio.");
-            }
-
-            if (createQuotationDto.Customer.Phones == null || 
-                !createQuotationDto.Customer.Phones.Any() || 
-                createQuotationDto.Customer.Phones.All(p => string.IsNullOrWhiteSpace(p)))
-            {
-                return BadRequest("Al menos un número de teléfono del cliente es obligatorio.");
-            }
-
-            // Manejar el cliente (crear nuevo o actualizar existente)
-            Customer customer;
-            if (string.IsNullOrEmpty(createQuotationDto.Customer.CustomerId))
-            {
-                // Crear nuevo cliente
-                customer = new Customer
-                {
-                    CustomerId = ObjectId.GenerateNewId().ToString(),
-                    Code = createQuotationDto.Customer.Code,
-                    FullName = createQuotationDto.Customer.FullName,
-                    Email = createQuotationDto.Customer.Email,
-                    Phones = createQuotationDto.Customer.Phones,
-                    CreatedAt = DateTime.UtcNow,
-                    Status = true
-                };
-                customer = await _customerService.CreateCustomerAsync(customer);
-            }
-            else
-            {
-                // Actualizar cliente existente
-                customer = new Customer
-                {
-                    CustomerId = createQuotationDto.Customer.CustomerId,
-                    Code = createQuotationDto.Customer.Code,
-                    FullName = createQuotationDto.Customer.FullName,
-                    Email = createQuotationDto.Customer.Email,
-                    Phones = createQuotationDto.Customer.Phones,
-                    Status = true
-                };
-                customer = await _customerService.UpdateCustomerAsync(customer);
-            }
-
-            // Crear la cotización
-            var quotation = new Quotation
-            {
-                Folio = createQuotationDto.Folio,
-                SaleDate = createQuotationDto.SaleDate ?? DateTime.UtcNow.Date,
-                CustomerId = customer.CustomerId,
-                GeneralComment = createQuotationDto.GeneralComment,
-                Followups = createQuotationDto.Followups?.Select(f => new QuotationFollowups
-                {
-                    Comment = f.Comment,
-                    Date = f.Date ?? DateTime.UtcNow,
-                    UserId = f.UserId ?? createdByUserId
-                }).ToList() ?? new List<QuotationFollowups>()
-            };
-
-            var createdQuotation = await _quotationService.CreateQuotationAsync(quotation, createdByUserId);
-
-            // Mapear a DTO de respuesta
-            var response = MapToQuotationResponseDto(createdQuotation);
-
-            return CreatedAtAction(
-                nameof(GetQuotationById),
-                new { id = createdQuotation.QuotationId },
-                response);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno del servidor: {ex.Message}");
-        }
+        var items = await _quotationService.GetQuotationsAsync(startDate, endDate, customerName, folio);
+        return Ok(items);
     }
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<QuotationResponseDto>>> GetQuotations([FromQuery] GetQuotationsQueryDto query)
+    // 🔹 GET: api/Quotation/GetById/{IdQuotation}
+    [HttpGet("GetById{id:int}", Name = "GetQuotationById")]
+    public async Task<IActionResult> GetById(int id)
     {
-        try
-        {
-            var quotations = await _quotationService.GetQuotationsAsync(
-                query.StartDate, 
-                query.EndDate, 
-                query.CustomerName, 
-                query.Folio);
-
-            var response = quotations.Select(MapToQuotationResponseDto).ToList();
-
-            return Ok(response);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno del servidor: {ex.Message}");
-        }
-    }
-    
-    [HttpGet("{id}")]
-    public async Task<ActionResult<QuotationResponseDto>> GetQuotationById(string id)
-    {
-        try
-        {
-            var quotation = await _quotationService.GetQuotationByIdAsync(id);
-
-            if (quotation == null)
-            {
-                return NotFound($"No se encontró la cotización con ID {id}.");
-            }
-
-            var response = MapToQuotationResponseDto(quotation);
-            return Ok(response);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno del servidor: {ex.Message}");
-        }
+        var quotation = await _quotationService.GetByIdAsync(id);
+        return Ok(quotation);
     }
 
-    [HttpPost("{quotationId}/followups")]
-    public async Task<ActionResult<QuotationFollowupResponseDto>> AddFollowupToQuotation(
-        string quotationId, 
-        [FromBody] CreateFollowupDto createFollowupDto, 
-        [FromHeader(Name = "UserId")] string userId)
+
+    // GET: api/QuotationManager/folio/{folio}
+    [HttpGet("Get/Folio")]
+    public async Task<ActionResult> GetByFolio(int folio)
     {
-        try
-        {
-            if (string.IsNullOrEmpty(userId))
-            {
-                return BadRequest("El ID del usuario es requerido en el header 'UserId'.");
-            }
-
-            if (string.IsNullOrWhiteSpace(createFollowupDto.Comment))
-            {
-                return BadRequest("El comentario del seguimiento es obligatorio.");
-            }
-
-            var followup = new QuotationFollowups
-            {
-                Comment = createFollowupDto.Comment,
-                Date = createFollowupDto.Date ?? DateTime.UtcNow
-            };
-
-            var createdFollowup = await _quotationService.AddFollowupToQuotationAsync(quotationId, followup, userId);
-
-            var response = new QuotationFollowupResponseDto
-            {
-                Id = createdFollowup.Id,
-                Date = createdFollowup.Date,
-                Comment = createdFollowup.Comment,
-                UserId = createdFollowup.UserId,
-                CreatedAt = createdFollowup.CreatedAt
-            };
-
-            return CreatedAtAction(
-                nameof(GetQuotationById),
-                new { id = quotationId },
-                response);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno del servidor: {ex.Message}");
-        }
+        var items = await _quotationService.GetQuotationsAsync(null, null, null, folio);
+        var first = items?.FirstOrDefault();
+        if (first == null) return NotFound();
+        return Ok(first);
     }
 
-    [HttpPut("{quotationId}/followups/{followupId}")]
-    public async Task<ActionResult<QuotationFollowupResponseDto>> UpdateFollowupInQuotation(
-        string quotationId, 
-        string followupId, 
-        [FromBody] UpdateFollowupDto updateFollowupDto)
+    // GET: api/QuotationManager/customer/{customerId}
+    [HttpGet("Customer/IdCustomer")]
+    public async Task<ActionResult> GetByCustomer(int IdCustomer)
     {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(updateFollowupDto.Comment))
-            {
-                return BadRequest("El comentario del seguimiento es obligatorio.");
-            }
-
-            var updatedFollowup = new QuotationFollowups
-            {
-                Comment = updateFollowupDto.Comment,
-                Date = updateFollowupDto.Date ?? DateTime.UtcNow
-            };
-
-            var result = await _quotationService.UpdateFollowupInQuotationAsync(quotationId, followupId, updatedFollowup);
-
-            var response = new QuotationFollowupResponseDto
-            {
-                Id = result.Id,
-                Date = result.Date,
-                Comment = result.Comment,
-                UserId = result.UserId,
-                CreatedAt = result.CreatedAt
-            };
-
-            return Ok(response);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno del servidor: {ex.Message}");
-        }
+        var items = await _quotationService.GetQuotationsAsync(); // service currently lacks customerName->id filter
+        var filtered = items.Where(q => q.CustomerId == IdCustomer);
+        return Ok(filtered);
     }
 
-    [HttpDelete("{quotationId}/followups/{followupId}")]
-    public async Task<ActionResult> DeleteFollowupFromQuotation(string quotationId, string followupId)
+    [HttpPut("Update/{IdQuotation}")]
+    public async Task<IActionResult> Update(int IdQuotation, QuotationUpdateDto dto)
     {
-        try
-        {
-            var deleted = await _quotationService.DeleteFollowupFromQuotationAsync(quotationId, followupId);
+        var updated = await _quotationService.UpdateIdQuotation(IdQuotation, dto);
+        if (updated == null)
+            return NotFound("Quotation not found");
 
-            if (!deleted)
-            {
-                return NotFound($"No se encontró el seguimiento con ID {followupId} en la cotización {quotationId}.");
-            }
-
-            return NoContent();
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno del servidor: {ex.Message}");
-        }
+        return Ok(updated);
     }
 
-    private static QuotationResponseDto MapToQuotationResponseDto(Quotation quotation)
+    // DELETE: api/QuotationManager/{id}
+    [HttpDelete("Delete/IdQuotation")]
+    public async Task<IActionResult> Delete(int IdQuotation)
     {
-        return new QuotationResponseDto
+        var ok = await _quotationService.DeleteQuotationAsync(IdQuotation);
+        if (!ok) return NotFound();
+        return NoContent();
+    }
+
+    // POST: api/QuotationManager/{id}/followups
+    [HttpPut("Register/FollowupsJson")]
+    public async Task<IActionResult> AddFollowup(int IdQuotation, CreateFollowupDto dto)
+    {
+        var followup = new QuotationFollowupsJson
         {
-            QuotationId = quotation.QuotationId,
-            SaleDate = quotation.SaleDate,
-            Status = quotation.Status,
-            SalesExecutives = quotation.SalesExecutives,
-            Folio = quotation.Folio,
-            CustomerId = quotation.CustomerId,
-            Customer = quotation.Customer != null ? new CustomerResponseDto
-            {
-                CustomerId = quotation.Customer.CustomerId,
-                Code = quotation.Customer.Code,
-                FullName = quotation.Customer.FullName,
-                Email = quotation.Customer.Email,
-                Phones = quotation.Customer.Phones,
-                CreatedAt = quotation.Customer.CreatedAt,
-                Status = quotation.Customer.Status
-            } : null,
-            GeneralComment = quotation.GeneralComment,
-            Followups = quotation.Followups.Select(f => new QuotationFollowupResponseDto
-            {
-                Id = f.Id,
-                Date = f.Date,
-                Comment = f.Comment,
-                UserId = f.UserId,
-                CreatedAt = f.CreatedAt
-            }).ToList(),
-            CreatedAt = quotation.CreatedAt,
-            UpdatedAt = quotation.UpdatedAt
+            Id = 0,
+            Date = dto.Date ?? DateTime.UtcNow,
+            Comment = dto.Comment ?? string.Empty,
+            UserId = User?.Identity?.Name ?? string.Empty,
+            CreatedAt = DateTime.UtcNow
         };
+
+        var ok = await _quotationService.AddFollowupAsync(IdQuotation, followup, followup.UserId);
+        if (!ok) return NotFound();
+        return NoContent();
     }
-    */
+
+    // DELETE: api/QuotationManager/{id}/followups/{followupId}
+    [HttpDelete("Delete/IdFollowupsJson")]
+    public async Task<IActionResult> DeleteFollowup(int IdQuotation, int IdFollowupsJson)
+    {
+        var ok = await _quotationService.DeleteFollowupFromQuotationAsync(IdQuotation, IdFollowupsJson);
+        if (!ok) return NotFound();
+        return NoContent();
+    }
+
 }

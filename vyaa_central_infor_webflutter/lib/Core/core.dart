@@ -2,6 +2,8 @@
 //services
 export 'services/api/api.service.dart';
 export 'services/data/cache.service.dart';
+export 'services/data/hive.service.dart';
+export 'services/data/user_data.service.dart';
 
 //models/requests
 export 'models/requests/customer_req.module.dart';

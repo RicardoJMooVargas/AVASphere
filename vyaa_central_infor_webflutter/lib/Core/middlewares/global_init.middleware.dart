@@ -6,9 +6,13 @@ import '../services/system_init.service.dart';
 class GlobalInitMiddleware extends GetMiddleware {
   @override
   int? get priority => 1; // Prioridad normal
-  
   static bool _hasCheckedInitialConfig = false;
   static String? _determinedRoute;
+  /// Verifica si ya se revisó la configuración inicial
+  static bool get hasCheckedInitialConfig => _hasCheckedInitialConfig;
+  /// Obtiene la ruta determinada
+  static String? get determinedRoute => _determinedRoute;
+
 
   /// Marca que ya se verificó la configuración inicial
   static void markAsChecked(String route) {
@@ -23,12 +27,6 @@ class GlobalInitMiddleware extends GetMiddleware {
     _determinedRoute = null;
     debugPrint('🔄 Estado de middleware reseteado');
   }
-
-  /// Verifica si ya se revisó la configuración inicial
-  static bool get hasCheckedInitialConfig => _hasCheckedInitialConfig;
-  
-  /// Obtiene la ruta determinada
-  static String? get determinedRoute => _determinedRoute;
 
   @override
   RouteSettings? redirect(String? route) {

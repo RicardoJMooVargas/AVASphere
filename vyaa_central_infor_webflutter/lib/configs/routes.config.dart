@@ -87,30 +87,50 @@ class AppRoutes {
   ];
   /// ===== CONFIGURACIÓN DEL SIDEBAR =====
   /// Items del sidebar para MainAppLayout (navegación interna)
+  /// IMPORTANTE: El moduleName debe coincidir con los módulos del backend
+  /// Los módulos del backend vienen en formato: "Sales", "Inventory", etc.
   static const List<SidebarItemData> sidebarItems = [
     SidebarItemData(
       title: 'Dashboard',
       icon: Icons.dashboard,
       route: '/home',
       order: 1,
+      moduleName: 'General', // Módulo "General" incluye dashboard
     ),
     SidebarItemData(
       title: 'Ventas',
       icon: Icons.sell_outlined,
       route: '/sales',
       order: 2,
+      moduleName: 'Sales', // Debe coincidir con el módulo del backend
     ),
     SidebarItemData(
       title: 'Inventario',
       icon: Icons.inventory_2_outlined,
       route: '/inventory',
       order: 3,
+      moduleName: 'Inventory', // Debe coincidir con el módulo del backend
     ),
     SidebarItemData(
-      title: 'Suministros',
-      icon: Icons.local_shipping_outlined,
-      route: '/supply',
+      title: 'Compras',
+      icon: Icons.shopping_cart_outlined,
+      route: '/shopping',
       order: 4,
+      moduleName: 'Shopping', // Debe coincidir con el módulo del backend
+    ),
+    SidebarItemData(
+      title: 'Proyectos',
+      icon: Icons.folder_outlined,
+      route: '/projects',
+      order: 5,
+      moduleName: 'Projects', // Debe coincidir con el módulo del backend
+    ),
+    SidebarItemData(
+      title: 'Sistema',
+      icon: Icons.settings_outlined,
+      route: '/system',
+      order: 6,
+      moduleName: 'System', // Debe coincidir con el módulo del backend
     ),
   ];
   /// ===== RUTA PARA PÁGINAS NO ENCONTRADAS =====
@@ -181,6 +201,7 @@ class SidebarItemData {
   final String route;
   final int order;
   final bool enabled;
+  final String? moduleName; // Nombre del módulo del backend para verificar permisos
 
   const SidebarItemData({
     required this.title,
@@ -188,10 +209,11 @@ class SidebarItemData {
     required this.route,
     required this.order,
     this.enabled = true,
+    this.moduleName, // Opcional para compatibilidad
   });
 
   @override
-  String toString() => 'SidebarItem($title -> $route)';
+  String toString() => 'SidebarItem($title -> $route [module: $moduleName])';
 }
 
 /// ===== EXTENSIONES PARA NAVEGACIÓN SIMPLIFICADA =====

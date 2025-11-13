@@ -90,7 +90,10 @@ public static class UserExtensions
             ConfigSysName = user.ConfigSys?.CompanyName,
             CompanyName = user.ConfigSys?.CompanyName,
             BranchName = user.ConfigSys?.BranchName,
-            LogoUrl = user.ConfigSys?.LogoUrl
+            LogoUrl = user.ConfigSys?.LogoUrl,
+            // Configuraciones y permisos
+            Modules = user.Rol?.Modules ?? new List<Module>(),
+            Permissions = user.Rol?.Permissions ?? new List<Permission>()
         };
     }
 

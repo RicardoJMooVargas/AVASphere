@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/sidebar_controller.dart';
 import '../controllers/notification_services.dart';
+import '../../modules/login/services/api/auth.service.dart';
+import '../services/data/user_data.service.dart';
 // Configuraciones
 import '../../configs/routes.config.dart';
 import '../../modules/dashboard/screens/home_page.dart';
@@ -19,13 +21,15 @@ class MainAppLayout extends StatefulWidget {
   State<MainAppLayout> createState() => _MainAppLayoutState();
 }
 
-
-
 class _MainAppLayoutState extends State<MainAppLayout> {
   late SidebarController _sidebarController;
 
   // Mapa de rutas a widgets para navegación interna
   late Map<String, Widget> _pages;
+  
+  // Lista de items del sidebar filtrados según permisos del usuario
+  List<SidebarItemData> _allowedSidebarItems = [];
+  bool _isLoadingPermissions = true;
 
   @override
   void initState() {
@@ -39,6 +43,9 @@ class _MainAppLayoutState extends State<MainAppLayout> {
       '/inventory': const InventoryPage(),
       '/supply': const SupplyPage(),
     };
+    
+    // Cargar permisos del usuario y filtrar sidebar
+    _loadUserPermissionsAndFilterSidebar();
     
     // Inicializar con la ruta original desde argumentos o la ruta actual
     String initialRoute = '/home';
@@ -63,6 +70,98 @@ class _MainAppLayoutState extends State<MainAppLayout> {
       _sidebarController.updateRoute('/home');
       debugPrint('🏠 Usando ruta por defecto: /home');
     }
+  }
+  
+  /// Cargar permisos del usuario y filtrar items del sidebar
+  Future<void> _loadUserPermissionsAndFilterSidebar() async {
+    try {
+      debugPrint('🔐 ========== CARGANDO PERMISOS DEL USUARIO ==========');
+      
+      // Obtener módulos del usuario
+      final userModules = await UserDataService.getUserModules();
+      
+      debugPrint('📦 Módulos del usuario: ${userModules.length}');
+      for (var module in userModules) {
+        debugPrint('   - ${module.name} (${module.normalized})');
+      }
+      
+      // Obtener todos los items del sidebar
+      final allSidebarItems = AppRoutes.getSidebarItemsOrdered();
+      
+      // Filtrar items basándose en los módulos del usuario
+      _allowedSidebarItems = allSidebarItems.where((item) {
+        // Siempre permitir /home o /dashboard
+        if (item.route == '/home' || item.route == '/dashboard') {
+          debugPrint('✅ Permitiendo: ${item.title} (ruta base)');
+          return true;
+        }
+        
+        // Verificar si el usuario tiene acceso al módulo
+        final hasAccess = _checkModuleAccess(item, userModules);
+        
+        if (hasAccess) {
+          debugPrint('✅ Permitiendo: ${item.title} → ${item.route} [${item.moduleName}]');
+        } else {
+          debugPrint('🚫 Bloqueando: ${item.title} → ${item.route} [${item.moduleName}]');
+        }
+        
+        return hasAccess;
+      }).toList();
+      
+      debugPrint('📊 Sidebar filtrado: ${_allowedSidebarItems.length} de ${allSidebarItems.length} items');
+      debugPrint('🔐 ========== FIN CARGA DE PERMISOS ==========');
+      
+      if (mounted) {
+        setState(() {
+          _isLoadingPermissions = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error al cargar permisos del usuario: $e');
+      
+      // En caso de error, mostrar todos los items (fallback)
+      _allowedSidebarItems = AppRoutes.getSidebarItemsOrdered();
+      
+      if (mounted) {
+        setState(() {
+          _isLoadingPermissions = false;
+        });
+      }
+    }
+  }
+  
+  /// Verificar si el usuario tiene acceso a un módulo basándose en el item del sidebar
+  bool _checkModuleAccess(SidebarItemData item, List<dynamic> userModules) {
+    // Si el item tiene un moduleName definido, usarlo para la comparación
+    if (item.moduleName != null && item.moduleName!.isNotEmpty) {
+      // Buscar coincidencia exacta con el nombre del módulo
+      for (var module in userModules) {
+        final moduleName = module.name.toString();
+        
+        // Comparación case-insensitive
+        if (moduleName.toLowerCase() == item.moduleName!.toLowerCase()) {
+          return true;
+        }
+      }
+      return false;
+    }
+    
+    // Fallback: extraer el nombre del módulo de la ruta
+    // Ej: /sales → sales, /inventory → inventory
+    final routeName = item.route.replaceFirst('/', '').toLowerCase();
+    
+    // Buscar en los módulos del usuario
+    for (var module in userModules) {
+      final moduleName = module.name.toLowerCase();
+      final moduleNormalized = module.normalized.toLowerCase().replaceFirst('/', '');
+      
+      // Comparar por nombre o ruta normalizada
+      if (moduleName == routeName || moduleNormalized == routeName) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   /// Navegar internamente sin afectar el sidebar
@@ -146,15 +245,28 @@ class _MainAppLayoutState extends State<MainAppLayout> {
         
         const SizedBox(height: 30),
         
-        // Items del sidebar usando configuración
-        ...AppRoutes.getSidebarItemsOrdered().map((item) => Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: _buildSidebarItem(
-            icon: item.icon,
-            tooltip: item.title,
-            route: item.route,
-          ),
-        )).toList(),
+        // Items del sidebar filtrados según permisos del usuario
+        if (_isLoadingPermissions)
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+          )
+        else
+          ..._allowedSidebarItems.map((item) => Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _buildSidebarItem(
+              icon: item.icon,
+              tooltip: item.title,
+              route: item.route,
+            ),
+          )).toList(),
         
         const Spacer(),
         
@@ -211,9 +323,27 @@ class _MainAppLayoutState extends State<MainAppLayout> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // Usar el servicio de notificaciones para logout
+            // Usar el servicio de notificaciones para mostrar confirmación
             NotificationService.showLogoutConfirmation(
-              onConfirm: () => NotificationService.handleLogout(),
+              onConfirm: () async {
+                try {
+                  // Ejecutar logout desde AuthService
+                  final authService = AuthService();
+                  await authService.logout();
+                  
+                  NotificationService.showSuccess('Sesión cerrada correctamente');
+                  
+                  // Esperar un momento para que el usuario vea el mensaje
+                  await Future.delayed(const Duration(milliseconds: 500));
+                  
+                  // Redirigir a la ruta raíz
+                  debugPrint('🏠 Redirigiendo a ruta raíz "/"');
+                  Get.offAllNamed('/');
+                } catch (e) {
+                  debugPrint('❌ ERROR durante el logout: $e');
+                  NotificationService.showError('Error al cerrar sesión');
+                }
+              },
             );
           },
           borderRadius: BorderRadius.circular(8),

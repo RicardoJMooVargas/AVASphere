@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import '../../../configs/api_settings.config.dart';
-import '../../services/data/cache.service.dart';
+import '../../services/data/hive.service.dart';
 import '../../../configs/api_response.config.dart';
 import '../../models/base/api_endpoints.module.dart';
 import 'package:vyaa_central_infor_webflutter/configs/enums.dart';
@@ -90,9 +90,14 @@ class ApiService {
 
       // Token si requiere autenticación
       if (endpoint.requiresAuth) {
-        final token = await CacheService.getToken();
+        // Obtener token desde la sesión activa en Hive
+        final session = await HiveService.getActiveUserSession();
+        final token = session?.token;
         if (token != null && token.isNotEmpty) {
           headers['Authorization'] = 'Bearer $token';
+          debugPrint('🔑 Token agregado a headers (${token.substring(0, 20)}...)');
+        } else {
+          debugPrint('⚠️ No se encontró token válido en la sesión');
         }
       }
 
@@ -145,7 +150,8 @@ class ApiService {
 
       // Token expirado
       if (response.statusCode == 401) {
-        await CacheService.clearAll();
+        debugPrint('🚫 Token expirado (401) - Cerrando sesión en Hive');
+        await HiveService.logout();
         return ApiResponse.error('Token expirado o no autorizado', statusCode: response.statusCode);
       }
 

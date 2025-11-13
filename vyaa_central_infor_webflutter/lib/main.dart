@@ -20,7 +20,6 @@ void main() async {
     debugPrint('❌ Error inicializando Hive Database: $e');
     // La app puede continuar, pero mostrará errores al usar la DB
   }
-  
   runApp(const Principal());
 }
 

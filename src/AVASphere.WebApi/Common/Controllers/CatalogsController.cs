@@ -2,7 +2,6 @@
 using AVASphere.ApplicationCore.Common.Enums;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using AVASphere.WebApi.Common.Extensions;
 
 namespace AVASphere.WebApi.Common.Controllers;
 

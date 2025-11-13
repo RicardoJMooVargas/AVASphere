@@ -9,6 +9,7 @@ import '../../../Core/models/requests/config_sys_req.module.dart';
 import '../../../Core/models/requests/config_admin_req.module.dart';
 import '../../../Core/models/responses/check_init_config.module.dart';
 import '../../../configs/api_endpoints.config.dart';
+import '../../../Core/middlewares/global_init.middleware.dart';
 
 
 class SetupController extends GetxController {
@@ -340,10 +341,10 @@ class SetupController extends GetxController {
         formStatus.value = 'Configuración completada exitosamente';
         currentStep.value = 3; // Configuración completa
         
-        // Redirigir al login después de un breve delay
-        Future.delayed(const Duration(seconds: 2), () {
-          Get.offAllNamed('/login');
-        });
+        debugPrint('✅ Setup completado - Preparando redirección al login');
+        
+        // NO redirigir automáticamente, dejar que el usuario presione el botón
+        // Esto da tiempo para que vea el mensaje de éxito
       } else {
         throw Exception(response.message ?? 'Error al configurar administrador');
       }
@@ -353,6 +354,39 @@ class SetupController extends GetxController {
       isFormLoading.value = false;
       formStatus.value = 'Error al configurar administrador: $e';
       debugPrint('❌ Error configurando administrador: $e');
+    }
+  }
+  
+  /// Ir al login después de completar el setup
+  Future<void> goToLogin() async {
+    try {
+      debugPrint('🚀 ========== REDIRIGIENDO A LOGIN ==========');
+      
+      // 1. Resetear el middleware global para que permita la navegación
+      debugPrint('🔄 Reseteando GlobalInitMiddleware...');
+      GlobalInitMiddleware.reset();
+      debugPrint('✅ Middleware reseteado');
+      
+      // 2. Marcar sistema como inicializado en Hive
+      debugPrint('💾 Marcando sistema como inicializado...');
+      await HiveService.saveSystemInitialized(true);
+      await HiveService.markFirstTimeCheckDone();
+      debugPrint('✅ Estado del sistema actualizado');
+      
+      // 3. Esperar un momento para que se procesen los cambios
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      // 4. Navegar al login limpiando todo el stack
+      debugPrint('🏠 Navegando a /login...');
+      Get.offAllNamed('/login');
+      
+      debugPrint('✅ Redirección completada');
+    } catch (e, stackTrace) {
+      debugPrint('❌ ERROR al redirigir al login: $e');
+      debugPrint('Stack trace: $stackTrace');
+      
+      // Intentar redirección simple como fallback
+      Get.offAllNamed('/login');
     }
   }
 

@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -283,7 +284,7 @@ class _AppFormState extends State<AppForm> {
                     ),
                   )
                 : config.suffixIcon,
-            border: const OutlineInputBorder(),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
           ),
           enabled: config.enabled,
           onChanged: (value) async {
@@ -307,7 +308,7 @@ class _AppFormState extends State<AppForm> {
             margin: const EdgeInsets.only(top: 4),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
@@ -348,7 +349,7 @@ class _AppFormState extends State<AppForm> {
         hintText: config.hint,
         prefixIcon: config.prefixIcon,
         suffixIcon: config.suffixIcon,
-        border: const OutlineInputBorder(),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
       ),
       keyboardType: config.keyboardType ?? _getKeyboardType(config.type),
       inputFormatters: config.inputFormatters,
@@ -372,7 +373,7 @@ class _AppFormState extends State<AppForm> {
         hintText: config.hint,
         prefixIcon: config.prefixIcon,
         suffixIcon: config.suffixIcon,
-        border: const OutlineInputBorder(),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
         alignLabelWithHint: true,
       ),
       keyboardType: TextInputType.multiline,
@@ -412,7 +413,7 @@ class _AppFormState extends State<AppForm> {
         hintText: config.hint,
         prefixIcon: config.prefixIcon,
         suffixIcon: config.suffixIcon,
-        border: const OutlineInputBorder(),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
       ),
       items: config.dropdownItems?.map((item) => DropdownMenuItem<dynamic>(
         value: item.value,

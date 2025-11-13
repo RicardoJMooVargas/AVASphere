@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 // Modelos Hive
-import '../../models/base/system_config.model.dart';
-import '../../models/base/user_session.model.dart';
-import '../../models/base/app_cache.model.dart';
+import '../../models/data/system_config.model.dart';
+import '../../models/data/user_session.model.dart';
+import '../../models/data/app_cache.model.dart';
 import '../../models/responses/check_init_config.module.dart';
 
 /// Servicio principal para manejo de datos con Hive

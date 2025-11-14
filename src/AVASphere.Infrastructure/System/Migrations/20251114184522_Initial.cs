@@ -247,7 +247,7 @@ namespace AVASphere.Infrastructure.System.Migrations
                         column: x => x.IdQuotation,
                         principalTable: "Quotations",
                         principalColumn: "IdQuotation",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -257,7 +257,7 @@ namespace AVASphere.Infrastructure.System.Migrations
                     IdSaleQuotation = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedBy = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedBy = table.Column<string>(type: "text", nullable: true),
                     ProductsJson = table.Column<List<SingleProductJson>>(type: "jsonb", nullable: false, defaultValueSql: "'[]'::jsonb"),
                     PriceSnapshotJson = table.Column<PriceSnapshotJson>(type: "jsonb", nullable: true, defaultValueSql: "'{}'::jsonb"),
                     GeneralComment = table.Column<string>(type: "text", nullable: true),

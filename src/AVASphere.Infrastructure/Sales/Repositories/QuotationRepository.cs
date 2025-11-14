@@ -179,9 +179,13 @@ public class QuotationRepository : IQuotationRepository
 
     public async Task<bool> DeleteQuotationAsync(int id)
     {
-        var entity = await _context.Quotations.FindAsync(id);
-        if (entity == null) return false;
-        _context.Quotations.Remove(entity);
+        var quotation = await _context.Quotations
+            .Include(q => q.Versions) // Importante para asegurar el tracking
+            .FirstOrDefaultAsync(q => q.QuotationId == id);
+
+        if (quotation == null) return false;
+
+        _context.Quotations.Remove(quotation);
         await _context.SaveChangesAsync();
         return true;
     }

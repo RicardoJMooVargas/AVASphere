@@ -23,12 +23,13 @@ public class QuotationVersion
 
     // Versión completa de la cotización en formato JSONB
     [Column(TypeName = "jsonb")]
-
     public Quotation QuotationData { get; set; } = new Quotation();
 
-    // Navegación (opcional)
+    //Navegación (opcional)
+
     [ForeignKey(nameof(IdQuotation))]
     public Quotation? Quotation { get; set; }
+
     public IReadOnlyList<SingleProductJson> GetProducts() => Products.AsReadOnly();
 
 
@@ -61,7 +62,7 @@ public class QuotationVersion
 
     public bool RemoveProductById(int productId)
     {
-        var existing = Products.FirstOrDefault(p => p.ProductId.HasValue && p.ProductId.Value == productId);
+        var existing = Products.Find(p => p.ProductId.HasValue && p.ProductId.Value == productId);
         if (existing == null) return false;
         Products.Remove(existing);
         RecalculateTotals();
@@ -72,7 +73,7 @@ public class QuotationVersion
     public bool RemoveProductByDescription(string? description)
     {
         if (string.IsNullOrWhiteSpace(description)) return false;
-        var existing = Products.FirstOrDefault(p => string.Equals(p.Description, description, StringComparison.OrdinalIgnoreCase));
+        var existing = Products.Find(p => string.Equals(p.Description, description, StringComparison.OrdinalIgnoreCase));
         if (existing == null) return false;
         Products.Remove(existing);
         RecalculateTotals();
@@ -99,21 +100,16 @@ public class QuotationVersion
     // Recalcula totales de la cotización a partir de los productos
     public void RecalculateTotals(decimal taxRate = 0m)
     {
-        // Subtotal: suma de subtotales de líneas (asumimos TotalPrice incluye impuestos si así lo prefieres).
-        // Si deseas separar subtotal / impuesto / total, cambia SingleProductJson para exponer LineSubtotal y LineTax.
-        Subtotal = Products.Sum(p => p.TotalPrice);
-        Subtotal = Subtotal.HasValue ? Decimal.Round(Subtotal.Value, 2, MidpointRounding.AwayFromZero) : 0m;
+        Subtotal = Products.Count > 0 ? decimal.Round(Products.Sum(p => p.TotalPrice), 2, MidpointRounding.AwayFromZero) : 0m;
 
-        // Si quieres aplicar una tasa global, la puedes calcular así (opcional):
         if (taxRate > 0m)
         {
-            var subtotalValue = Products.Sum(p => Decimal.Round((decimal)p.Quantity * (decimal)p.UnitPrice, 2, MidpointRounding.AwayFromZero));
-            TaxAmount = Decimal.Round(subtotalValue * taxRate, 2, MidpointRounding.AwayFromZero);
-            TotalAmount = Decimal.Round(subtotalValue + (TaxAmount ?? 0m), 2, MidpointRounding.AwayFromZero);
+            var subtotalValue = Products.Sum(p => decimal.Round((decimal)p.Quantity * (decimal)p.UnitPrice, 2, MidpointRounding.AwayFromZero));
+            TaxAmount = decimal.Round(subtotalValue * taxRate, 2, MidpointRounding.AwayFromZero);
+            TotalAmount = decimal.Round(subtotalValue + (TaxAmount ?? 0m), 2, MidpointRounding.AwayFromZero);
         }
         else
         {
-            // Por defecto dejamos TaxAmount = 0 y TotalAmount = Subtotal
             TaxAmount = 0m;
             TotalAmount = Subtotal;
         }

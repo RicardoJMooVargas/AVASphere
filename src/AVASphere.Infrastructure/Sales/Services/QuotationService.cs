@@ -7,6 +7,9 @@ using AVASphere.ApplicationCore.Sales.Entities;
 using AVASphere.ApplicationCore.Sales.Interfaces;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using Microsoft.EntityFrameworkCore;
+using AVASphere.ApplicationCore.Common.Interfaces;
+using AVASphere.ApplicationCore.Common.Entities.General;
+
 
 namespace AVASphere.Infrastructure.Sales.Services;
 
@@ -15,91 +18,132 @@ public class QuotationService : IQuotationService
 
     private readonly IQuotationRepository _quotationRepository;
     private readonly IQuotationVersionRepository _versionRepository;
+    private readonly ICustomerRepository _customerRepository;
 
 
-    public QuotationService(IQuotationRepository quotationRepository, IQuotationVersionRepository versionRepository)
+    public QuotationService(IQuotationRepository quotationRepository, IQuotationVersionRepository versionRepository, ICustomerRepository customerRepository)
     {
-        _quotationRepository = quotationRepository ?? throw new ArgumentNullException(nameof(quotationRepository));
-        _versionRepository = versionRepository ?? throw new ArgumentNullException(nameof(versionRepository));
+        _quotationRepository = quotationRepository;
+        _versionRepository = versionRepository;
+        _customerRepository = customerRepository;
     }
 
-    public async Task<Quotation> CreateQuotationAsync(CreateQuotationDto createQuotationDto, string createdByUserId)
+    public async Task<Quotation> CreateQuotationAsync(CreateQuotationDto dto, string createdByUserId)
     {
-        if (createQuotationDto is null) throw new ArgumentNullException(nameof(createQuotationDto));
-        if (string.IsNullOrEmpty(createdByUserId)) throw new ArgumentException("El ID del usuario creador es requerido.", nameof(createdByUserId));
+        if (dto is null) throw new ArgumentNullException(nameof(dto));
 
+        Customer? customer = null;
+
+        // 1️⃣ Si envía CustomerId válido, usarlo
+        if (dto.CustomerId > 0)
+        {
+            customer = await _customerRepository.GetByIdAsync(dto.CustomerId);
+            if (customer == null)
+                throw new Exception($"CustomerId {dto.CustomerId} no existe.");
+        }
+        else
+        {
+            // 2️⃣ Si NO envió CustomerId → revisar NewCustomers
+            if (dto.NewCustomers == null || !dto.NewCustomers.Any())
+                throw new Exception("No se envió un CustomerId válido ni datos de NewCustomer.");
+
+            var nc = dto.NewCustomers.First();
+
+            // Validaciones mínimas
+            if (string.IsNullOrWhiteSpace(nc.Name))
+                throw new Exception("El nombre del cliente es obligatorio para crear uno nuevo.");
+
+            // 3️⃣ Crear nuevo customer
+            customer = new Customer
+            {
+                ExternalId = 0,
+                Name = nc.Name,
+                Email = nc.Email,
+                PhoneNumber = int.TryParse(nc.Phone, out var ph) ? ph : 0,
+                DirectionJson = new DirectionJson { Colony = nc.Direction },
+                SettingsCustomerJson = new SettingsCustomerJson { Index = 1, Type = "General" }
+            };
+
+            customer = await _customerRepository.InsertAsync(customer);
+        }
+
+        // 4️⃣ Crear Quotation
         var quotation = new Quotation
         {
-            Folio = createQuotationDto.Folio,
-            SaleDate = createQuotationDto.SaleDate ?? DateTime.UtcNow,
-            Status = createQuotationDto.Status ?? "PENDIENTE",
-            GeneralComment = createQuotationDto.GeneralComment,
-            CustomerId = createQuotationDto.CustomerId,
-            SalesExecutives = createQuotationDto.SalesExecutives ?? new List<string> { createdByUserId },
-            Followups = new List<QuotationFollowupsJson>(), // Inicializamos la lista vacía
-            Products = createQuotationDto.Products,
-            IdConfigSys = createQuotationDto.IdConfigSys,
+            Folio = dto.Folio,
+            SaleDate = dto.SaleDate ?? DateTime.UtcNow,
+            Status = dto.Status ?? "PENDIENTE",
+            GeneralComment = dto.GeneralComment,
+            CustomerId = customer.IdCustomer,
+            SalesExecutives = dto.SalesExecutives ?? new List<string> { createdByUserId },
+            Followups = new List<QuotationFollowupsJson>(),
+            Products = dto.Products,
+            IdConfigSys = dto.IdConfigSys,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
 
-        if (quotation.Folio != 0)
-        {
-            var exists = await _quotationRepository.QuotationExistsByFolioAsync(quotation.Folio);
-            if (exists) throw new InvalidOperationException($"Folio {quotation.Folio} already exists.");
-        }
-
-        // Primero creamos la cotización
         var createdQuotation = await _quotationRepository.CreateQuotationAsync(quotation);
 
-        // Si hay followups iniciales, los agregamos uno por uno para asignar IDs incrementales
-        if (createQuotationDto.Followups != null && createQuotationDto.Followups.Any())
+        // 5️⃣ Agregar followups (opcional)
+        if (dto.Followups != null && dto.Followups.Any())
         {
-            foreach (var followupDto in createQuotationDto.Followups)
+            foreach (var f in dto.Followups)
             {
-                var followup = new QuotationFollowupsJson
+                createdQuotation.Followups.Add(new QuotationFollowupsJson
                 {
                     Id = await _quotationRepository.GetNextFollowupIdAsync(createdQuotation.QuotationId),
-                    Date = followupDto.Date ?? DateTime.UtcNow,
-                    Comment = followupDto.Comment,
-                    UserId = followupDto.UserId ?? createdByUserId,
+                    Date = f.Date ?? DateTime.UtcNow,
+                    Comment = f.Comment,
+                    UserId = f.UserId ?? createdByUserId,
                     CreatedAt = DateTime.UtcNow
-                };
-                createdQuotation.Followups.Add(followup);
+                });
             }
-            // Actualizamos la cotización con los followups
-            createdQuotation.UpdatedAt = DateTime.UtcNow;
+
             await _quotationRepository.UpdateQuotationAsync(createdQuotation);
         }
 
-        // --- NUEVO: crear QuotationVersion automáticamente si hay productos/total ---
-        try
+        // 6️⃣ Crear versión
+        if (dto.Products != null && dto.Products.Any())
         {
-            var hasProducts = createQuotationDto.Products != null;
-            // o validar que createQuotationDto.Products tenga elementos según tipo
-            if (hasProducts)
+            var version = new QuotationVersion
             {
-                var version = new QuotationVersion
-                {
-                    IdQuotation = createdQuotation.QuotationId,
-                    VersionNumber = await _versionRepository.GetNextVersionNumberAsync(createdQuotation.QuotationId),
-                    CreatedAt = DateTime.UtcNow,
-                    CreatedBy = createdByUserId,
-                    // Ajusta la asignación según tu propiedad en QuotationVersion (ProductsJson/Products/etc.)
-                    Products = createQuotationDto.Products?.ToList() ?? new List<SingleProductJson>()
-                };
+                IdQuotation = createdQuotation.QuotationId,
+                VersionNumber = await _versionRepository.GetNextVersionNumberAsync(createdQuotation.QuotationId),
+                CreatedBy = createdByUserId,
+                CreatedAt = DateTime.UtcNow,
+                Products = dto.Products.ToList(),
+                // NO establecer Quotation ni QuotationData aquí (evita ciclos)
+                Quotation = null,
+                QuotationData = null
+            };
+            await _versionRepository.CreateAsync(version);
+        }
 
-                await _versionRepository.CreateAsync(version);
+        // 5) Releer la cotización con versiones (para retorno coherente)
+        var result = await _quotationRepository.GetByIdAsync(createdQuotation.QuotationId);
+
+        // Asegurar null-check para evitar CS8603
+        if (result == null)
+            throw new Exception($"Error inesperado: la cotización {createdQuotation.QuotationId} no pudo ser recuperada después de ser creada.");
+
+        // 6) SANITIZAR: eliminar referencias circulares antes de devolver
+        result.Customer = null;
+        result.ConfigSys = null;
+
+        if (result.Versions != null)
+        {
+            foreach (var v in result.Versions)
+            {
+                v.Quotation = null;
+                v.QuotationData = null;
             }
         }
-        catch (Exception ex)
-        {
-            // Loguea o maneja según tu política. Por ahora lanzamos para que el fallo sea visible.
-            throw new Exception($"Error al crear QuotationVersion para QuotationId={createdQuotation.QuotationId}: {ex.Message}", ex);
-        }
 
-        return createdQuotation;
+        return result;  // <--- Ya NO marca warning
+
     }
+
 
     public async Task<IEnumerable<Quotation>> GetQuotationsAsync(DateTime? startDate = null, DateTime? endDate = null, string? customerName = null, int? folio = null)
     {

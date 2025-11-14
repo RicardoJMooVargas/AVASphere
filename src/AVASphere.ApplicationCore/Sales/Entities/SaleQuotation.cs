@@ -13,7 +13,7 @@ namespace AVASphere.ApplicationCore.Sales.Entities
         [Key]
         public int IdSaleQuotation { get; set; }
         public DateTime? CreatedAt { get; set; }
-        public DateTime? CreatedBy { get; set; }
+        public string? CreatedBy { get; set; }
 
         // NUEVO: Lista simplificada de productos (JSONB) - opcional
         [Column(TypeName = "jsonb")]

@@ -1,4 +1,5 @@
-﻿﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
+﻿﻿using System.Globalization;
+using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Sales.Entities;
 namespace AVASphere.ApplicationCore.Common.Entities.General;
 
@@ -22,6 +23,32 @@ public class Customer
     // Relaciones
     public List<Quotation> Quotations { get; set; } = new List<Quotation>();
     public List<Sale> Sales { get; set; } = new List<Sale>();
+
+
+
+    // Devuelve ExternalId como string.
+    /* Si se necesita un formato o proveedor lo puedes pasar en la sobrecarga.
+
+    public string GetExternalIdAsString()
+    {
+        return ExternalId.ToString(CultureInfo.InvariantCulture);
+    }
+     Devuelve ExternalId formateado con el formato especificado (por ejemplo "D6") y proveedor opcional.
+
+    public string GetExternalIdAsString(string format, IFormatProvider? provider = null)
+    {
+        if (string.IsNullOrEmpty(format))
+            return GetExternalIdAsString();
+
+        return ExternalId.ToString(format, provider ?? CultureInfo.InvariantCulture);
+    }*/
+
+    // Devuelve ExternalId como string rellenado a totalWidth con paddingChar (ej. "0000123").
+
+    public string GetExternalIdPadded(int totalWidth, char paddingChar = '0')
+    {
+        return ExternalId.ToString(CultureInfo.InvariantCulture).PadLeft(totalWidth, paddingChar);
+    }
 }
 
 public class SettingsCustomerJson

@@ -55,15 +55,16 @@ namespace AVASphere.Infrastructure.Sales.Configuration
                   .HasColumnType("jsonb")
                   .HasDefaultValueSql("'[]'::jsonb");
 
-            // Full Quotation object -> jsonb
+            //Full Quotation object -> jsonb
             entity.Property(q => q.QuotationData)
                   .HasColumnName("QuotationData")
                   .HasColumnType("jsonb")
                   .HasDefaultValueSql("'{}'::jsonb");
 
+
             // FK a Quotation
             entity.HasOne(q => q.Quotation)
-                  .WithMany()
+                  .WithMany(v => v.Versions)
                   .HasForeignKey(q => q.IdQuotation)
                   .HasConstraintName("QuotationVersion")
                   .OnDelete(DeleteBehavior.Restrict);

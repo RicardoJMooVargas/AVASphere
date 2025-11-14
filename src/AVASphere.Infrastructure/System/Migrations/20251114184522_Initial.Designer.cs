@@ -16,7 +16,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AVASphere.Infrastructure.System.Migrations
 {
     [DbContext(typeof(MasterDbContext))]
-    [Migration("20251111170101_Initial")]
+    [Migration("20251114184522_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -587,8 +587,8 @@ namespace AVASphere.Infrastructure.System.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("CreatedAt");
 
-                    b.Property<DateTime?>("CreatedBy")
-                        .HasColumnType("timestamp with time zone")
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text")
                         .HasColumnName("CreatedBy");
 
                     b.Property<string>("GeneralComment")
@@ -677,9 +677,9 @@ namespace AVASphere.Infrastructure.System.Migrations
             modelBuilder.Entity("AVASphere.ApplicationCore.Sales.Entities.QuotationVersion", b =>
                 {
                     b.HasOne("AVASphere.ApplicationCore.Sales.Entities.Quotation", "Quotation")
-                        .WithMany()
+                        .WithMany("Versions")
                         .HasForeignKey("IdQuotation")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("QuotationVersion");
 
@@ -743,6 +743,11 @@ namespace AVASphere.Infrastructure.System.Migrations
             modelBuilder.Entity("AVASphere.ApplicationCore.Common.Entities.General.Rol", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("AVASphere.ApplicationCore.Sales.Entities.Quotation", b =>
+                {
+                    b.Navigation("Versions");
                 });
 #pragma warning restore 612, 618
         }

@@ -41,6 +41,8 @@ public class Quotation
 
     [NotMapped]
     public bool HasProducts => Products?.Count > 0;
+
+    public ICollection<QuotationVersion> Versions { get; set; } = new List<QuotationVersion>();
 }
 
 public class QuotationFollowupsJson

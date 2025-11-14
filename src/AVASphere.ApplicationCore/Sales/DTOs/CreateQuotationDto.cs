@@ -19,6 +19,10 @@ public class CreateQuotationDto
     [Required]
     public int CustomerId { get; set; }
 
+    //PUEDE SER NULO: SI CUSTOMER TIENE UN ID SE REGISTRA
+    //SI NEWCUSTOMER NO ESTA VACIO SE GENERA UN NUEVO CUSTOMER
+    public List<NewCustomerDto>? NewCustomers { get; set; }
+
     // Lista de ejecutivos de venta (se serializa a JSONB en la entidad)
     public List<string>? SalesExecutives { get; set; }
 
@@ -40,4 +44,15 @@ public class QuotationFollowupDto
     public string Comment { get; set; } = string.Empty;
 
     public string? UserId { get; set; }
+}
+
+public class NewCustomerDto
+{
+    public int CustomerId { get; set; }
+    public string? CodeCustomer { get; set; }
+    public string? Name { get; set; }
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+    public string? Direction { get; set; }
+
 }

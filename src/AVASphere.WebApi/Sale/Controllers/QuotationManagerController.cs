@@ -48,7 +48,6 @@ public class QuotationManagerController : ControllerBase
         return Ok(quotation);
     }
 
-
     // GET: api/QuotationManager/folio/{folio}
     [HttpGet("Get/Folio")]
     public async Task<ActionResult> GetByFolio(int folio)

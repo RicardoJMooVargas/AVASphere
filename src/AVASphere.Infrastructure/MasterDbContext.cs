@@ -50,6 +50,14 @@ public class MasterDbContext : DbContext
 
         modelBuilder.ApplyConfiguration(new QuotationVersionEntitieConfig());
         modelBuilder.ApplyConfiguration(new SaleQuotationEntitieConfig());
+
+        modelBuilder.Entity<QuotationVersion>()
+       .HasOne(v => v.Quotation)
+       .WithMany(q => q.Versions)
+       .HasForeignKey(v => v.IdQuotation)
+       .OnDelete(DeleteBehavior.Cascade);
+
+        base.OnModelCreating(modelBuilder);
         // MODULO DE PROJECTS
         modelBuilder.ApplyConfiguration(new ProjectCategoryEntitieConfig());
         //........

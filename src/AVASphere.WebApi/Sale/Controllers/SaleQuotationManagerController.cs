@@ -24,6 +24,33 @@ public class SaleQuotationManagerController : ControllerBase
     {
         _saleQuotationService = saleQuotationService;
     }
+    // Marca una cotización como primaria para una venta.
+    // - Desmarca la primaria anterior (si existe) y marca la nueva.
+    // - No cambia la venta en sí (SourceQuotationVersionId), solo la marca en la relación N:N.
+
+    [HttpPost("InsertAndSaleQuotation")]
+    public async Task<IActionResult> MarkPrimary([FromBody] MarkPrimaryRequest req)
+    {
+        if (req is null)
+            return BadRequest("Request cannot be null.");
+
+        if (req.IdSale <= 0 || req.IdQuotation <= 0)
+            return BadRequest("IdSale and IdQuotation must be greater than zero.");
+
+        var userName = User?.Identity?.Name ?? "system";
+
+        var success = await _saleQuotationService.MarkPrimaryQuotationAsync(
+            req.IdSale,
+            req.IdQuotation,
+            userName
+        );
+
+        if (!success)
+            return NotFound("Sale or quotation not found, or operation could not be completed.");
+
+        return NoContent();
+    }
+
 
 
     // Obtiene todas las relaciones (SaleQuotation) asociadas a una venta.
@@ -47,17 +74,7 @@ public class SaleQuotationManagerController : ControllerBase
     }
 
 
-    // Marca una cotización como primaria para una venta.
-    // - Desmarca la primaria anterior (si existe) y marca la nueva.
-    // - No cambia la venta en sí (SourceQuotationVersionId), solo la marca en la relación N:N.
 
-    [HttpPost("MarkPrimarySale")]
-    public async Task<IActionResult> MarkPrimary([FromBody] MarkPrimaryRequest req)
-    {
-        var ok = await _saleQuotationService.MarkPrimaryQuotationAsync(req.IdSale, req.IdQuotation, User?.Identity?.Name ?? "system");
-        if (!ok) return NotFound();
-        return NoContent();
-    }
 
 
     // DTO interno para la petición de marcar primaria.

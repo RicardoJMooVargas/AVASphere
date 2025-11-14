@@ -36,10 +36,10 @@ public class QuotationVersionManagerController : ControllerBase
     // GET api/quotationversion/by-quotation/{quotationId}
     // Lista todas las versiones asociadas a una cotización.
     // Devuelve 200 con la lista (puede estar vacía si no hay versiones).
-    [HttpGet("GetAllQuotationVersionsByQuotationId")]
-    public async Task<IActionResult> GetByQuotationId(int IdQuotationVersion)
+    [HttpGet("GetAllQuotationVersions")]
+    public async Task<IActionResult> GetByQuotationId(int IdQuotation)
     {
-        var list = await _quotationVersionService.ListVersionsAsync(IdQuotationVersion);
+        var list = await _quotationVersionService.ListVersionsAsync(IdQuotation);
         return Ok(list);
     }
 
@@ -47,10 +47,10 @@ public class QuotationVersionManagerController : ControllerBase
     // Recupera la versión más reciente de una cotización.
     // Devuelve 200 con la versión más reciente o 404 si no existe ninguna.
 
-    [HttpGet("GetLatestQuotationVersionByQuotationId")]
-    public async Task<IActionResult> GetLatest(int IdQuotationVersion)
+    [HttpGet("GetLatestQuotationVersion")]
+    public async Task<IActionResult> GetLatest(int IdQuotation)
     {
-        var latest = await _quotationVersionService.GetLatestVersionAsync(IdQuotationVersion);
+        var latest = await _quotationVersionService.GetLatestVersionAsync(IdQuotation);
         if (latest == null) return NotFound();
         return Ok(latest);
     }

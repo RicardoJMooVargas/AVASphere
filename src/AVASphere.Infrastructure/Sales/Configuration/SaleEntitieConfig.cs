@@ -111,7 +111,7 @@ public class SaleEntitieConfig : IEntityTypeConfiguration<Sale>
         entity.HasOne(s => s.ConfigSys)
               .WithMany(c => c.Sales)
               .HasForeignKey(s => s.IdConfigSys)
-              .HasConstraintName("FK_Sales_ConfigSys_IdConfigSys")
+              .HasConstraintName("IdConfigSys")
               .OnDelete(DeleteBehavior.Restrict);
     }
 }

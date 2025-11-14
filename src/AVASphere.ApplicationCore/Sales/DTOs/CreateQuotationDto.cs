@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using AVASphere.ApplicationCore.Common.Attributes;
+using AVASphere.ApplicationCore.Common.Entities.Jsons;
 
 namespace AVASphere.ApplicationCore.Sales.DTOs;
 
@@ -8,29 +9,31 @@ public class CreateQuotationDto
     [Required]
     public int Folio { get; set; }
 
-    public DateTime? SaleDate { get; set; }
+    public DateTime? SaleDate { get; set; } = DateTime.UtcNow;
+
+    public string? Status { get; set; } = "PENDIENTE";
 
     public string? GeneralComment { get; set; }
 
+    // Id del cliente requerido
     [Required]
-    public CustomerDto Customer { get; set; } = new();
+    public int CustomerId { get; set; }
 
+    //PUEDE SER NULO: SI CUSTOMER TIENE UN ID SE REGISTRA
+    //SI NEWCUSTOMER NO ESTA VACIO SE GENERA UN NUEVO CUSTOMER
+    public List<NewCustomerDto>? NewCustomers { get; set; }
+
+    // Lista de ejecutivos de venta (se serializa a JSONB en la entidad)
+    public List<string>? SalesExecutives { get; set; }
+
+    // Followups iniciales (se serializa a JSONB)
     public List<QuotationFollowupDto>? Followups { get; set; }
-}
 
-public class CustomerDto
-{
-    public string? CustomerId { get; set; } // Si tiene ID, se editará; si no, se creará nuevo
+    // Lista de productos simplificada (se serializa a JSONB)
+    public List<SingleProductJson>? Products { get; set; }
 
-    public string? Code { get; set; }
-
-    [Required]
-    public string FullName { get; set; } = string.Empty;
-
-    [OptionalEmail]
-    public string? Email { get; set; }
-
-    public List<string>? Phones { get; set; }
+    // Configuración del sistema (si aplica)
+    public int IdConfigSys { get; set; } = 0;
 }
 
 public class QuotationFollowupDto
@@ -41,4 +44,15 @@ public class QuotationFollowupDto
     public string Comment { get; set; } = string.Empty;
 
     public string? UserId { get; set; }
+}
+
+public class NewCustomerDto
+{
+    public int CustomerId { get; set; }
+    public string? CodeCustomer { get; set; }
+    public string? Name { get; set; }
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+    public string? Direction { get; set; }
+
 }

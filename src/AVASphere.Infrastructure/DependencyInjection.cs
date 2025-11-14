@@ -17,6 +17,12 @@ using AVASphere.Infrastructure.Projects.Services;
 using Microsoft.EntityFrameworkCore;
 using Npgsql; // ✅ AGREGAR ESTE USING
 
+// Sales module usings
+using AVASphere.ApplicationCore.Sales.Interfaces;
+using AVASphere.Infrastructure.Sales.Repositories;
+using AVASphere.Infrastructure.Sales.Services;
+using VYAACentralInforApi.ApplicationCore.Sales.Services;
+
 namespace AVASphere.Infrastructure;
 
 public static class DependencyInjection
@@ -25,16 +31,16 @@ public static class DependencyInjection
     {
         // CONFIGURACIONES DE BASES DE DATOS 
         AddPostgreSqlConfiguration(services, configuration);
-        
+
         // Configuración de JWT Authentication
         AddJwtAuthentication(services, configuration);
-        
+
         // Registrar servicios por módulo
         AddInitializationServices(services);
         AddSystemServices(services);
         AddSalesServices(services);
         AddCommonServices(services);
-        
+
         return services;
     }
 
@@ -43,15 +49,15 @@ public static class DependencyInjection
         var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING")
                                ?? configuration.GetSection("DbSettings:ConnectionString").Value
                                ?? "Host=localhost;Port=5432;Database=AVASphereDB;Username=postgres;Password=postgres;";
-        
+
         // Configurar Npgsql para JSON dinámico
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-        
+
         // Configurar el data source con JSON dinámico habilitado
         var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
         dataSourceBuilder.EnableDynamicJson();
         var dataSource = dataSourceBuilder.Build();
-        
+
         services.AddDbContext<MasterDbContext>(options =>
             options.UseNpgsql(dataSource));
     }
@@ -60,17 +66,17 @@ public static class DependencyInjection
     {
         var jwtSettings = new JwtSettings
         {
-            Key = Environment.GetEnvironmentVariable("JWT_KEY") 
-                  ?? configuration["JwtSettings:Key"] 
+            Key = Environment.GetEnvironmentVariable("JWT_KEY")
+                  ?? configuration["JwtSettings:Key"]
                   ?? "VYAACentralInforApiSecretKey2024!@#$%^&*()",
-            Issuer = Environment.GetEnvironmentVariable("JWT_ISSUER") 
-                     ?? configuration["JwtSettings:Issuer"] 
+            Issuer = Environment.GetEnvironmentVariable("JWT_ISSUER")
+                     ?? configuration["JwtSettings:Issuer"]
                      ?? "VYAACentralInforApi",
-            Audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") 
-                       ?? configuration["JwtSettings:Audience"] 
+            Audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE")
+                       ?? configuration["JwtSettings:Audience"]
                        ?? "VYAACentralInforApiUsers",
-            ExpirationInMinutes = int.TryParse(Environment.GetEnvironmentVariable("JWT_EXPIRATION_MINUTES"), out var exp) 
-                                  ? exp 
+            ExpirationInMinutes = int.TryParse(Environment.GetEnvironmentVariable("JWT_EXPIRATION_MINUTES"), out var exp)
+                                  ? exp
                                   : (configuration.GetValue<int?>("JwtSettings:ExpirationInMinutes") ?? 60)
         };
 
@@ -108,11 +114,22 @@ public static class DependencyInjection
         services.AddScoped<DbToolsServices>();
         services.AddScoped<DatabaseMigrationService>();
     }
-    
+
     private static void AddSalesServices(IServiceCollection services)
     {
-        // placeholder para registrar servicios del módulo Sales
-        _ = services; // evitar advertencia de parámetro no usado
+        /// Registrar repositorios y servicios del módulo Sales
+        services.AddHttpClient();
+        services.AddScoped<IQuotationRepository, QuotationRepository>();
+        services.AddScoped<IQuotationService, QuotationService>();
+
+        services.AddScoped<ISaleRepository, SaleRepository>();
+        services.AddScoped<ISaleService, SaleService>();
+
+        services.AddScoped<ISaleQuotationRepository, SaleQuotationRepository>();
+        services.AddScoped<ISaleQuotationService, SaleQuotationService>();
+
+        services.AddScoped<IQuotationVersionRepository, QuotationVersionRepository>();
+        services.AddScoped<IQuotationVersionService, QuotationVersionService>();
     }
 
     private static void AddCommonServices(IServiceCollection services)

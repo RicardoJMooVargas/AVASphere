@@ -14,10 +14,15 @@ public interface ICustomerRepository
 
     // 4) Eliminar un cliente por Id
     Task<bool> DeleteAsync(int idCustomer);
+    Task<Customer?> GetByIdAsync(int idCustomer);
+
 
     // 5) Métodos para auto-incremento de índices (optimizados)
     Task<int> GetNextIndexForSettingsAsync();
     Task<int> GetNextIndexForDirectionAsync();
     Task<int> GetNextIndexForPaymentMethodsAsync();
     Task<int> GetNextIndexForPaymentTermsAsync();
+
+    // 👇 Nuevo método
+    Task<Customer?> FindByNameOrCodeAsync(string clienteCodeOrName);
 }

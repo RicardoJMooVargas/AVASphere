@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+﻿    using System.Linq.Expressions;
     using Microsoft.Extensions.Logging;
     using AVASphere.ApplicationCore.Common.Entities;
     using AVASphere.ApplicationCore.Common.Interfaces;
@@ -27,7 +27,6 @@
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _encryptionService = encryptionService ?? throw new ArgumentNullException(nameof(encryptionService));
             _configSysService = configSysService ?? throw new ArgumentNullException(nameof(configSysService)); // ✅ INICIALIZAR
-            _rolRepository = rolRepository ?? throw new ArgumentNullException(nameof(rolRepository)); // ✅ INICIALIZAR
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -253,7 +252,7 @@
                     return LoginResponse.FailureResponse("Credenciales inválidas");
                 }
 
-                if (user.Status != "active")
+                if (user.Status != "Active")
                 {
                     _logger.LogWarning("Intento de login con usuario inactivo: {UserName}", loginDtOs.UserName);
                     return LoginResponse.FailureResponse("La cuenta de usuario está deshabilitada");

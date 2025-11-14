@@ -38,7 +38,7 @@ namespace AVASphere.Infrastructure.System.Services
                 await using (var connection = _dbContext.Database.GetDbConnection())
                 {
                     await connection.OpenAsync();
-                    
+
                     // Verificar si existen tablas de datos
                     await using (var command = connection.CreateCommand())
                     {
@@ -129,7 +129,7 @@ namespace AVASphere.Infrastructure.System.Services
                 // Construir rutas absolutas correctas
                 var basePath = @"C:\Users\AcerLapTablet\repos\AVASphere";
                 var infraProject = Path.Combine(basePath, "src", "AVASphere.Infrastructure", "AVASphere.Infrastructure.csproj");
-                
+
                 var command = $"dotnet ef migrations add {migrationName} " +
                              $"--project \"{infraProject}\" " +
                              $"--startup-project \"{infraProject}\" " +
@@ -149,8 +149,8 @@ namespace AVASphere.Infrastructure.System.Services
                     return $"❌ Error en EF: {result}";
                 }
 
-                return result.Contains("Done") || string.IsNullOrWhiteSpace(result) ? 
-                    "✅ Migración creada exitosamente." : 
+                return result.Contains("Done") || string.IsNullOrWhiteSpace(result) ?
+                    "✅ Migración creada exitosamente." :
                     $"✅ {result}";
             }
             catch (Exception ex)
@@ -168,7 +168,7 @@ namespace AVASphere.Infrastructure.System.Services
                 // Construir rutas absolutas correctas
                 var basePath = @"C:\Users\AcerLapTablet\repos\AVASphere";
                 var infraProject = Path.Combine(basePath, "src", "AVASphere.Infrastructure", "AVASphere.Infrastructure.csproj");
-                
+
                 var command = $"dotnet ef database update " +
                              $"--project \"{infraProject}\" " +
                              $"--startup-project \"{infraProject}\" " +
@@ -182,8 +182,8 @@ namespace AVASphere.Infrastructure.System.Services
                     return $"❌ Error en EF CLI: {result}";
                 }
 
-                return result.Contains("Done") || string.IsNullOrWhiteSpace(result) ? 
-                    "✅ Migraciones aplicadas correctamente." : 
+                return result.Contains("Done") || string.IsNullOrWhiteSpace(result) ?
+                    "✅ Migraciones aplicadas correctamente." :
                     $"✅ {result}";
             }
             catch (Exception ex)
@@ -225,9 +225,8 @@ namespace AVASphere.Infrastructure.System.Services
                 await using var getTablesCmd = new NpgsqlCommand(@"
                     SELECT tablename 
                     FROM pg_tables 
-                    WHERE schemaname = 'public' 
-                    AND tablename != '__EFMigrationsHistory'", connection);
-                
+                    WHERE schemaname = 'public'", connection);
+
                 var tables = new List<string>();
                 await using (var reader = await getTablesCmd.ExecuteReaderAsync())
                 {
@@ -306,7 +305,7 @@ namespace AVASphere.Infrastructure.System.Services
             await process.WaitForExitAsync();
 
             var result = string.IsNullOrWhiteSpace(error) ? output : $"ERROR: {error}";
-            
+
             // Si no hay output pero tampoco error, considerar éxito
             if (string.IsNullOrWhiteSpace(result) && process.ExitCode == 0)
             {

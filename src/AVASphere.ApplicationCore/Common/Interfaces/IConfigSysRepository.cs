@@ -7,4 +7,5 @@ public interface IConfigSysRepository
 {
     Task<ConfigSys?> GetAsync();
     Task AddOrUpdateAsync(ConfigSys config);
+    Task<bool> TablesExistAsync();
 }

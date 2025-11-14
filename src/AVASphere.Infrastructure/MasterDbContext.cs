@@ -21,14 +21,17 @@ public class MasterDbContext : DbContext
     public DbSet<Area> Areas { get; set; } = null!;
     public DbSet<ConfigSys> ConfigSys { get; set; } = null!;
     public DbSet<Customer> Customers { get; set; } = null!;
-
     //public DbSet<BranchOffice> BranchOffices { get; set; } = null!;
+
     // MODULO DE SALES
     public DbSet<Quotation> Quotations { get; set; } = null!;
     public DbSet<Sale> Sales { get; set; } = null!;
+    public DbSet<QuotationVersion> QuotationVersions { get; set; } = null!;
+    public DbSet<SaleQuotation> SaleQuotations { get; set; } = null!;
+
     // MODULO PROJECTS
     public DbSet<ProjectCategory> ProjectCategory { get; set; } = null!;
-    
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,6 +47,17 @@ public class MasterDbContext : DbContext
         // MODULO DE SALES
         modelBuilder.ApplyConfiguration(new QuotationEntitieConfig());
         modelBuilder.ApplyConfiguration(new SaleEntitieConfig());
+
+        modelBuilder.ApplyConfiguration(new QuotationVersionEntitieConfig());
+        modelBuilder.ApplyConfiguration(new SaleQuotationEntitieConfig());
+
+        modelBuilder.Entity<QuotationVersion>()
+       .HasOne(v => v.Quotation)
+       .WithMany(q => q.Versions)
+       .HasForeignKey(v => v.IdQuotation)
+       .OnDelete(DeleteBehavior.Cascade);
+
+        base.OnModelCreating(modelBuilder);
         // MODULO DE PROJECTS
         modelBuilder.ApplyConfiguration(new ProjectCategoryEntitieConfig());
         //........

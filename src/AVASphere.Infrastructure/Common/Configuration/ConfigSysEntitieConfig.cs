@@ -16,7 +16,8 @@ namespace AVASphere.Infrastructure.Common.Configuration
                 .IsRequired();
 
             entity.Property(e => e.BranchName)
-                .HasMaxLength(200);
+                .HasMaxLength(200)
+                .IsRequired();
 
             entity.Property(e => e.LogoUrl)
                 .HasMaxLength(500);
@@ -24,11 +25,13 @@ namespace AVASphere.Infrastructure.Common.Configuration
             // Campos JSONB
             entity.Property(e => e.Colors)
                 .HasColumnType("jsonb")
-                .HasDefaultValueSql("'[]'::jsonb");
+                .HasDefaultValueSql("'[]'::jsonb")
+                .IsRequired();
 
             entity.Property(e => e.NotUseModules)
                 .HasColumnType("jsonb")
-                .HasDefaultValueSql("'[]'::jsonb");
+                .HasDefaultValueSql("'[]'::jsonb")
+                .IsRequired();
 
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");

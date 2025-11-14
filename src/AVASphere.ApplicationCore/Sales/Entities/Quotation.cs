@@ -13,14 +13,14 @@ public class Quotation
     public int Folio { get; set; }
     public int CustomerId { get; set; }
     public string? GeneralComment { get; set; }
-    
+
     [Column(TypeName = "jsonb")]
     public List<QuotationFollowupsJson> Followups { get; set; } = new List<QuotationFollowupsJson>();
-    
+
     // NUEVO: Lista simplificada de productos (JSONB) - opcional
     [Column(TypeName = "jsonb")]
     public List<SingleProductJson>? Products { get; set; }
-    
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
@@ -41,11 +41,13 @@ public class Quotation
 
     [NotMapped]
     public bool HasProducts => Products?.Count > 0;
+
+    public ICollection<QuotationVersion> Versions { get; set; } = new List<QuotationVersion>();
 }
 
 public class QuotationFollowupsJson
 {
-    public string Id { get; set; } = string.Empty;
+    public int Id { get; set; } = 0;
     public DateTime Date { get; set; } = DateTime.UtcNow;
     public string Comment { get; set; } = string.Empty;
     public string UserId { get; set; } = string.Empty;

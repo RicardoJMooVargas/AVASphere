@@ -254,8 +254,7 @@ namespace AVASphere.Infrastructure.System.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<string>("Password")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Status")
                         .HasMaxLength(50)
@@ -387,6 +386,74 @@ namespace AVASphere.Infrastructure.System.Migrations
                     b.ToTable("Quotations", (string)null);
                 });
 
+            modelBuilder.Entity("AVASphere.ApplicationCore.Sales.Entities.QuotationVersion", b =>
+                {
+                    b.Property<int>("QuotationVersionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("IdQuotationVersion");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("QuotationVersionId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreatedAt");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("CreatedBy");
+
+                    b.Property<string>("GeneralComment")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("GeneralComment");
+
+                    b.Property<int>("IdQuotation")
+                        .HasColumnType("integer")
+                        .HasColumnName("IdQuotation");
+
+                    b.Property<List<SingleProductJson>>("Products")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("ProductsJson")
+                        .HasDefaultValueSql("'[]'::jsonb");
+
+                    b.Property<Quotation>("QuotationData")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("QuotationData")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
+                    b.Property<decimal?>("Subtotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("Subtotal");
+
+                    b.Property<decimal?>("TaxAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("TaxAmount");
+
+                    b.Property<decimal?>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("TotalAmount");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("VersionNumber");
+
+                    b.HasKey("QuotationVersionId");
+
+                    b.HasIndex("IdQuotation");
+
+                    b.ToTable("QuotationVersions", (string)null);
+                });
+
             modelBuilder.Entity("AVASphere.ApplicationCore.Sales.Entities.Sale", b =>
                 {
                     b.Property<int>("SaleId")
@@ -504,6 +571,55 @@ namespace AVASphere.Infrastructure.System.Migrations
                     b.ToTable("Sales", (string)null);
                 });
 
+            modelBuilder.Entity("AVASphere.ApplicationCore.Sales.Entities.SaleQuotation", b =>
+                {
+                    b.Property<int>("IdSaleQuotation")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("IdSaleQuotation");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IdSaleQuotation"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreatedAt");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text")
+                        .HasColumnName("CreatedBy");
+
+                    b.Property<string>("GeneralComment")
+                        .HasColumnType("text")
+                        .HasColumnName("GeneralComment");
+
+                    b.Property<int>("IdQuotation")
+                        .HasColumnType("integer")
+                        .HasColumnName("IdQuotation");
+
+                    b.Property<int>("IdSale")
+                        .HasColumnType("integer")
+                        .HasColumnName("IdSale");
+
+                    b.Property<PriceSnapshotJson>("PriceSnapshot")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("PriceSnapshotJson")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
+                    b.Property<List<SingleProductJson>>("Products")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("ProductsJson")
+                        .HasDefaultValueSql("'[]'::jsonb");
+
+                    b.HasKey("IdSaleQuotation");
+
+                    b.HasIndex("IdQuotation");
+
+                    b.ToTable("SaleQuotations", (string)null);
+                });
+
             modelBuilder.Entity("AVASphere.ApplicationCore.Common.Entities.General.Rol", b =>
                 {
                     b.HasOne("AVASphere.ApplicationCore.Common.Entities.Catalogs.Area", "Area")
@@ -555,6 +671,18 @@ namespace AVASphere.Infrastructure.System.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("AVASphere.ApplicationCore.Sales.Entities.QuotationVersion", b =>
+                {
+                    b.HasOne("AVASphere.ApplicationCore.Sales.Entities.Quotation", "Quotation")
+                        .WithMany("Versions")
+                        .HasForeignKey("IdQuotation")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("QuotationVersion");
+
+                    b.Navigation("Quotation");
+                });
+
             modelBuilder.Entity("AVASphere.ApplicationCore.Sales.Entities.Sale", b =>
                 {
                     b.HasOne("AVASphere.ApplicationCore.Common.Entities.General.Customer", "Customer")
@@ -569,11 +697,23 @@ namespace AVASphere.Infrastructure.System.Migrations
                         .HasForeignKey("IdConfigSys")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("FK_Sales_ConfigSys_IdConfigSys");
+                        .HasConstraintName("IdConfigSys");
 
                     b.Navigation("ConfigSys");
 
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("AVASphere.ApplicationCore.Sales.Entities.SaleQuotation", b =>
+                {
+                    b.HasOne("AVASphere.ApplicationCore.Sales.Entities.Quotation", "Quotation")
+                        .WithMany()
+                        .HasForeignKey("IdQuotation")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_SaleQuotation_Quotation_IdQuotation");
+
+                    b.Navigation("Quotation");
                 });
 
             modelBuilder.Entity("AVASphere.ApplicationCore.Common.Entities.Catalogs.Area", b =>
@@ -600,6 +740,11 @@ namespace AVASphere.Infrastructure.System.Migrations
             modelBuilder.Entity("AVASphere.ApplicationCore.Common.Entities.General.Rol", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("AVASphere.ApplicationCore.Sales.Entities.Quotation", b =>
+                {
+                    b.Navigation("Versions");
                 });
 #pragma warning restore 612, 618
         }

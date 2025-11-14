@@ -8,4 +8,5 @@ public interface IUserService
     Task<UserResponse> NewUsersAsync(UserCreateRequest user);
     Task<UserResponse> EditUsersAsync(UserUpdateRequest user);
     Task<LoginResponse> AuthenticateUserAsync(LoginDTOs loginDtOs);
+    Task<UserResponse> SetupAdminUserAsync(string userName, string password);
 }

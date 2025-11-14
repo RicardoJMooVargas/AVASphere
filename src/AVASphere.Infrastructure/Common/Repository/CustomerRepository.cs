@@ -84,13 +84,13 @@ public class CustomerRepository : ICustomerRepository
             .Where(c => c.SettingsCustomerJson != null)
             .AsNoTracking()
             .ToListAsync();
-        
+
         var maxIndex = customers
             .Where(c => c.SettingsCustomerJson != null)
             .Select(c => c.SettingsCustomerJson!.Index)
             .DefaultIfEmpty(0)
             .Max();
-        
+
         return maxIndex + 1;
     }
 
@@ -100,12 +100,12 @@ public class CustomerRepository : ICustomerRepository
         var customers = await _context.Customers
             .AsNoTracking()
             .ToListAsync();
-        
+
         var maxIndex = customers
             .Select(c => c.DirectionJson.Index)
             .DefaultIfEmpty(0)
             .Max();
-        
+
         return maxIndex + 1;
     }
 
@@ -116,13 +116,13 @@ public class CustomerRepository : ICustomerRepository
             .Where(c => c.PaymentMethodsJson != null)
             .AsNoTracking()
             .ToListAsync();
-        
+
         var maxIndex = customers
             .Where(c => c.PaymentMethodsJson != null)
             .Select(c => c.PaymentMethodsJson!.Index)
             .DefaultIfEmpty(0)
             .Max();
-        
+
         return maxIndex + 1;
     }
 
@@ -133,13 +133,36 @@ public class CustomerRepository : ICustomerRepository
             .Where(c => c.PaymentTermsJson != null)
             .AsNoTracking()
             .ToListAsync();
-        
+
         var maxIndex = customers
             .Where(c => c.PaymentTermsJson != null)
             .Select(c => c.PaymentTermsJson!.Index)
             .DefaultIfEmpty(0)
             .Max();
-        
+
         return maxIndex + 1;
     }
+
+    public async Task<Customer?> FindByNameOrCodeAsync(string clienteCodeOrName)
+    {
+        if (string.IsNullOrWhiteSpace(clienteCodeOrName))
+            return null;
+
+        var customers = await _context.Customers.AsNoTracking().ToListAsync();
+
+        return customers.FirstOrDefault(c =>
+            c.GetExternalIdPadded(6) == clienteCodeOrName ||
+            c.Name == clienteCodeOrName);
+    }
+
+    public async Task<Customer?> GetByIdAsync(int idCustomer)
+    {
+        return await _context.Customers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.IdCustomer == idCustomer);
+    }
+
+
+
+
 }

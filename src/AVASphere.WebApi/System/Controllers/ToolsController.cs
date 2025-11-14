@@ -1,4 +1,5 @@
-﻿using AVASphere.Infrastructure.System.Services;
+﻿using AVASphere.ApplicationCore.Common.DTOs;
+using AVASphere.Infrastructure.System.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AVASphere.WebApi.System.Controllers;
@@ -20,28 +21,30 @@ public class ToolsController : ControllerBase
     public async Task<IActionResult> ApplyMigrations()
     {
         var result = await _dbMigrationService.ApplyMigrationsAsync();
-        return Ok(new { message = result });
+        var response = new ApiResponse
+        {
+            Success = true,
+            Data = new { message = result },
+            Message = "Migraciones aplicadas",
+            StatusCode = 200
+        };
+        return Ok(response);
     }
 
     [HttpPost("apply-migrations-force")]
     public async Task<IActionResult> ApplyMigrationsForce()
     {
         var result = await _dbMigrationService.ApplyMigrationsForceAsync();
-        return Ok(new { 
-            message = result,
-            info = "Aplica migraciones suprimiendo PendingModelChangesWarning - Para inicialización de DB"
-        });
-    }
-
-
-
-    [HttpGet("diagnose-migrations")]
-    public async Task<IActionResult> DiagnoseMigrations()
-    {
-        var result = await _dbMigrationService.DiagnoseMigrationsAsync();
-        return Ok(new { 
-            diagnosis = result,
-            info = "Diagnóstico detallado del estado de las migraciones"
-        });
+        var response = new ApiResponse
+        {
+            Success = true,
+            Data = new { 
+                message = result,
+                info = "Aplica migraciones suprimiendo PendingModelChangesWarning - Para inicialización de DB"
+            },
+            Message = "Migraciones forzadas aplicadas",
+            StatusCode = 200
+        };
+        return Ok(response);
     }
 }

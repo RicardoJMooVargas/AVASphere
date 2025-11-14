@@ -24,4 +24,15 @@ public class ConfigSysService : IConfigSysService
         await _repository.AddOrUpdateAsync(config);
         return config;
     }
+
+    public async Task<bool> HasInitialConfigAsync()
+    {
+        var config = await _repository.GetAsync();
+        return config != null;
+    }
+
+    public async Task<bool> TablesExistAsync()
+    {
+        return await _repository.TablesExistAsync();
+    }
 }

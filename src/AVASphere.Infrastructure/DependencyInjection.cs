@@ -5,12 +5,15 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using AVASphere.ApplicationCore.System.Interfaces;
 using AVASphere.ApplicationCore.Common.Interfaces;
+using AVASphere.ApplicationCore.Projects.Interfaces;
 using AVASphere.Infrastructure.System.Services;
 using AVASphere.Infrastructure.System.Configuration;
 using AVASphere.Infrastructure.Common.Data.Repositories;
 using AVASphere.Infrastructure.Common.Repository;
 using AVASphere.Infrastructure.Common.Security;
 using AVASphere.Infrastructure.Common.Services;
+using AVASphere.Infrastructure.Projects.Repository;
+using AVASphere.Infrastructure.Projects.Services;
 using Microsoft.EntityFrameworkCore;
 using Npgsql; // ✅ AGREGAR ESTE USING
 
@@ -143,6 +146,10 @@ public static class DependencyInjection
         services.AddScoped<ICustomerService, CustomerService>();
         // Servicios de seguridad
         services.AddScoped<IEncryptionService, EncryptionService>();
-
+        
+        // Project Category
+        services.AddScoped<IProjectCategoryService, ProjectCategoryService>();
+        services.AddScoped<IProjectCategoryRepository, ProjectCategoryRepository>();
+        
     }
 }

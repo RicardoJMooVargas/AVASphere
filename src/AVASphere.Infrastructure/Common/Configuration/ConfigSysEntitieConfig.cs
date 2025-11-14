@@ -54,6 +54,12 @@ namespace AVASphere.Infrastructure.Common.Configuration
               .HasForeignKey(s => s.IdConfigSys)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // 🔹 Relación 1-N (ConfigSys → ProjectCategories)
+            entity.HasMany(c => c.ProjectCategories)
+              .WithOne(pc => pc.ConfigSys)
+              .HasForeignKey(pc => pc.IdConfigSys)
+                .OnDelete(DeleteBehavior.Restrict);
+
 
         }
     }

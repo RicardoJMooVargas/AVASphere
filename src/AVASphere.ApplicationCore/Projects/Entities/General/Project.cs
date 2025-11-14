@@ -23,8 +23,6 @@ public class Project
     
     public ICollection<ListOfCategories> ListOfCategories { get; set; } = new List<ListOfCategories>();
     public ICollection<Customer> Customer { get; set; } = new List<Customer>();
-
-
 }
 
 public class AppointmentJson

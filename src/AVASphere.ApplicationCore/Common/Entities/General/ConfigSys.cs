@@ -27,7 +27,7 @@ namespace AVASphere.ApplicationCore.Common.Entities.General
         // public ICollection<Project> Projects { get; set; } = new List<Project>();
         public ICollection<Quotation> Quotations { get; set; } = new List<Quotation>();
         public ICollection<Sale> Sales { get; set; } = new List<Sale>();
-
+        public ICollection<ProjectCategory> ProjectCategories { get; set; } = new List<ProjectCategory>();
     }
 
     public class ColorsJson

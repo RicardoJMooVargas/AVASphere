@@ -123,24 +123,24 @@ namespace AVASphere.Infrastructure.System.Migrations
                     ProductsJson = table.Column<List<SingleProductJson>>(type: "jsonb", nullable: true, defaultValueSql: "'[]'::jsonb"),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    LinkedSaleId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    LinkedSaleFolio = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    SaleId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    SaleFolio = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     IdConfigSys = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Quotations", x => x.IdQuotation);
                     table.ForeignKey(
-                        name: "FK_Quotations_ConfigSys_IdConfigSys",
-                        column: x => x.IdConfigSys,
-                        principalTable: "ConfigSys",
-                        principalColumn: "IdConfigSys",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Quotations_Customers_IdCustomer",
+                        name: "CustomerId",
                         column: x => x.IdCustomer,
                         principalTable: "Customers",
                         principalColumn: "IdCustomer",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FKIdConfigSys",
+                        column: x => x.IdConfigSys,
+                        principalTable: "ConfigSys",
+                        principalColumn: "IdConfigSys",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -380,10 +380,10 @@ namespace AVASphere.Infrastructure.System.Migrations
                 name: "Rol");
 
             migrationBuilder.DropTable(
-                name: "ConfigSys");
+                name: "Customers");
 
             migrationBuilder.DropTable(
-                name: "Customers");
+                name: "ConfigSys");
 
             migrationBuilder.DropTable(
                 name: "Area");

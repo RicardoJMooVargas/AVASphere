@@ -25,8 +25,8 @@ public class Quotation
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // NUEVO: Referencia a la venta vinculada (opcional)
-    public string? LinkedSaleId { get; set; }
-    public string? LinkedSaleFolio { get; set; }
+    public string? SaleId { get; set; }
+    public string? SaleFolio { get; set; }
 
     // FK a ConfigSys (si es necesaria)
     public int IdConfigSys { get; set; }
@@ -37,7 +37,7 @@ public class Quotation
 
     // Propiedad calculada para saber si está vinculada a una venta
     [NotMapped]
-    public bool IsLinkedToSale => !string.IsNullOrEmpty(LinkedSaleId);
+    public bool IsLinkedToSale => !string.IsNullOrEmpty(SaleId);
 
     [NotMapped]
     public bool HasProducts => Products?.Count > 0;

@@ -340,16 +340,6 @@ namespace AVASphere.Infrastructure.System.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("IdConfigSys");
 
-                    b.Property<string>("LinkedSaleFolio")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("LinkedSaleFolio");
-
-                    b.Property<string>("LinkedSaleId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("LinkedSaleId");
-
                     b.Property<List<SingleProductJson>>("Products")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("jsonb")
@@ -359,6 +349,16 @@ namespace AVASphere.Infrastructure.System.Migrations
                     b.Property<DateTime>("SaleDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("SaleDate");
+
+                    b.Property<string>("SaleFolio")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("SaleFolio");
+
+                    b.Property<string>("SaleId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("SaleId");
 
                     b.PrimitiveCollection<List<string>>("SalesExecutives")
                         .IsRequired()
@@ -657,14 +657,14 @@ namespace AVASphere.Infrastructure.System.Migrations
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("FK_Quotations_Customers_IdCustomer");
+                        .HasConstraintName("CustomerId");
 
                     b.HasOne("AVASphere.ApplicationCore.Common.Entities.General.ConfigSys", "ConfigSys")
                         .WithMany("Quotations")
                         .HasForeignKey("IdConfigSys")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("FK_Quotations_ConfigSys_IdConfigSys");
+                        .HasConstraintName("FKIdConfigSys");
 
                     b.Navigation("ConfigSys");
 

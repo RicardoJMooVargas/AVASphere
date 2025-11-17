@@ -54,12 +54,12 @@ public class QuotationEntitieConfig : IEntityTypeConfiguration<Quotation>
             .HasDefaultValueSql("'[]'::jsonb");
 
         // NUEVOS CAMPOS: Vinculación con venta
-        entity.Property(q => q.LinkedSaleId)
-            .HasColumnName("LinkedSaleId")
+        entity.Property(q => q.SaleId)
+            .HasColumnName("SaleId")
             .HasMaxLength(100);
 
-        entity.Property(q => q.LinkedSaleFolio)
-            .HasColumnName("LinkedSaleFolio")
+        entity.Property(q => q.SaleFolio)
+            .HasColumnName("SaleFolio")
             .HasMaxLength(100);
 
         // FK a ConfigSys (si es necesaria)
@@ -77,14 +77,14 @@ public class QuotationEntitieConfig : IEntityTypeConfiguration<Quotation>
         entity.HasOne(q => q.Customer)
               .WithMany(c => c.Quotations)
               .HasForeignKey(q => q.CustomerId)
-              .HasConstraintName("FK_Quotations_Customers_IdCustomer")
+              .HasConstraintName("CustomerId")
               .OnDelete(DeleteBehavior.Restrict);
 
         // Relación con ConfigSys
         entity.HasOne(q => q.ConfigSys)
               .WithMany(c => c.Quotations)
               .HasForeignKey(q => q.IdConfigSys)
-              .HasConstraintName("FK_Quotations_ConfigSys_IdConfigSys")
+              .HasConstraintName("FKIdConfigSys")
               .OnDelete(DeleteBehavior.Restrict);
     }
 }

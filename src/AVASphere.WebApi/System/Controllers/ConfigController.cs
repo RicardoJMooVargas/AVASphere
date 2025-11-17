@@ -336,7 +336,8 @@ public class ConfigController : ControllerBase
                     .Select(module => new Module
                     {
                         Index = (int)module,
-                        Name = module.ToString()
+                        Name = module.ToString(),
+                        Normalized = "/" + module.ToString().ToLower()
                     })
                     .ToList()
             };

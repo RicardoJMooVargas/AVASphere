@@ -13,15 +13,15 @@
     {
         private readonly IUserRepository _userRepository;
         private readonly IEncryptionService _encryptionService;
-        private readonly IConfigSysService _configSysService; // ✅ NUEVA DEPENDENCIA
-        private readonly IRolRepository _rolRepository; // ✅ NUEVA DEPENDENCIA
+        private readonly IConfigSysService _configSysService; 
+        private readonly IRolRepository _rolRepository;
         private readonly ILogger<UserService> _logger;
 
         public UserService(
             IUserRepository userRepository, 
             IEncryptionService encryptionService,
-            IConfigSysService configSysService, // ✅ INYECTAR
-            IRolRepository rolRepository, // ✅ INYECTAR
+            IConfigSysService configSysService,
+            IRolRepository rolRepository,
             ILogger<UserService> logger)
         {
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
@@ -253,7 +253,7 @@
                     return LoginResponse.FailureResponse("Credenciales inválidas");
                 }
 
-                if (user.Status != "Active")
+                if (user.Status != "active")
                 {
                     _logger.LogWarning("Intento de login con usuario inactivo: {UserName}", loginDtOs.UserName);
                     return LoginResponse.FailureResponse("La cuenta de usuario está deshabilitada");

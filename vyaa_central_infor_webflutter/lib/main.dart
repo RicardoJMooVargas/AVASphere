@@ -20,11 +20,6 @@ void main() async {
     debugPrint('❌ Error inicializando Hive Database: $e');
     // La app puede continuar, pero mostrará errores al usar la DB
   }
-  
-  // Debug de rutas configuradas
-  debugPrint('🚀 Iniciando VYAACentral...');
-  debugPrint('📋 Rutas configuradas: ${AppRoutes.getPages.length}');
-  
   runApp(const Principal());
 }
 
@@ -34,7 +29,7 @@ class Principal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'VYAACentral',
+      title: 'AVASphere',
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       initialRoute: '/',

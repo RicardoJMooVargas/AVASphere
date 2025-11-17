@@ -1,10 +1,9 @@
-﻿﻿namespace AVASphere.WebApi.Common.Controllers;
+﻿namespace AVASphere.WebApi.Common.Controllers;
 
 using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Common.Enums;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using AVASphere.WebApi.Common.Extensions;
 
 [ApiController]
 [Route("api/common/[controller]")]

@@ -1,131 +1,22 @@
+// lib/Core/Widgets/app_button.widget.dart
 import 'package:flutter/material.dart';
+import 'package:vyaa_central_infor_webflutter/Core/core.dart';
 
-/// Un botón altamente configurable y reutilizable para usar en toda la aplicación.
-/// 
-/// El [AppButton] ofrece múltiples opciones de personalización incluyendo:
-/// - Colores predefinidos según el tipo de acción
-/// - Tamaños predefinidos (small, medium, large)
-/// - Dimensiones personalizadas
-/// - Funcionalidad de toggle
-/// - Múltiples tipos de interacción (tap, double tap, long press)
-/// - Adaptación automática del tamaño de fuente
-/// 
-/// ## Ejemplos de uso:
-/// 
-/// ```dart
-/// // Botón básico
-/// AppButton(
-///   label: "Aceptar",
-///   onPressed: () => print("Presionado"),
-/// )
-/// 
-/// // Botón con tamaño predefinido
-/// AppButton(
-///   label: "Guardar",
-///   size: 'large',
-///   colorType: 'success',
-///   onPressed: () => guardarDatos(),
-/// )
-/// 
-/// // Botón de ancho completo
-/// AppButton(
-///   label: "Continuar",
-///   fullWidth: true,
-///   onPressed: () => navegarSiguiente(),
-/// )
-/// 
-/// // Botón toggle
-/// AppButton(
-///   label: "Estado",
-///   toggleValues: ['Activo', 'Inactivo'],
-///   onToggleChanged: (value) => print("Nuevo estado: $value"),
-/// )
-/// ```
 class AppButton extends StatefulWidget {
-  /// El texto que se mostrará en el botón.
   final String label;
-
-  /// El tipo de color del botón.
-  /// 
-  /// Valores disponibles:
-  /// - `'primary'` (por defecto): Color índigo
-  /// - `'success'`: Verde
-  /// - `'danger'` o `'cancel'`: Rojo
-  /// - `'warning'`: Naranja
-  /// - `'info'`: Azul
-  /// - `'secondary'`: Gris
   final String colorType;
-
-  /// Callback que se ejecuta cuando se presiona el botón.
-  /// 
-  /// Si [toggleValues] está definido, este callback se ignora
-  /// y se usa [onToggleChanged] en su lugar.
   final VoidCallback? onPressed;
-
-  /// Callback que se ejecuta cuando se mantiene presionado el botón.
   final VoidCallback? onLongPressed;
-
-  /// Callback que se ejecuta cuando se hace doble tap en el botón.
   final VoidCallback? onDoublePressed;
-
-  /// Si es `true`, el botón ocupará todo el ancho disponible
-  /// y tendrá bordes cuadrados (sin border radius).
-  /// 
-  /// Cuando es `false`, el botón mantiene su tamaño natural
-  /// o el especificado por [width] y [height].
   final bool fullWidth;
-
-  /// Ancho específico del botón en píxeles.
-  /// 
-  /// Si se especifica junto con [size], este valor tiene prioridad.
-  /// Si [fullWidth] es `true`, este valor se ignora.
   final double? width;
-
-  /// Alto específico del botón en píxeles.
-  /// 
-  /// Si se especifica junto con [size], este valor tiene prioridad.
   final double? height;
-
-  /// Tamaño predefinido del botón.
-  /// 
-  /// Valores disponibles:
-  /// - `'small'`: 80x32px, fuente 12px
-  /// - `'medium'`: 120x48px, fuente 16px (por defecto si no se especifica)
-  /// - `'large'`: 160x56px, fuente 18px
-  /// 
-  /// Si se especifica [width] o [height], esos valores tienen prioridad
-  /// sobre las dimensiones del tamaño predefinido.
   final String? size;
-
-  /// Lista de valores para el modo toggle.
-  /// 
-  /// Si se proporciona, el botón funcionará como un toggle que cicla
-  /// entre los valores de esta lista cada vez que se presiona.
-  /// 
-  /// Ejemplo:
-  /// ```dart
-  /// toggleValues: ['Opción A', 'Opción B', 'Opción C']
-  /// ```
   final List<dynamic>? toggleValues;
-
-  /// Callback que se ejecuta cuando cambia el valor del toggle.
-  /// 
-  /// Solo se usa si [toggleValues] está definido.
-  /// Recibe el nuevo valor seleccionado como parámetro.
   final ValueChanged<dynamic>? onToggleChanged;
+  final bool isLoading; // Nueva propiedad para mostrar loader
+  final Color? loaderColor; // Color opcional para el loader
 
-  /// Crea un [AppButton] con las propiedades especificadas.
-  /// 
-  /// El parámetro [label] es requerido y define el texto del botón.
-  /// 
-  /// Para un botón normal, proporciona [onPressed].
-  /// Para un botón toggle, proporciona [toggleValues] y [onToggleChanged].
-  /// 
-  /// ## Parámetros de tamaño (en orden de prioridad):
-  /// 1. [fullWidth] - Si es true, ignora [width]
-  /// 2. [width] y [height] - Dimensiones específicas
-  /// 3. [size] - Tamaño predefinido ('small', 'medium', 'large')
-  /// 4. Tamaño natural del botón (si no se especifica nada)
   const AppButton({
     Key? key,
     required this.label,
@@ -139,6 +30,8 @@ class AppButton extends StatefulWidget {
     this.size,
     this.toggleValues,
     this.onToggleChanged,
+    this.isLoading = false, // Por defecto no está cargando
+    this.loaderColor, // Color opcional, si es null usa blanco
   }) : super(key: key);
 
   @override
@@ -146,16 +39,13 @@ class AppButton extends StatefulWidget {
 }
 
 class _AppButtonState extends State<AppButton> {
-  /// Índice actual del toggle (para modo toggle).
   int _toggleIndex = 0;
+  bool _isHovering = false;
 
-  /// Maneja el evento de presionar el botón.
-  /// 
-  /// Si [widget.toggleValues] está definido, cicla entre los valores
-  /// del toggle y llama a [widget.onToggleChanged].
-  /// De lo contrario, ejecuta [widget.onPressed].
   void _handlePress() {
-    // Si está en modo toggle
+    // Si está cargando, no hacer nada
+    if (widget.isLoading) return;
+    
     if (widget.toggleValues != null && widget.toggleValues!.isNotEmpty) {
       setState(() {
         _toggleIndex = (_toggleIndex + 1) % widget.toggleValues!.length;
@@ -166,48 +56,26 @@ class _AppButtonState extends State<AppButton> {
     }
   }
 
-  /// Obtiene el color correspondiente al tipo especificado.
-  /// 
-  /// Mapea los tipos de string a colores de Material Design:
-  /// - 'primary': [Colors.indigo]
-  /// - 'success': [Colors.green]
-  /// - 'danger'/'cancel': [Colors.red]
-  /// - 'warning': [Colors.orange]
-  /// - 'info': [Colors.blue]
-  /// - 'secondary': [Colors.grey]
-  /// 
-  /// Por defecto retorna [Colors.indigo] para tipos no reconocidos.
   Color _getColorFromType(String type) {
     switch (type.toLowerCase()) {
       case 'success':
-        return Colors.green;
+        return AppColors.success;
       case 'cancel':
       case 'danger':
-        return Colors.red;
+        return AppColors.danger;
       case 'warning':
-        return Colors.orange;
+        return AppColors.warning;
       case 'info':
-        return Colors.blue;
+        return AppColors.info;
       case 'secondary':
-        return Colors.grey;
+        return AppColors.secondaryColor;
       case 'primary':
+        return AppColors.primaryColor;
       default:
-        return Colors.indigo;
+        return AppColors.success;
     }
   }
 
-  /// Obtiene las configuraciones predefinidas para un tamaño específico.
-  /// 
-  /// Retorna un [Map] con las siguientes claves:
-  /// - 'width': Ancho en píxeles
-  /// - 'height': Alto en píxeles  
-  /// - 'fontSize': Tamaño de fuente en píxeles
-  /// - 'padding': Padding horizontal en píxeles
-  /// 
-  /// Tamaños disponibles:
-  /// - 'small': 80x32px, fuente 12px, padding 8px
-  /// - 'medium': 120x48px, fuente 16px, padding 12px (por defecto)
-  /// - 'large': 160x56px, fuente 18px, padding 16px
   Map<String, double> _getSizePreset(String? size) {
     switch (size?.toLowerCase()) {
       case 'small':
@@ -220,38 +88,22 @@ class _AppButtonState extends State<AppButton> {
     }
   }
 
-  /// Calcula el tamaño de fuente apropiado basado en las configuraciones del botón.
-  /// 
-  /// La lógica de cálculo sigue este orden de prioridad:
-  /// 1. Si hay [widget.size] definido, usa el fontSize del preset
-  /// 2. Si hay [widget.height] específica, calcula proporcionalmente (10-20px)
-  /// 3. Si hay [widget.width] específico, ajusta para evitar overflow (8px mínimo)
-  /// 4. Por defecto usa 16px
-  /// 
-  /// El tamaño se adapta automáticamente para evitar que el texto se desborde.
   double _calculateFontSize() {
     final sizePreset = _getSizePreset(widget.size);
     
-    // Si hay tamaño predefinido, usar su fontSize
     if (widget.size != null) {
       return sizePreset['fontSize']!;
     }
     
-    // Tamaño base de fuente
     double baseFontSize = 16.0;
     
-    // Si hay height específica, ajustar el tamaño de fuente
     if (widget.height != null) {
-      // Calcular tamaño de fuente basado en la altura
-      // Dejamos espacio para padding vertical (16px total)
       double availableHeight = widget.height! - 16;
       baseFontSize = (availableHeight * 0.6).clamp(10.0, 20.0);
     }
     
-    // Si hay width específico, también considerar el ancho
     if (widget.width != null) {
-      // Estimar caracteres que caben y ajustar tamaño si es necesario
-      double availableWidth = widget.width! - 24; // padding horizontal
+      double availableWidth = widget.width! - 24;
       double estimatedCharWidth = baseFontSize * 0.6;
       double maxCharsForWidth = availableWidth / estimatedCharWidth;
       
@@ -263,66 +115,92 @@ class _AppButtonState extends State<AppButton> {
     return baseFontSize;
   }
 
-  /// Construye el widget del botón con todas las configuraciones aplicadas.
-  /// 
-  /// El método ensambla el botón aplicando:
-  /// 1. Color según [widget.colorType]
-  /// 2. Tamaño de fuente calculado dinámicamente
-  /// 3. Padding basado en [widget.size] o valores por defecto
-  /// 4. Dimensiones finales considerando prioridades
-  /// 5. Border radius (0 si [widget.fullWidth], 8px en caso contrario)
-  /// 6. Gestos adicionales ([onDoubleTap], [onLongPress])
+  // Método para construir el contenido del botón (texto o loader)
+  Widget _buildButtonContent() {
+    if (widget.isLoading) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                widget.loaderColor ?? Colors.white,
+              ),
+            ),
+          ),
+          if (widget.size != 'small') const SizedBox(width: 12),
+          if (widget.size != 'small')
+            Text(
+              'Cargando...',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: _calculateFontSize(),
+                letterSpacing: 0.5,
+              ),
+            ),
+        ],
+      );
+    }
+
+    return Text(
+      widget.label,
+      style: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w600,
+        fontSize: _calculateFontSize(),
+        letterSpacing: 0.5,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final buttonColor = _getColorFromType(widget.colorType);
-    final fontSize = _calculateFontSize();
     final sizePreset = _getSizePreset(widget.size);
 
-    Widget buttonContent = Center(
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-          widget.label,
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: fontSize,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-    );
-
-    // Determinar el padding basado en el tamaño predefinido
     EdgeInsets buttonPadding = widget.size != null
         ? EdgeInsets.symmetric(
             horizontal: sizePreset['padding']!,
-            vertical: sizePreset['padding']! * 0.6,
+            vertical: sizePreset['padding']! * 0.75,
           )
-        : const EdgeInsets.symmetric(horizontal: 12, vertical: 8);
+        : const EdgeInsets.symmetric(horizontal: 24, vertical: 16);
 
-    // GestureDetector para manejar doble tap y long press personalizados
+    // Color del botón cuando está en estado de carga
+    final backgroundColor = widget.isLoading 
+        ? buttonColor.withOpacity(0.7) 
+        : (_isHovering ? _getHoverColor(buttonColor) : buttonColor);
+
     Widget button = ElevatedButton(
-      onPressed: _handlePress,
+      onPressed: widget.isLoading ? null : _handlePress, // Deshabilitar si está cargando
       style: ElevatedButton.styleFrom(
-        backgroundColor: buttonColor,
+        backgroundColor: backgroundColor,
+        foregroundColor: Colors.white,
+        elevation: widget.isLoading ? 1 : (_isHovering ? 4 : 2),
+        shadowColor: buttonColor.withOpacity(widget.isLoading ? 0.1 : 0.3),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(widget.fullWidth ? 0 : 8),
+          borderRadius: BorderRadius.circular(6),
         ),
         padding: buttonPadding,
+        // Efecto de deshabilitado cuando está cargando
+        disabledBackgroundColor: buttonColor.withOpacity(0.7),
+        disabledForegroundColor: Colors.white.withOpacity(0.8),
       ),
-      child: buttonContent,
+      child: _buildButtonContent(),
     );
 
-    // Determinar dimensiones finales
     double? finalWidth = widget.fullWidth
         ? double.infinity
         : (widget.width ?? (widget.size != null ? sizePreset['width'] : null));
     
     double? finalHeight = widget.height ?? (widget.size != null ? sizePreset['height'] : null);
 
-    // Solo usar SizedBox si necesitamos controlar el tamaño
     if (widget.fullWidth || widget.width != null || widget.height != null || widget.size != null) {
       button = SizedBox(
         width: finalWidth,
@@ -331,10 +209,24 @@ class _AppButtonState extends State<AppButton> {
       );
     }
 
-    return GestureDetector(
-      onDoubleTap: widget.onDoublePressed,
-      onLongPress: widget.onLongPressed,
-      child: button,
+    return MouseRegion(
+      onEnter: (_) {
+        if (!widget.isLoading) {
+          setState(() => _isHovering = true);
+        }
+      },
+      onExit: (_) => setState(() => _isHovering = false),
+      child: GestureDetector(
+        onDoubleTap: widget.isLoading ? null : widget.onDoublePressed,
+        onLongPress: widget.isLoading ? null : widget.onLongPressed,
+        child: button,
+      ),
     );
+  }
+
+  // Método para obtener el color hover (oscurece el color original)
+  Color _getHoverColor(Color baseColor) {
+    final hsl = HSLColor.fromColor(baseColor);
+    return hsl.withLightness((hsl.lightness - 0.1).clamp(0.0, 1.0)).toColor();
   }
 }

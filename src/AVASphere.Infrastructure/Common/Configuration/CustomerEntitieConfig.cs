@@ -1,5 +1,4 @@
-﻿
-using System.Security.Cryptography.X509Certificates;
+﻿using System.Security.Cryptography.X509Certificates;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -37,7 +36,8 @@ public class CustomerEntitieConfig : IEntityTypeConfiguration<Customer>
 
               entity.Property(c => c.PhoneNumber)
                      .HasColumnName("PhoneNumber")
-                     .IsRequired();
+                     .HasMaxLength(20)
+                     .IsRequired(false);
 
               entity.Property(c => c.Email)
                      .HasColumnName("Email")

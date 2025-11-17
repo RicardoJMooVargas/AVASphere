@@ -93,7 +93,7 @@ namespace AVASphere.Infrastructure.Common.Services
                 ExternalId = request.ExternalId,
                 Name = request.Name,
                 LastName = request.LastName,
-                PhoneNumber = request.PhoneNumber,
+                PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber) ? "+00" : request.PhoneNumber,
                 Email = request.Email,
                 TaxId = request.TaxId,
                 SettingsCustomerJson = settingsJson,
@@ -119,7 +119,7 @@ namespace AVASphere.Infrastructure.Common.Services
             var anyFieldProvided = request.ExternalId.HasValue ||
                                    request.Name != null ||
                                    request.LastName != null ||
-                                   request.PhoneNumber.HasValue ||
+                                   request.PhoneNumber != null ||
                                    request.Email != null ||
                                    request.TaxId != null ||
                                    request.Settings != null ||
@@ -139,8 +139,8 @@ namespace AVASphere.Infrastructure.Common.Services
             if (request.LastName != null)
                 existing.LastName = request.LastName;
 
-            if (request.PhoneNumber.HasValue)
-                existing.PhoneNumber = request.PhoneNumber.Value;
+            if (request.PhoneNumber != null)
+                existing.PhoneNumber = request.PhoneNumber;
 
             if (request.Email != null)
                 existing.Email = request.Email;

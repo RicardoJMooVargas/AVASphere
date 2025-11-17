@@ -6,10 +6,10 @@ namespace AVASphere.ApplicationCore.Common.Entities.Products;
 public class Product
 {
     public int IdProduct { get; set; }
-    public string? MainName { get; set; }
-    public string? SupplierName { get; set; }
-    public int Unit { get; set; }
-    public string? Description { get; set; }
+    public string MainName { get; set; }
+    public string SupplierName { get; set; }
+    public string Unit { get; set; }
+    public string Description { get; set; }
     public double Quantity { get; set; }
     public double Taxes { get; set; }
     
@@ -33,15 +33,15 @@ public class Product
 public class CodeJson
 {
     public int Index { get; set; }
-    public string? Type { get; set; }
-    public string? Code { get; set; }
+    public string Type { get; set; }
+    public string Code { get; set; }
 }
 
 public class CostsJson
 {
     public int Index { get; set; }
     public double Amount { get; set; }
-    public string? Type { get; set; }
+    public string Type { get; set; }
 }
 
 public class CategoriesJson

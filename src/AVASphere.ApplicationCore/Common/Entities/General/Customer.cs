@@ -1,4 +1,4 @@
-﻿﻿using System.Globalization;
+﻿using System.Globalization;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Sales.Entities;
 namespace AVASphere.ApplicationCore.Common.Entities.General;
@@ -10,7 +10,7 @@ public class Customer
     public int ExternalId { get; set; }
     public string? Name { get; set; }
     public string? LastName { get; set; }
-    public int PhoneNumber { get; set; }
+    public string PhoneNumber { get; set; } = "+00";
     public string? Email { get; set; }
     public string? TaxId { get; set; }
     // JSON
@@ -58,4 +58,3 @@ public class SettingsCustomerJson
     public string Type { get; set; } = "General"; // aluminiero , general, etc.
     public double Discount { get; set; } = 0.0;
 }
-

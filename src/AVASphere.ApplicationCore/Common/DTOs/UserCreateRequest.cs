@@ -22,7 +22,7 @@ public class UserCreateRequest
     public string? Aux { get; set; }
 
     [StringLength(10, ErrorMessage = "El campo de verificación no puede exceder 10 caracteres")]
-    public string? Verified { get; set; } = "No";
+    public bool? Verified { get; set; } = false;
 
     [Required(ErrorMessage = "El ID del rol es requerido")]
     [Range(1, int.MaxValue, ErrorMessage = "El ID del rol debe ser mayor a 0")]

@@ -11,7 +11,7 @@ public class ProjectCategory
     // FK
     public int IdConfigSys { get; set; }
     public ConfigSys ConfigSys { get; set; } = null!;
-   // Relaciones 
+    // Relaciones 
     public ICollection<IndividualProjectQuote> IndividualProjectQuotes { get; set; } = new List<IndividualProjectQuote>();
     public ICollection<ListOfCategories> ListOfCategories { get; set; } = new List<ListOfCategories>();
     public ICollection<ListOfProductsByCategory> ListOfProductsByCategory { get; set; } = new List<ListOfProductsByCategory>();

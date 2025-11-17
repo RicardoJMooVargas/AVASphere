@@ -59,7 +59,7 @@ public class QuotationService : IQuotationService
                 ExternalId = 0,
                 Name = nc.Name,
                 Email = nc.Email,
-                PhoneNumber = int.TryParse(nc.Phone, out var ph) ? ph : 0,
+                PhoneNumber = string.IsNullOrWhiteSpace(nc.Phone) ? "+00" : nc.Phone,
                 DirectionJson = new DirectionJson { Colony = nc.Direction },
                 SettingsCustomerJson = new SettingsCustomerJson { Index = 1, Type = "General" }
             };

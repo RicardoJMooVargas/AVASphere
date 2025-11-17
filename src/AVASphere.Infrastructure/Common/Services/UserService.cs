@@ -126,14 +126,11 @@
 
                 // Encriptar la contraseña
                 user.HashPassword = _encryptionService.HashPassword(request.Password);
-                
-                // Limpiar la contraseña en texto plano (no almacenarla)
-                user.Password = null;
 
                 // Establecer valores por defecto
                 user.Status = !string.IsNullOrWhiteSpace(user.Status) ? user.Status : "Active";
-                user.Verified = !string.IsNullOrWhiteSpace(user.Verified) ? user.Verified : "No";
-                user.CreateAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                user.Verified = false;
+                user.CreateAt = null;
 
                 await _userRepository.CreateUsersAsync(user);
                 _logger.LogInformation("Usuario creado exitosamente con ID: {IdUser}", user.IdUser);
@@ -203,7 +200,6 @@
                 if (!string.IsNullOrEmpty(request.Password))
                 {
                     user.HashPassword = _encryptionService.HashPassword(request.Password);
-                    user.Password = null;
                 }
                 else
                 {
@@ -383,8 +379,8 @@
                     HashPassword = _encryptionService.HashPassword(password),
                     Status = "Active",
                     Aux = "",
-                    CreateAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
-                    Verified = "true",
+                    CreateAt = null,// el repositorio lo pone si ingresas null
+                    Verified = true,
                     IdConfigSys = config.IdConfigSys,
                     IdRol = adminRol.IdRol
                 };

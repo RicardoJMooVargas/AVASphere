@@ -356,8 +356,8 @@ public class ConfigController : ControllerBase
                 LastName = "Sistema",
                 HashPassword = hashPassword,
                 Status = "active",
-                Verified = "true",
-                CreateAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                Verified = true,
+                CreateAt = DateOnly.FromDateTime(DateTime.UtcNow),
                 IdRol = adminRole.IdRol,
                 IdConfigSys = configSys.IdConfigSys
             };

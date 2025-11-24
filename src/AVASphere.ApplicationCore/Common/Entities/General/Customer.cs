@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
+using AVASphere.ApplicationCore.Projects.Entities.General;
 using AVASphere.ApplicationCore.Sales.Entities;
 namespace AVASphere.ApplicationCore.Common.Entities.General;
 
@@ -22,6 +23,7 @@ public class Customer
 
     // Relaciones
     public List<Quotation> Quotations { get; set; } = new List<Quotation>();
+    public List<Project> Projects { get; set; } = new List<Project>();
     public List<Sale> Sales { get; set; } = new List<Sale>();
 
 

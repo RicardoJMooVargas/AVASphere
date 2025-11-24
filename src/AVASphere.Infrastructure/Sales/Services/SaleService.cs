@@ -108,7 +108,7 @@ public class SaleService : ISaleService
                     throw new InvalidOperationException($"Quotation {qid} not found.");
                 }
 
-                quotation.LinkedSaleId = createdSale.SaleId.ToString();
+                quotation.LinkedSaleId = createdSale.IdSale.ToString();
                 quotation.LinkedSaleFolio = createdSale.Folio;
                 quotation.UpdatedAt = DateTime.UtcNow;
 

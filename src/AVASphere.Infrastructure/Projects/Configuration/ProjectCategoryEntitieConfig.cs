@@ -8,7 +8,6 @@ public class ProjectCategoryEntitieConfig : IEntityTypeConfiguration<ProjectCate
 {
     public void Configure(EntityTypeBuilder<ProjectCategory> entity)
     {
-        // Ejemplo de configuración:
         entity.ToTable("ProjectCategory");
         entity.HasKey(e => e.IdProjectCategory); 
         
@@ -20,26 +19,36 @@ public class ProjectCategoryEntitieConfig : IEntityTypeConfiguration<ProjectCate
             .HasMaxLength(100)
             .IsRequired();
         
-        // FK to ConfigSys configured in ConfigSysEntitieConfig
+        // FK a ConfigSys
+        entity.HasOne(pc => pc.ConfigSys)
+            .WithMany(cs => cs.ProjectCategories)
+            .HasForeignKey(pc => pc.IdConfigSys)
+            .OnDelete(DeleteBehavior.Restrict);
         
-       entity.HasMany(pc => pc.IndividualProjectQuotes) // ICollection<IndividualProjectQuote>
-            .WithOne(ipq => ipq.ProjectCategory) // IndividualProjectQuote.ProjectCategory
-            .HasForeignKey(ipq => ipq.IdProjectCategory) // FK en IndividualProjectQuote
-            .OnDelete(DeleteBehavior.Cascade);
+        // Relación 1-N con IndividualProjectQuote
+        entity.HasMany(pc => pc.IndividualProjectQuotes)
+            .WithOne(ipq => ipq.ProjectCategory)
+            .HasForeignKey(ipq => ipq.IdProjectCategory)
+            .OnDelete(DeleteBehavior.Restrict);
        
-       entity.HasMany(pc => pc.ListOfCategories)
+        // Relación 1-N con ListOfCategories
+        entity.HasMany(pc => pc.ListOfCategories)
             .WithOne(loc => loc.ProjectCategory)
             .HasForeignKey(loc => loc.IdProjectCategory)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
        
-       entity.HasMany(pc => pc.ListOfProductsByCategory)
+        // Relación 1-N con ListOfProductsByCategory
+        /*
+        entity.HasMany(pc => pc.ListOfProductsByCategory)
             .WithOne(lopbc => lopbc.ProjectCategory)
             .HasForeignKey(lopbc => lopbc.IdProjectCategory)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
+        */
        
-       entity.HasMany(pc => pc.TechnicalDesigns)
+        // Relación 1-N con TechnicalDesign
+        entity.HasMany(pc => pc.TechnicalDesigns)
             .WithOne(td => td.ProjectCategory)
             .HasForeignKey(td => td.IdProjectCategory)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

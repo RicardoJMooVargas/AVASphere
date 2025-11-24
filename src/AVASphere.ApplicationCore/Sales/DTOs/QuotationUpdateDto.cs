@@ -7,8 +7,8 @@ namespace AVASphere.ApplicationCore.Sales.DTOs
     public class QuotationUpdateDto
     {
         public int Folio { get; set; }
-        public DateTime SaleDate { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public DateOnly SaleDate { get; set; }
+        public StatusEnum? Status { get; set; }
         public string? GeneralComment { get; set; }
         public int CustomerId { get; set; }
         public List<string> SalesExecutives { get; set; } = new();

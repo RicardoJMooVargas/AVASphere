@@ -97,7 +97,7 @@ public class CustomerEntitieConfig : IEntityTypeConfiguration<Customer>
               // Relación 1:N -> Customer (1) : Quotations (N)
               entity.HasMany(c => c.Quotations)
                      .WithOne(q => q.Customer)
-                     .HasForeignKey(q => q.CustomerId)
+                     .HasForeignKey(q => q.IdCustomer)
                      .HasConstraintName("FK_Quotations_Customers_IdCustomer")
                      .OnDelete(DeleteBehavior.Restrict);
        }

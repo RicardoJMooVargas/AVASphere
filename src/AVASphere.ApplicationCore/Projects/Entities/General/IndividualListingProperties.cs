@@ -1,10 +1,16 @@
-﻿namespace AVASphere.ApplicationCore.Projects.Entities.General;
+﻿// REVISED
+using AVASphere.ApplicationCore.Common.Entities.Catalogs;
+
+namespace AVASphere.ApplicationCore.Projects.Entities.General;
 
 public class IndividualListingProperties
 {
     public int IdIndividualListingProperties { get; set; }
     
     // FK
-    public int IdIndividualProjectQuotes { get; set; }
-    public IndividualProjectQuote IndividualProjectQuotes { get; set; } = null!;
+    public int IdIndividualProjectQuote { get; set; }
+    public IndividualProjectQuote IndividualProjectQuote { get; set; } = null!;
+    
+    public int IdPropertyValue { get; set; }
+    public PropertyValue ProductValue { get; set; } = null!;
 }

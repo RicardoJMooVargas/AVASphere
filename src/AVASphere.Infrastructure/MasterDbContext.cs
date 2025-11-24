@@ -2,6 +2,8 @@
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
+using AVASphere.ApplicationCore.Projects.Entities.General;
+using AVASphere.ApplicationCore.Projects.Entities;
 using AVASphere.Infrastructure.Common.Configuration;
 using AVASphere.Infrastructure.Projects.Configuration;
 using AVASphere.Infrastructure.Sales.Configuration;
@@ -31,6 +33,14 @@ public class MasterDbContext : DbContext
 
     // MODULO PROJECTS
     public DbSet<ProjectCategory> ProjectCategory { get; set; } = null!;
+    public DbSet<Project> Projects { get; set; } = null!;
+    public DbSet<ProjectQuote> ProjectQuotes { get; set; } = null!;
+    public DbSet<IndividualProjectQuote> IndividualProjectQuotes { get; set; } = null!;
+    public DbSet<ListOfCategories> ListOfCategories { get; set; } = null!;
+    //public DbSet<ListOfProductsByCategory> ListOfProductsByCategory { get; set; } = null!;
+    public DbSet<TechnicalDesign> TechnicalDesigns { get; set; } = null!;
+    public DbSet<IndividualListingProperties> IndividualListingProperties { get; set; } = null!;
+    public DbSet<ListOfProductsToQuot> ListOfProductsToQuot { get; set; } = null!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -44,10 +54,10 @@ public class MasterDbContext : DbContext
         modelBuilder.ApplyConfiguration(new AreaEntitieConfig());
         modelBuilder.ApplyConfiguration(new CustomerEntitieConfig());
         //modelBuilder.ApplyConfiguration(new BranchOfficeEntitieConfig());
+        
         // MODULO DE SALES
         modelBuilder.ApplyConfiguration(new QuotationEntitieConfig());
         modelBuilder.ApplyConfiguration(new SaleEntitieConfig());
-
         modelBuilder.ApplyConfiguration(new QuotationVersionEntitieConfig());
         modelBuilder.ApplyConfiguration(new SaleQuotationEntitieConfig());
 
@@ -57,9 +67,15 @@ public class MasterDbContext : DbContext
        .HasForeignKey(v => v.IdQuotation)
        .OnDelete(DeleteBehavior.Cascade);
 
-        base.OnModelCreating(modelBuilder);
         // MODULO DE PROJECTS
         modelBuilder.ApplyConfiguration(new ProjectCategoryEntitieConfig());
-        //........
+        modelBuilder.ApplyConfiguration(new ProjectEntitieConfig());
+        modelBuilder.ApplyConfiguration(new ProjectQuoteEntitieConfig());
+        modelBuilder.ApplyConfiguration(new IndividualProjectQuoteEntitieConfig());
+        modelBuilder.ApplyConfiguration(new ListOfCategoriesEntitieConfig());
+        // modelBuilder.ApplyConfiguration(new ListOfProductsByCategoryEntitieConfig()); DELETED and DEPRECATED
+        modelBuilder.ApplyConfiguration(new TechnicalDesignEntitieConfig());
+        modelBuilder.ApplyConfiguration(new IndividualListingPropertiesEntitieConfig());
+        modelBuilder.ApplyConfiguration(new ListOfProductsToQuotEntitieConfig());
     }
 }

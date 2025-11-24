@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿﻿using System.ComponentModel.DataAnnotations;
 using AVASphere.ApplicationCore.Common.Attributes;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 
@@ -9,9 +9,9 @@ public class CreateQuotationDto
     [Required]
     public int Folio { get; set; }
 
-    public DateTime? SaleDate { get; set; } = DateTime.UtcNow;
+    public DateOnly? SaleDate { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
 
-    public string? Status { get; set; } = "PENDIENTE";
+    public StatusEnum? Status { get; set; } = StatusEnum.Pending;
 
     public string? GeneralComment { get; set; }
 
@@ -26,7 +26,7 @@ public class CreateQuotationDto
     // Lista de ejecutivos de venta (se serializa a JSONB en la entidad)
     public List<string>? SalesExecutives { get; set; }
 
-    // Followups iniciales (se serializa a JSONB)
+    // FollowupsJson iniciales (se serializa a JSONB)
     public List<QuotationFollowupDto>? Followups { get; set; }
 
     // Lista de productos simplificada (se serializa a JSONB)

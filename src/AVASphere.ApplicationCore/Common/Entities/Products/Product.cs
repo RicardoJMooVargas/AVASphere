@@ -1,5 +1,8 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.Catalogs;
+﻿// REVISED
+using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
+using AVASphere.ApplicationCore.Projects.Entities.General;
+using AVASphere.ApplicationCore.Projects.Entities.jsons;
 
 namespace AVASphere.ApplicationCore.Common.Entities.Products;
 
@@ -19,6 +22,7 @@ public class Product
     
     // RELACIONES
     public ICollection<ProductProperties> ProductProperties { get; set; } = new List<ProductProperties>();
+    public ICollection<ListOfProductsToQuot> ProductImages { get; set; } = new List<ListOfProductsToQuot>();
     
     //JSON
     public ICollection<CodeJson> CodeJson { get; set; } = new List<CodeJson>();

@@ -1,4 +1,5 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.General;
+﻿// REVISION : 1 
+using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Projects.Entities.General;
 
 namespace AVASphere.ApplicationCore.Projects.Entities.Catalogs;
@@ -14,6 +15,5 @@ public class ProjectCategory
     // Relaciones 
     public ICollection<IndividualProjectQuote> IndividualProjectQuotes { get; set; } = new List<IndividualProjectQuote>();
     public ICollection<ListOfCategories> ListOfCategories { get; set; } = new List<ListOfCategories>();
-    public ICollection<ListOfProductsByCategory> ListOfProductsByCategory { get; set; } = new List<ListOfProductsByCategory>();
     public ICollection<TechnicalDesign> TechnicalDesigns { get; set; } = new List<TechnicalDesign>();
 }

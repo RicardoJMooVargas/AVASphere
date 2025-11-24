@@ -1,16 +1,16 @@
-﻿namespace AVASphere.ApplicationCore.Sales.DTOs;
+﻿﻿namespace AVASphere.ApplicationCore.Sales.DTOs;
 
 public class QuotationResponseDto
 {
     // En Postgres (EF) QuotationId es int
     public int QuotationId { get; set; }
 
-    public DateTime SaleDate { get; set; }
+    public DateOnly SaleDate { get; set; }
     public string Status { get; set; } = string.Empty;
     public List<string> SalesExecutives { get; set; } = new();
     public int Folio { get; set; }
 
-    // CustomerId en la DB es int
+    // IdCustomer en la DB es int
     public int CustomerId { get; set; }
 
     // Información opcional anidada del cliente (si la incluyes en la consulta)
@@ -18,7 +18,7 @@ public class QuotationResponseDto
 
     public string? GeneralComment { get; set; }
 
-    // Followups vienen como JSONB; en la entidad el Id del followup es string,
+    // FollowupsJson vienen como JSONB; en la entidad el Id del followup es string,
     // por eso aquí usamos string para mantener compatibilidad.
     public List<QuotationFollowupResponseDto> Followups { get; set; } = new();
 
@@ -64,7 +64,7 @@ public class GetQuotationsQueryDto
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
 
-    // Mantengo CustomerName como filtro textual; si filtras por id, añade CustomerId:int
+    // Mantengo CustomerName como filtro textual; si filtras por id, añade IdCustomer:int
     public string? CustomerName { get; set; }
     public int? Folio { get; set; }
 }

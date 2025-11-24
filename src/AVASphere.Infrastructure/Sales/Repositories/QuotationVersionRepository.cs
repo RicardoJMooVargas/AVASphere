@@ -72,7 +72,7 @@ namespace AVASphere.Infrastructure.Sales.Repositories
 
         public async Task<bool> VersionExistsAsync(int versionId)
         {
-            return await _context.Set<QuotationVersion>().AsNoTracking().AnyAsync(v => v.QuotationVersionId == versionId);
+            return await _context.Set<QuotationVersion>().AsNoTracking().AnyAsync(v => v.IdQuotationVersion == versionId);
         }
 
         public async Task<int> GetNextVersionNumberAsync(int quotationId)

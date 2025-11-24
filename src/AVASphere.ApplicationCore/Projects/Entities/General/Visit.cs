@@ -2,6 +2,7 @@
 
 namespace AVASphere.ApplicationCore.Projects.Entities.General;
 using AVASphere.ApplicationCore.Common.Entities;
+// DEPRECATED CLASS
 public class Visit
 {
     public int IdVisits { get; set; }

@@ -4,7 +4,6 @@ using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.Common.Enums;
-using AVASphere.WebApi.Common.Extensions;
 
 namespace AVASphere.WebApi.Common.Controllers;
 

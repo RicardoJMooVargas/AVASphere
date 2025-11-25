@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'api/system.service.dart';
 import '../controllers/system_setup.controller.dart';
-import 'data/cache.service.dart';
+import 'data/hive.service.dart';
 
 /// Servicio para manejar la inicialización y verificación del sistema
 class SystemInitService {
@@ -35,16 +35,22 @@ class SystemInitService {
       
       // Determinar ruta basada en la configuración del sistema
       if (configResponse.hasConfiguration && !configResponse.requiresMigration) {
-        // Sistema configurado correctamente -> verificar token
-        debugPrint('✅ Sistema configurado correctamente - Verificando token...');
+        // Sistema configurado correctamente -> verificar token/sesión
+        debugPrint('✅ Sistema configurado correctamente - Verificando sesión...');
         
-        // Verificar si existe token válido
-        final token = await CacheService.getToken();
-        if (token != null && token.isNotEmpty) {
-          debugPrint('🔑 Token encontrado - Redirigiendo a aplicación principal');
+        // Verificar si existe sesión válida en Hive
+        final hasValidSession = await HiveService.hasValidSession();
+        if (hasValidSession) {
+          final session = await HiveService.getActiveUserSession();
+          debugPrint('🔑 Sesión válida encontrada en Hive:');
+          debugPrint('   - User ID: ${session?.userId}');
+          debugPrint('   - Username: ${session?.username}');
+          debugPrint('   - Token: ${session?.token?.substring(0, 20)}...');
+          debugPrint('   - Es válida: ${session?.isValid}');
+          debugPrint('✅ Redirigiendo a aplicación principal');
           return '/home'; // Siempre /home, MainAppLayout maneja el contenido específico
         } else {
-          debugPrint('🚫 No hay token válido - Redirigiendo a login');
+          debugPrint('🚫 No hay sesión válida en Hive - Redirigiendo a login');
           return '/login';
         }
       } else {

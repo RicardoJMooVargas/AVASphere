@@ -11,17 +11,22 @@ public class SaleEntitieConfig : IEntityTypeConfiguration<Sale>
         entity.ToTable("Sales");
 
         // PK entero autoincremental
-        entity.HasKey(s => s.SaleId);
-        entity.Property(s => s.SaleId)
+        entity.HasKey(s => s.IdSale);
+        entity.Property(s => s.IdSale)
             .HasColumnName("IdSale")
             .ValueGeneratedOnAdd();
+        
+        entity.Property(s => s.IdCustomer)
+            .HasColumnName("IdCustomer")
+            .IsRequired();
+
 
         entity.Property(s => s.SalesExecutive)
             .HasColumnName("SalesExecutive")
             .IsRequired()
             .HasMaxLength(100);
 
-        entity.Property(s => s.Date)
+        entity.Property(s => s.SaleDate)
             .HasColumnName("SaleDate")
             .IsRequired();
 
@@ -29,11 +34,7 @@ public class SaleEntitieConfig : IEntityTypeConfiguration<Sale>
             .HasColumnName("Type")
             .IsRequired()
             .HasMaxLength(50);
-
-        entity.Property(s => s.CustomerId)
-            .HasColumnName("IdCustomer")
-            .IsRequired();
-
+        
         entity.Property(s => s.Folio)
             .HasColumnName("Folio")
             .IsRequired()
@@ -60,7 +61,8 @@ public class SaleEntitieConfig : IEntityTypeConfiguration<Sale>
 
         entity.Property(s => s.SatisfactionReason)
             .HasColumnName("SatisfactionReason")
-            .HasMaxLength(500);
+            .HasMaxLength(500)
+            .HasDefaultValue("not specified");
 
         entity.Property(s => s.Comment)
             .HasColumnName("Comment")
@@ -76,7 +78,7 @@ public class SaleEntitieConfig : IEntityTypeConfiguration<Sale>
             .HasDefaultValueSql("'[]'::jsonb");
 
         // NUEVO: Lista simplificada de productos (JSONB)
-        entity.Property(s => s.Products)
+        entity.Property(s => s.ProductsJson)
             .HasColumnName("ProductsJson")
             .HasColumnType("jsonb")
             .HasDefaultValueSql("'[]'::jsonb");
@@ -96,6 +98,7 @@ public class SaleEntitieConfig : IEntityTypeConfiguration<Sale>
             .HasColumnName("CreatedAt")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+
         entity.Property(s => s.UpdatedAt)
             .HasColumnName("UpdatedAt")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -103,7 +106,7 @@ public class SaleEntitieConfig : IEntityTypeConfiguration<Sale>
         // Relación con Customer
         entity.HasOne(s => s.Customer)
               .WithMany(c => c.Sales)
-              .HasForeignKey(s => s.CustomerId)
+              .HasForeignKey(s => s.IdCustomer)
               .HasConstraintName("FK_Sales_Customers_IdCustomer")
               .OnDelete(DeleteBehavior.Restrict);
 

@@ -38,7 +38,7 @@ namespace AVASphere.WebApi.Sale.Controllers
             // ✅ Llamada correcta al servicio con todos los parámetros requeridos
             var created = await _saleService.CreateSaleAsync(saleDto, createdByUserId, customerId, salesExecutive);
 
-            return CreatedAtAction(nameof(GetById), new { id = created.SaleId }, created);
+            return CreatedAtAction(nameof(GetById), new { id = created.IdSale }, created);
         }
 
         // GET: api/Sale/{id}
@@ -77,9 +77,9 @@ namespace AVASphere.WebApi.Sale.Controllers
             var sale = new global::AVASphere.ApplicationCore.Sales.Entities.Sale
             {
                 SalesExecutive = dto.SalesExecutive,
-                Date = dto.Date,
+                SaleDate = dto.Date,
                 Type = dto.Type,
-                CustomerId = dto.CustomerId,
+                IdCustomer = dto.CustomerId,
                 Folio = dto.Folio,
                 TotalAmount = dto.TotalAmount,
                 DeliveryDriver = dto.DeliveryDriver,
@@ -95,7 +95,7 @@ namespace AVASphere.WebApi.Sale.Controllers
             };
 
             var created = await _saleService.CreateSaleFromQuotationsAsync(dto.QuotationIds, sale, User?.Identity?.Name ?? "system");
-            return CreatedAtAction(nameof(GetById), new { id = created.SaleId }, created);
+            return CreatedAtAction(nameof(GetById), new { id = created.IdSale }, created);
         }
         // Obtiene las ventas por fecha desde la API externa (APIVAA) y verifica si existen en la base de datos.
 

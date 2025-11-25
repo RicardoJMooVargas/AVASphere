@@ -22,8 +22,8 @@ namespace AVASphere.Infrastructure.Common.Configuration
             entity.Property(e => e.HashPassword).HasMaxLength(255);
             entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.Aux).HasMaxLength(100);
-            entity.Property(e => e.CreateAt).HasMaxLength(50);
-            entity.Property(e => e.Verified).HasMaxLength(10);
+            entity.Property(e => e.CreateAt).HasColumnType("date");
+            entity.Property(e => e.Verified);
 
             // 🔹 Relación con Rol
             entity.HasOne(u => u.Rol)

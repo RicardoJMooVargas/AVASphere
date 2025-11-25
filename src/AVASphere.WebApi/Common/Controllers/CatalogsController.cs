@@ -4,7 +4,6 @@ using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Projects.DTOs;
 using AVASphere.ApplicationCore.Projects.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using AVASphere.WebApi.Common.Extensions;
 
 namespace AVASphere.WebApi.Common.Controllers;
 

@@ -43,7 +43,7 @@ public class SaleService : ISaleService
             {
                 ExternalId = int.TryParse(saleDto.CodeClient, out var extId) ? extId : 0,
                 Name = saleDto.NombreCliente,
-                PhoneNumber = int.TryParse(saleDto.TelCliente, out var phone) ? phone : 0,
+                PhoneNumber = string.IsNullOrWhiteSpace(saleDto.TelCliente) ? "+00" : saleDto.TelCliente,
                 Email = saleDto.EmailCliente,
                 DirectionJson = new DirectionJson
                 {
@@ -108,7 +108,7 @@ public class SaleService : ISaleService
                     throw new InvalidOperationException($"Quotation {qid} not found.");
                 }
 
-                quotation.LinkedSaleId = createdSale.SaleId.ToString();
+                quotation.LinkedSaleId = createdSale.IdSale.ToString();
                 quotation.LinkedSaleFolio = createdSale.Folio;
                 quotation.UpdatedAt = DateTime.UtcNow;
 

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:vyaa_central_infor_webflutter/Core/core.dart';
+import 'dart:ui';
 import 'package:vyaa_central_infor_webflutter/core/controllers/notification_services.dart';
 import '../services/api/auth.service.dart';
 import '../models/auth_req.module.dart';
-import '../../../core/theme/app_colors.dart';
-//import '../core/internalServices/notification_services.dart';
-import 'dart:ui';
+import '../../../core/layouts/login_page.layout.dart';
+import '../../login/widgets/login_header.widget.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -16,33 +16,28 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // Use model which owns controllers so we can reuse and dispose them cleanly
   final AuthReq _authModel = AuthReq();
   bool _loading = false;
-  
-  // Create a focus node for the password field
-  final passwordFocusNode = FocusNode();
-  
-  // State to control password visibility
-  bool _isPasswordVisible = false;
-  
-  // State to control button hover
-  bool _isHovering = false;
+  final FocusNode _passwordFocusNode = FocusNode();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  Future<void> _fakeLogin() async {
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     setState(() => _loading = true);
     try {
       final service = AuthService();
       final response = await service.login(_authModel);
-      
+
       if (response.success) {
         NotificationService.showSuccess('Inicio de sesión exitoso');
-        
-        // Usar la ruta inicial determinada por el middleware después del login
-        // Esto permite que el sistema redirija correctamente basado en el token
-        Get.offAllNamed('/');
+        Get.offAllNamed('/home');
       } else {
-        NotificationService.showError(response.message ?? 'Error al iniciar sesión');
+        NotificationService.showError(
+          response.message ?? 'Error al iniciar sesión',
+        );
       }
     } catch (e) {
       NotificationService.showError('Error inesperado: ${e.toString()}');
@@ -53,221 +48,219 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          _buildBackground(),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Center(
+    return Stack(
+      children: [
+        // Fondo
+        _buildBackground(),
+        // Layout de 2 columnas
+        LoginPageLayout(
+          leftColumn: _buildLeftColumn(),
+          rightColumn: _buildRightColumn(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBackground() {
+    return Positioned.fill(
+      child: Transform.scale(
+        scaleX: -1,
+        child: ImageFiltered(
+          imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+          child: Image.asset(
+            'assets/backgrounds/background-login.jpg',
+            fit: BoxFit.cover,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLeftColumn() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(60.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    spreadRadius: 2,
+                    blurRadius: 20,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildLoginForm(context),
+                  Icon(Icons.security, size: 80, color: AppColors.tertiaryColor),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Plataforma de gestión y administración integral para todos tus procesos empresariales',
+                    style: TextStyle(color: Colors.black, fontSize: 14, decoration: TextDecoration.none),
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Background widget builder
-  Widget _buildBackground() {
-    return Positioned.fill(
-      child: SvgPicture.asset(
-        'assets/svg/background_login.svg',
-        fit: BoxFit.cover,
-      ),
-    );
-  }
-
-  // Login form widget builder
-  Widget _buildLoginForm(BuildContext context) {
-    return SizedBox(
-      width: 400,
-      child: Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          ],
         ),
-        // Apply a white metallic transparent background to the card
+      ),
+    );
+  }
+
+  Widget _buildRightColumn() {
+    return Card(
+        elevation: 8,
         color: Colors.transparent,
+        margin: EdgeInsets.zero,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(6),
+            bottomLeft: Radius.circular(6),
+          ),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.white.withOpacity(0.9),
-                    Colors.white.withOpacity(0.6),
+                    Colors.grey.shade300.withOpacity(0.6),
+                    Colors.white,
                   ],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 3,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withOpacity(0.15),
+                    spreadRadius: 2,
+                    blurRadius: 20,
+                    offset: const Offset(0, 5),
                   ),
                 ],
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.8),
-                  width: 1,
-                ),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 50,
+                  vertical: 40,
+                ),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Logo
-                    Image.asset('assets/icons/vyaa-solo-icon.png',
-                        height: 150),
-                    const SizedBox(height: 16),
-
-                    // Title
-                    const Text(
-                      'VYAA Central Infor',
-                      style: TextStyle(
-                        fontSize: 24,
-                        color: Color(0xFF2C3E50), // Dark blue-gray
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
+                    // Header del login
+                    LoginHeader(
+                      title: 'AVASphere',
+                      subtitle: 'Sistema de Autenticación Central',
+                      icon: Icons.build,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 50),
 
-                    // Username field
-                    _buildUsernameField(),
-                    const SizedBox(height: 16),
-
-                    // Password field
-                    _buildPasswordField(),
-                    const SizedBox(height: 24),
-
-                    // Login button
-                    _buildLoginButton(),
+                    // Formulario usando tu componente AppForm completo
+                    AppForm(
+                      formKey: _formKey,
+                      sections: [
+                        FormSection(
+                          title: '',
+                          fields: [
+                            FormFieldConfig(
+                              label: 'Usuario',
+                              type: FormFieldType.text,
+                              controller: _authModel.userNameController,
+                              isRequired: true,
+                              prefixIcon: Icon(
+                                Icons.person_outline,
+                                color: AppColors.primaryColor,
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Por favor ingrese su usuario';
+                                }
+                                return null;
+                              },
+                            ),
+                            FormFieldConfig(
+                              label: 'Contraseña',
+                              type: FormFieldType.password,
+                              controller: _authModel.passwordController,
+                              isRequired: true,
+                              prefixIcon: Icon(
+                                Icons.lock_outline,
+                                color: AppColors.primaryColor,
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Por favor ingrese su contraseña';
+                                }
+                                if (value.length < 3) {
+                                  return 'La contraseña debe tener al menos 4 caracteres';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                      spacing: 25.0,
+                      sectionSpacing: 0.0,
+                      footer: _buildLoginButton(),
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    ),
                   ],
                 ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
-  // Username field widget builder
-  Widget _buildUsernameField() {
-    return TextFormField(
-      controller: _authModel.userNameController,
-      decoration: const InputDecoration(
-        labelText: 'Usuario',
-        labelStyle: TextStyle(color: AppColors.primaryColorGray),
-        enabledBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: AppColors.primaryColor),
-        ),
-        focusedBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: AppColors.tertiaryColor, width: 2),
-        ),
-        prefixIcon: Icon(Icons.person, color: Color(0xFF7F8C8D)),
-      ),
-      style: const TextStyle(color: Color(0xFF2C3E50)),
-      cursorColor: AppColors.tertiaryColor,
-      onFieldSubmitted: (_) {
-        // Move focus to password field when Enter is pressed
-        passwordFocusNode.requestFocus();
-      },
-    );
-  }
-
-  // Password field widget builder
-  Widget _buildPasswordField() {
-    return TextFormField(
-      controller: _authModel.passwordController,
-      focusNode: passwordFocusNode,
-      decoration: InputDecoration(
-        labelText: 'Contraseña',
-        labelStyle: const TextStyle(color: AppColors.primaryColorGray),
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: AppColors.primaryColor),
-        ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: AppColors.tertiaryColor, width: 2),
-        ),
-        prefixIcon: const Icon(Icons.lock, color: Color(0xFF7F8C8D)),
-        suffixIcon: IconButton(
-          icon: Icon(
-            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-            color: const Color(0xFF7F8C8D),
-          ),
-          onPressed: () {
-            setState(() {
-              _isPasswordVisible = !_isPasswordVisible;
-            });
-          },
-          tooltip: _isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña',
-        ),
-      ),
-      style: const TextStyle(color: Color(0xFF2C3E50)),
-      cursorColor: AppColors.tertiaryColor,
-      obscureText: !_isPasswordVisible,
-      onFieldSubmitted: (_) {
-        _fakeLogin();
-      },
-    );
-  }
-
-  // Login button widget builder
   Widget _buildLoginButton() {
-    return _loading
-        ? const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
-          )
-        : MouseRegion(
-            cursor: SystemMouseCursors.click,
-            onEnter: (_) => setState(() => _isHovering = true),
-            onExit: (_) => setState(() => _isHovering = false),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _fakeLogin,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _isHovering
-                      ? AppColors.tertiaryColor
-                      : AppColors.primaryColor,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  elevation: 3,
-                  shadowColor: AppColors.primaryColor,
-                ),
-                child: const Text(
-                  'Iniciar sesión',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 10),
+        AppButton(
+          label: 'Iniciar Sesión',
+          colorType: 'primary',
+          onPressed: _login,
+          isLoading: _loading,
+          fullWidth: true,
+          size: 'large',
+        ),
+        const SizedBox(height: 20),
+        // Enlace de ayuda
+        GestureDetector(
+          onTap: () {
+            // Navegar a pantalla de ayuda o mostrar diálogo
+            NotificationService.showInfo(
+              'Funcionalidad de ayuda en desarrollo',
+            );
+          },
+          child: Text(
+            '¿Necesitas ayuda para acceder?',
+            style: TextStyle(
+              color: AppColors.primaryColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
-          );
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   void dispose() {
-    // Clean up the focus node when the Form is disposed.
-    passwordFocusNode.dispose();
+    _passwordFocusNode.dispose();
     _authModel.dispose();
     super.dispose();
   }

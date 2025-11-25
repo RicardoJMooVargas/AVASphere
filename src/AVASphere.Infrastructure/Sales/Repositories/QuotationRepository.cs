@@ -33,7 +33,7 @@ public class QuotationRepository : IQuotationRepository
     public async Task<Quotation?> UpdateIdQuotation(int id, QuotationUpdateDto dto)
     {
         var quotation = await _context.Quotations
-            .FirstOrDefaultAsync(q => q.QuotationId == id);
+            .FirstOrDefaultAsync(q => q.IdQuotation == id);
 
         if (quotation == null)
             return null;
@@ -42,14 +42,14 @@ public class QuotationRepository : IQuotationRepository
         if (dto.Folio != 0 && dto.Folio != quotation.Folio)
             quotation.Folio = dto.Folio;
 
-        if (!string.IsNullOrWhiteSpace(dto.Status) && dto.Status != quotation.Status)
-            quotation.Status = dto.Status;
+        if (dto.Status.HasValue && dto.Status.Value != quotation.Status)
+            quotation.Status = dto.Status.Value;
 
         if (!string.IsNullOrWhiteSpace(dto.GeneralComment) && dto.GeneralComment != quotation.GeneralComment)
             quotation.GeneralComment = dto.GeneralComment;
 
-        if (dto.CustomerId != 0 && dto.CustomerId != quotation.CustomerId)
-            quotation.CustomerId = dto.CustomerId;
+        if (dto.CustomerId != 0 && dto.CustomerId != quotation.IdCustomer)
+            quotation.IdCustomer = dto.CustomerId;
 
         if (dto.IdConfigSys != 0 && dto.IdConfigSys != quotation.IdConfigSys)
             quotation.IdConfigSys = dto.IdConfigSys;
@@ -67,7 +67,7 @@ public class QuotationRepository : IQuotationRepository
 
         if (hasValidFollowups)
         {
-            quotation.Followups = dto.Followups.Select(f => new QuotationFollowupsJson
+            quotation.FollowupsJson = dto.Followups.Select(f => new QuotationFollowupsJson
             {
                 Date = f.Date,
                 Comment = f.Comment,
@@ -78,7 +78,7 @@ public class QuotationRepository : IQuotationRepository
         else
         {
             // ❌ Mantén los followups existentes
-            quotation.Followups = quotation.Followups;
+            quotation.FollowupsJson = quotation.FollowupsJson;
         }
 
         // 🔹 PRODUCTS
@@ -90,7 +90,7 @@ public class QuotationRepository : IQuotationRepository
 
         if (hasValidProducts)
         {
-            quotation.Products = dto.Products.Select(p => new SingleProductJson
+            quotation.ProductsJson = dto.Products.Select(p => new SingleProductJson
             {
                 ProductId = p.ProductId,
                 Quantity = p.Quantity,
@@ -103,7 +103,7 @@ public class QuotationRepository : IQuotationRepository
         else
         {
             // ❌ Mantén los productos existentes
-            quotation.Products = quotation.Products;
+            quotation.ProductsJson = quotation.ProductsJson;
         }
 
         quotation.UpdatedAt = DateTime.UtcNow;
@@ -119,18 +119,18 @@ public class QuotationRepository : IQuotationRepository
         if (quotation is null) throw new ArgumentNullException(nameof(quotation));
 
         var tracked = await _context.Quotations
-            .FirstOrDefaultAsync(q => q.QuotationId == quotation.QuotationId);
+            .FirstOrDefaultAsync(q => q.IdQuotation == quotation.IdQuotation);
 
         if (tracked == null)
-            throw new KeyNotFoundException($"Quotation with ID {quotation.QuotationId} not found.");
+            throw new KeyNotFoundException($"Quotation with ID {quotation.IdQuotation} not found.");
 
         // Copiamos valores escalares
         _context.Entry(tracked).CurrentValues.SetValues(quotation);
 
         // Reemplazamos colecciones explícitamente (o ajusta según tu estrategia)
-        tracked.Followups = quotation.Followups;
+        tracked.FollowupsJson = quotation.FollowupsJson;
         tracked.SalesExecutives = quotation.SalesExecutives;
-        tracked.Products = quotation.Products;
+        tracked.ProductsJson = quotation.ProductsJson;
 
         tracked.UpdatedAt = DateTime.UtcNow;
 
@@ -148,15 +148,18 @@ public class QuotationRepository : IQuotationRepository
     {
         return await _context.Quotations
             .AsNoTracking()
-            .Where(q => q.CustomerId == customerId)
+            .Where(q => q.IdCustomer == customerId)
             .ToListAsync();
     }
 
     public async Task<IEnumerable<Quotation>> GetQuotationsByDateRangeAsync(DateTime startDate, DateTime endDate)
     {
+        var startDateOnly = DateOnly.FromDateTime(startDate);
+        var endDateOnly = DateOnly.FromDateTime(endDate);
+        
         return await _context.Quotations
             .AsNoTracking()
-            .Where(q => q.SaleDate >= startDate && q.SaleDate <= endDate)
+            .Where(q => q.SaleDate >= startDateOnly && q.SaleDate <= endDateOnly)
             .ToListAsync();
     }
 
@@ -174,14 +177,14 @@ public class QuotationRepository : IQuotationRepository
     {
         return await _context.Quotations
             .AsNoTracking()
-            .FirstOrDefaultAsync(q => q.QuotationId == id);
+            .FirstOrDefaultAsync(q => q.IdQuotation == id);
     }
 
     public async Task<bool> DeleteQuotationAsync(int id)
     {
         var quotation = await _context.Quotations
             .Include(q => q.Versions) // Importante para asegurar el tracking
-            .FirstOrDefaultAsync(q => q.QuotationId == id);
+            .FirstOrDefaultAsync(q => q.IdQuotation == id);
 
         if (quotation == null) return false;
 
@@ -200,15 +203,15 @@ public class QuotationRepository : IQuotationRepository
     {
         var quotation = await _context.Quotations
             .AsNoTracking()
-            .FirstOrDefaultAsync(q => q.QuotationId == quotationId);
+            .FirstOrDefaultAsync(q => q.IdQuotation == quotationId);
 
-        if (quotation?.Followups == null || !quotation.Followups.Any())
+        if (quotation?.FollowupsJson == null || !quotation.FollowupsJson.Any())
         {
             return 1;
         }
 
         // Ordenamos por ID descendente y tomamos el último
-        var lastFollowup = quotation.Followups
+        var lastFollowup = quotation.FollowupsJson
             .OrderByDescending(f => f.Id)
             .FirstOrDefault();
 

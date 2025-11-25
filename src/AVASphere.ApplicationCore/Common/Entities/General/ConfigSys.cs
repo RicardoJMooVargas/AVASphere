@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
+﻿﻿using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
 using AVASphere.ApplicationCore.Projects.Entities.General;
 using AVASphere.ApplicationCore.Sales.Entities;
 
@@ -24,10 +24,10 @@ namespace AVASphere.ApplicationCore.Common.Entities.General
         // 🔹 Relación 1-N
         // TOCA ENTIDAD ANCLA DE SU MODULO DEBE IR AQUÍ
         public ICollection<User> Users { get; set; } = new List<User>();
-        // public ICollection<Project> Projects { get; set; } = new List<Project>();
+        public ICollection<Project> Projects { get; set; } = new List<Project>();
         public ICollection<Quotation> Quotations { get; set; } = new List<Quotation>();
         public ICollection<Sale> Sales { get; set; } = new List<Sale>();
-
+        public ICollection<ProjectCategory> ProjectCategories { get; set; } = new List<ProjectCategory>();
     }
 
     public class ColorsJson

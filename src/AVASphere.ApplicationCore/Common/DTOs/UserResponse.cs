@@ -1,4 +1,6 @@
-﻿namespace AVASphere.ApplicationCore.Common.DTOs;
+﻿using AVASphere.ApplicationCore.Common.Entities.General;
+
+namespace AVASphere.ApplicationCore.Common.DTOs;
 
 public class UserResponse
 {
@@ -19,6 +21,9 @@ public class UserResponse
     public string? CompanyName { get; set; }
     public string? BranchName { get; set; }
     public string? LogoUrl { get; set; }
+    // Configuraciones y permisos
+    public List<Module> Modules { get; set; } = new List<Module>();
+    public List<Permission> Permissions { get; set; } = new List<Permission>();
 }
 
 public class AuthUserResponse

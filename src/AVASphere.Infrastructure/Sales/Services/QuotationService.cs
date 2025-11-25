@@ -9,6 +9,7 @@ using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using Microsoft.EntityFrameworkCore;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Common.Entities.General;
+using AVASphere.ApplicationCore.Sales;
 
 
 namespace AVASphere.Infrastructure.Sales.Services;
@@ -34,18 +35,18 @@ public class QuotationService : IQuotationService
 
         Customer? customer = null;
 
-        // 1️⃣ Si envía CustomerId válido, usarlo
+        // 1️⃣ Si envía IdCustomer válido, usarlo
         if (dto.CustomerId > 0)
         {
             customer = await _customerRepository.GetByIdAsync(dto.CustomerId);
             if (customer == null)
-                throw new Exception($"CustomerId {dto.CustomerId} no existe.");
+                throw new Exception($"IdCustomer {dto.CustomerId} no existe.");
         }
         else
         {
-            // 2️⃣ Si NO envió CustomerId → revisar NewCustomers
+            // 2️⃣ Si NO envió IdCustomer → revisar NewCustomers
             if (dto.NewCustomers == null || !dto.NewCustomers.Any())
-                throw new Exception("No se envió un CustomerId válido ni datos de NewCustomer.");
+                throw new Exception("No se envió un IdCustomer válido ni datos de NewCustomer.");
 
             var nc = dto.NewCustomers.First();
 
@@ -59,7 +60,7 @@ public class QuotationService : IQuotationService
                 ExternalId = 0,
                 Name = nc.Name,
                 Email = nc.Email,
-                PhoneNumber = int.TryParse(nc.Phone, out var ph) ? ph : 0,
+                PhoneNumber = string.IsNullOrWhiteSpace(nc.Phone) ? "+00" : nc.Phone,
                 DirectionJson = new DirectionJson { Colony = nc.Direction },
                 SettingsCustomerJson = new SettingsCustomerJson { Index = 1, Type = "General" }
             };
@@ -71,13 +72,13 @@ public class QuotationService : IQuotationService
         var quotation = new Quotation
         {
             Folio = dto.Folio,
-            SaleDate = dto.SaleDate ?? DateTime.UtcNow,
-            Status = dto.Status ?? "PENDIENTE",
+            SaleDate = dto.SaleDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
+            Status = dto.Status ?? StatusEnum.Pending,
             GeneralComment = dto.GeneralComment,
-            CustomerId = customer.IdCustomer,
+            IdCustomer = customer.IdCustomer,
             SalesExecutives = dto.SalesExecutives ?? new List<string> { createdByUserId },
-            Followups = new List<QuotationFollowupsJson>(),
-            Products = dto.Products,
+            FollowupsJson = new List<QuotationFollowupsJson>(),
+            ProductsJson = dto.Products,
             IdConfigSys = dto.IdConfigSys,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -90,9 +91,9 @@ public class QuotationService : IQuotationService
         {
             foreach (var f in dto.Followups)
             {
-                createdQuotation.Followups.Add(new QuotationFollowupsJson
+                createdQuotation.FollowupsJson.Add(new QuotationFollowupsJson
                 {
-                    Id = await _quotationRepository.GetNextFollowupIdAsync(createdQuotation.QuotationId),
+                    Id = await _quotationRepository.GetNextFollowupIdAsync(createdQuotation.IdQuotation),
                     Date = f.Date ?? DateTime.UtcNow,
                     Comment = f.Comment,
                     UserId = f.UserId ?? createdByUserId,
@@ -108,24 +109,24 @@ public class QuotationService : IQuotationService
         {
             var version = new QuotationVersion
             {
-                IdQuotation = createdQuotation.QuotationId,
-                VersionNumber = await _versionRepository.GetNextVersionNumberAsync(createdQuotation.QuotationId),
+                IdQuotation = createdQuotation.IdQuotation,
+                VersionNumber = await _versionRepository.GetNextVersionNumberAsync(createdQuotation.IdQuotation),
                 CreatedBy = createdByUserId,
                 CreatedAt = DateTime.UtcNow,
-                Products = dto.Products.ToList(),
-                // NO establecer Quotation ni QuotationData aquí (evita ciclos)
+                ProductsJson = dto.Products.ToList(),
+                // NO establecer Quotation ni QuotationDataJson aquí (evita ciclos)
                 Quotation = null,
-                QuotationData = null
+                QuotationDataJson = null
             };
             await _versionRepository.CreateAsync(version);
         }
 
         // 5) Releer la cotización con versiones (para retorno coherente)
-        var result = await _quotationRepository.GetByIdAsync(createdQuotation.QuotationId);
+        var result = await _quotationRepository.GetByIdAsync(createdQuotation.IdQuotation);
 
         // Asegurar null-check para evitar CS8603
         if (result == null)
-            throw new Exception($"Error inesperado: la cotización {createdQuotation.QuotationId} no pudo ser recuperada después de ser creada.");
+            throw new Exception($"Error inesperado: la cotización {createdQuotation.IdQuotation} no pudo ser recuperada después de ser creada.");
 
         // 6) SANITIZAR: eliminar referencias circulares antes de devolver
         result.Customer = null;
@@ -136,7 +137,7 @@ public class QuotationService : IQuotationService
             foreach (var v in result.Versions)
             {
                 v.Quotation = null;
-                v.QuotationData = null;
+                v.QuotationDataJson = null;
             }
         }
 
@@ -197,10 +198,10 @@ public class QuotationService : IQuotationService
             return false;
 
         // 🔹 Inicializar la lista si está vacía
-        quotation.Followups ??= new List<QuotationFollowupsJson>();
+        quotation.FollowupsJson ??= new List<QuotationFollowupsJson>();
 
         // 🔹 Agregar el nuevo followup
-        quotation.Followups.Add(followup);
+        quotation.FollowupsJson.Add(followup);
 
         quotation.UpdatedAt = DateTime.UtcNow;
 
@@ -213,8 +214,8 @@ public class QuotationService : IQuotationService
     public async Task<bool> DeleteFollowupFromQuotationAsync(int IdQuotation, int followupId)
     {
         var quotation = await _quotationRepository.GetByIdAsync(IdQuotation);
-        if (quotation == null || quotation.Followups == null) return false;
-        var removed = quotation.Followups.RemoveAll(f => f.Id == followupId) > 0;
+        if (quotation == null || quotation.FollowupsJson == null) return false;
+        var removed = quotation.FollowupsJson.RemoveAll(f => f.Id == followupId) > 0;
         if (!removed) return false;
         quotation.UpdatedAt = DateTime.UtcNow;
         await _quotationRepository.UpdateQuotationAsync(quotation);

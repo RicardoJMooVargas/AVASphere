@@ -840,11 +840,15 @@ class SetupPage extends StatelessWidget {
         return SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: () => Get.offAllNamed('/login'),
+            onPressed: controller.isFormLoading.value 
+              ? null 
+              : () => controller.goToLogin(),
             icon: const Icon(Icons.login),
             label: const Text('Ir al Login'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
             ),
           ),
         );

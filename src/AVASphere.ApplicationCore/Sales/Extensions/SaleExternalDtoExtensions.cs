@@ -15,14 +15,14 @@ public static class SaleExternalDtoExtensions
         return new Sale
         {
             SalesExecutive = salesExecutive,
-            Date = DateTime.UtcNow,
+            SaleDate = DateTime.UtcNow,
             Type = "External",
-            CustomerId = customerId,
+            IdCustomer = customerId,
             Folio = dto.Folio,
             TotalAmount = dto.Total,
 
             // Productos mapeados a SingleProductJson
-            Products = dto.Productos?.Select(p => new SingleProductJson
+            ProductsJson = dto.Productos?.Select(p => new SingleProductJson
             {
                 Description = p.Descripcion,
                 Quantity = (double)p.Cantidad,

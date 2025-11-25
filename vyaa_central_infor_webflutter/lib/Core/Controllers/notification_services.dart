@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:vyaa_central_infor_webflutter/Core/services/data/cache.service.dart';
+import 'package:vyaa_central_infor_webflutter/modules/login/services/api/auth.service.dart';
 
 class NotificationService {
   static const Duration _snackbarDuration = Duration(seconds: 4);
@@ -115,8 +115,16 @@ class NotificationService {
 
   /// Maneja la expiración del token y redirecciona al login
   static void handleTokenExpired() async {
-    // Eliminar el token del cache
-    await CacheService.removeToken();
+    debugPrint('⏰ Token expirado - ejecutando logout...');
+    
+    try {
+      // Ejecutar logout completo desde AuthService
+      final authService = AuthService();
+      await authService.logout();
+      debugPrint('✅ Sesión limpiada por expiración de token');
+    } catch (e) {
+      debugPrint('❌ Error al limpiar sesión expirada: $e');
+    }
     
     // Mostrar snackbar de token expirado
     Get.snackbar(
@@ -197,14 +205,25 @@ class NotificationService {
 
   /// Maneja el logout manual del usuario
   static void handleLogout() async {
-    await CacheService.clearSession();
-    showSuccess('Sesión cerrada correctamente');
-    
-    // Esperar un momento para que el usuario vea el mensaje
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // Redirigir al login y limpiar el stack de navegación
-    Get.offAllNamed('/login');
+    try {
+      // Crear instancia de AuthService y ejecutar logout
+      final authService = AuthService();
+      await authService.logout();
+      
+      showSuccess('Sesión cerrada correctamente');
+      
+      // Esperar un momento para que el usuario vea el mensaje
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Redirigir a la ruta raíz y limpiar el stack de navegación
+      debugPrint('🏠 Redirigiendo a ruta raíz "/"');
+      Get.offAllNamed('/');
+      
+    } catch (e, stackTrace) {
+      debugPrint('❌ ERROR durante el logout: $e');
+      debugPrint('Stack trace: $stackTrace');
+      showError('Error al cerrar sesión');
+    }
   }
 
   /// Muestra información general

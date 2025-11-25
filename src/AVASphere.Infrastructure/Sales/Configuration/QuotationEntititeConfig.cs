@@ -11,10 +11,14 @@ public class QuotationEntitieConfig : IEntityTypeConfiguration<Quotation>
         entity.ToTable("Quotations");
 
         // PK entero autoincremental
-        entity.HasKey(q => q.QuotationId);
-        entity.Property(q => q.QuotationId)
+        entity.HasKey(q => q.IdQuotation);
+        entity.Property(q => q.IdQuotation)
             .HasColumnName("IdQuotation")
             .ValueGeneratedOnAdd();
+        
+        entity.Property(q => q.IdCustomer)
+            .HasColumnName("IdCustomer")
+            .IsRequired();
 
         entity.Property(q => q.SaleDate)
             .HasColumnName("SaleDate")
@@ -23,7 +27,7 @@ public class QuotationEntitieConfig : IEntityTypeConfiguration<Quotation>
         entity.Property(q => q.Status)
             .HasColumnName("Status")
             .IsRequired()
-            .HasMaxLength(50);
+            .HasConversion<int>();
 
         // SalesExecutives: guardado como JSONB (lista de strings)
         entity.Property(q => q.SalesExecutives)
@@ -34,21 +38,17 @@ public class QuotationEntitieConfig : IEntityTypeConfiguration<Quotation>
         entity.Property(q => q.Folio)
             .HasColumnName("Folio");
 
-        entity.Property(q => q.CustomerId)
-            .HasColumnName("IdCustomer")
-            .IsRequired();
-
         entity.Property(q => q.GeneralComment)
             .HasColumnName("GeneralComment")
             .HasColumnType("text");
 
-        entity.Property(q => q.Followups)
+        entity.Property(q => q.FollowupsJson)
             .HasColumnName("FollowupsJson")
             .HasColumnType("jsonb")
             .HasDefaultValueSql("'[]'::jsonb");
 
         // NUEVO: Lista simplificada de productos (JSONB)
-        entity.Property(q => q.Products)
+        entity.Property(q => q.ProductsJson)
             .HasColumnName("ProductsJson")
             .HasColumnType("jsonb")
             .HasDefaultValueSql("'[]'::jsonb");
@@ -62,7 +62,7 @@ public class QuotationEntitieConfig : IEntityTypeConfiguration<Quotation>
             .HasColumnName("LinkedSaleFolio")
             .HasMaxLength(100);
 
-        // FK a ConfigSys (si es necesaria)
+        // FK a ConfigSys
         entity.Property(q => q.IdConfigSys)
             .HasColumnName("IdConfigSys")
             .IsRequired();
@@ -76,7 +76,7 @@ public class QuotationEntitieConfig : IEntityTypeConfiguration<Quotation>
         // Relación con Customer (bidireccional)
         entity.HasOne(q => q.Customer)
               .WithMany(c => c.Quotations)
-              .HasForeignKey(q => q.CustomerId)
+              .HasForeignKey(q => q.IdCustomer)
               .HasConstraintName("FK_Quotations_Customers_IdCustomer")
               .OnDelete(DeleteBehavior.Restrict);
 

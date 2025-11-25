@@ -1,4 +1,5 @@
-﻿using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
+﻿// REVISADO
+using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
 using AVASphere.ApplicationCore.Projects.Entities.jsons;
 
 namespace AVASphere.ApplicationCore.Projects.Entities.General;
@@ -16,7 +17,5 @@ public class ListOfCategories
     
     // JSON
     public SolutionsJson SolutionsJson { get; set; } = null!;
-    public string? Properties { get; set; }
-    public string? Products { get; set; }
 }
 

@@ -62,7 +62,7 @@ namespace AVASphere.Infrastructure.Sales.Services
                 GeneralComment = quotation.GeneralComment,
 
                 // 3. Copiar productos desde quotation
-                Products = quotation.Products?
+                ProductsJson = quotation.ProductsJson?
                     .Select(p => new SingleProductJson
                     {
                         Unit = p.Unit,
@@ -76,9 +76,9 @@ namespace AVASphere.Infrastructure.Sales.Services
                 // 4. Crear snapshot de precios desde quotation
                 PriceSnapshot = new PriceSnapshotJson
                 {
-                    Subtotal = quotation.Products?.Sum(x => x.TotalPrice) ?? 0,
+                    Subtotal = quotation.ProductsJson?.Sum(x => x.TotalPrice) ?? 0,
                     TaxAmount = 0, // Si tienes un campo de IVA real, cámbialo aquí.
-                    TotalAmount = quotation.Products?.Sum(x => x.TotalPrice) ?? 0,
+                    TotalAmount = quotation.ProductsJson?.Sum(x => x.TotalPrice) ?? 0,
                     Currency = "MXN"
                 }
 

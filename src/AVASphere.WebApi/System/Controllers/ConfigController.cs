@@ -336,7 +336,8 @@ public class ConfigController : ControllerBase
                     .Select(module => new Module
                     {
                         Index = (int)module,
-                        Name = module.ToString()
+                        Name = module.ToString(),
+                        Normalized = "/" + module.ToString().ToLower()
                     })
                     .ToList()
             };
@@ -355,8 +356,8 @@ public class ConfigController : ControllerBase
                 LastName = "Sistema",
                 HashPassword = hashPassword,
                 Status = "active",
-                Verified = "true",
-                CreateAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                Verified = true,
+                CreateAt = DateOnly.FromDateTime(DateTime.UtcNow),
                 IdRol = adminRole.IdRol,
                 IdConfigSys = configSys.IdConfigSys
             };

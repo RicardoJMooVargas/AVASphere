@@ -27,7 +27,7 @@ public class QuotationManagerController : ControllerBase
         var created = await _quotationService.CreateQuotationAsync(dto, User?.Identity?.Name ?? "system");
         return CreatedAtRoute(
             "GetQuotationById",
-            new { id = created.QuotationId },
+            new { id = created.IdQuotation },
             created
         );
     }
@@ -63,7 +63,7 @@ public class QuotationManagerController : ControllerBase
     public async Task<ActionResult> GetByCustomer(int IdCustomer)
     {
         var items = await _quotationService.GetQuotationsAsync(); // service currently lacks customerName->id filter
-        var filtered = items.Where(q => q.CustomerId == IdCustomer);
+        var filtered = items.Where(q => q.IdCustomer == IdCustomer);
         return Ok(filtered);
     }
 

@@ -12,7 +12,7 @@ public interface IQuotationService
     Task<Quotation> GetByIdAsync(int IdQuotation);
     Task<bool> DeleteQuotationAsync(int IdQuotation);
 
-    // Reglas de negocio para Followups (maneja validaciones y auditable)
+    // Reglas de negocio para FollowupsJson (maneja validaciones y auditable)
     Task<bool> AddFollowupAsync(int quotationId, QuotationFollowupsJson followup, string userId);
     Task<bool> DeleteFollowupFromQuotationAsync(int quotationId, int followupId);
 }

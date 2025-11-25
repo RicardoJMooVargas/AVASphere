@@ -34,29 +34,23 @@ class _SystemInitScreenState extends State<SystemInitScreen> {
         _hasError = false;
         _errorMessage = null;
       });
-
       // Inicializar controladores básicos
       _updateStatus('Inicializando aplicación...');
       await Future.delayed(const Duration(milliseconds: 500));
-      
       Get.put(ServerStatusController(), permanent: true);
       Get.put(SystemSetupController(), permanent: true);
-
       _updateStatus('Verificando configuración del servidor...');
       await Future.delayed(const Duration(milliseconds: 500));
-
       // Ejecutar verificación de configuración inicial
       String targetRoute;
       try {
         targetRoute = await GlobalInitMiddleware.checkAndDetermineRoute();
       } catch (e) {
+        // SERIVDOR ANDA FALLANDO
         debugPrint('❌ Error en verificación de configuración: $e');
         _updateStatus('Error de conexión detectado...');
         await Future.delayed(const Duration(milliseconds: 500));
-        
         targetRoute = '/server-error';
-        
-        // Marcar servidor como no disponible
         final serverStatus = Get.find<ServerStatusController>();
         serverStatus.markServerUnavailable();
       }

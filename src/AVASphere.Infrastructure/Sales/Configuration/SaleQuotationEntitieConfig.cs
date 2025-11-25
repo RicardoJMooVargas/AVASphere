@@ -25,7 +25,7 @@ namespace AVASphere.Infrastructure.Sales.Configuration
             entity.Property(sq => sq.GeneralComment)
             .HasColumnName("GeneralComment");
 
-            entity.Property(sq => sq.Products)
+            entity.Property(sq => sq.ProductsJson)
                   .HasColumnName("ProductsJson")
                   .HasColumnType("jsonb")
                   .HasDefaultValueSql("'[]'::jsonb");
@@ -43,12 +43,17 @@ namespace AVASphere.Infrastructure.Sales.Configuration
 
             // FK a Quotation
             entity.HasOne(s => s.Quotation)
-                  .WithMany()
+                  .WithMany(q => q.SaleQuotations)
                   .HasForeignKey(s => s.IdQuotation)
                   .HasConstraintName("FK_SaleQuotation_Quotation_IdQuotation")
                   .OnDelete(DeleteBehavior.Restrict);
 
-
+            // FK a Sale
+            entity.HasOne(s => s.Sale)
+                  .WithMany(sa => sa.SaleQuotations)
+                  .HasForeignKey(s => s.IdSale)
+                  .HasConstraintName("FK_SaleQuotation_Sale_IdSale")
+                  .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

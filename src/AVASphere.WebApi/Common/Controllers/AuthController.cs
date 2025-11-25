@@ -3,7 +3,6 @@ using AVASphere.ApplicationCore.System.Interfaces;
 using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using Microsoft.Extensions.Logging;
-using AVASphere.WebApi.Common.Extensions;
 
 namespace AVASphere.WebApi.Common.Controllers
 {
@@ -62,7 +61,9 @@ namespace AVASphere.WebApi.Common.Controllers
                         name = authResult.User.Name,
                         lastName = authResult.User.LastName,
                         rol = authResult.User.RolName,
-                        idConfigSys = authResult.User.IdConfigSys
+                        idConfigSys = authResult.User.IdConfigSys,
+                        modules = authResult.User.Modules,
+                        permissions = authResult.User.Permissions
                     },
                     configSys = authResult.ConfigSys
                 };

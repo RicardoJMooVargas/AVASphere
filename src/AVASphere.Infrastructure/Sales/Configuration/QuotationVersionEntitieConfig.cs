@@ -11,8 +11,8 @@ namespace AVASphere.Infrastructure.Sales.Configuration
             entity.ToTable("QuotationVersions");
 
             // PK entero autoincremental
-            entity.HasKey(qv => qv.QuotationVersionId);
-            entity.Property(qv => qv.QuotationVersionId)
+            entity.HasKey(qv => qv.IdQuotationVersion);
+            entity.Property(qv => qv.IdQuotationVersion)
                 .HasColumnName("IdQuotationVersion")
                 .ValueGeneratedOnAdd();
 
@@ -49,15 +49,15 @@ namespace AVASphere.Infrastructure.Sales.Configuration
                 .HasColumnName("IdQuotation")
                 .IsRequired();
 
-            // Products (List<SingleProductJson>) -> jsonb
-            entity.Property(q => q.Products)
+            // ProductsJson (List<SingleProductJson>) -> jsonb
+            entity.Property(q => q.ProductsJson)
                   .HasColumnName("ProductsJson")
                   .HasColumnType("jsonb")
                   .HasDefaultValueSql("'[]'::jsonb");
 
             //Full Quotation object -> jsonb
-            entity.Property(q => q.QuotationData)
-                  .HasColumnName("QuotationData")
+            entity.Property(q => q.QuotationDataJson)
+                  .HasColumnName("QuotationDataJson")
                   .HasColumnType("jsonb")
                   .HasDefaultValueSql("'{}'::jsonb");
 

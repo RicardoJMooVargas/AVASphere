@@ -23,7 +23,7 @@ namespace AVASphere.ApplicationCore.Sales.Interfaces
         // Helpers / checks
         Task<bool> QuotationExistsByFolioAsync(int folio);
 
-        // Followups
+        // FollowupsJson
         Task<int> GetNextFollowupIdAsync(int quotationId);
     }
 }

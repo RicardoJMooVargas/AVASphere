@@ -28,4 +28,8 @@
     <Compile Remove="System\Migrations\20251028194207_Initial.Designer.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="System\Migrations\" />
+  </ItemGroup>
+
 </Project>

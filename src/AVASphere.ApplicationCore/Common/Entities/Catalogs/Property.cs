@@ -2,7 +2,7 @@
 
 public class Property
 {
-    public int IdCatalog { get; set; }
+    public int IdProperty { get; set; }
     public string? Name { get; set; }
     public string? NormalizedName { get; set; }
     

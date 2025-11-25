@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
+﻿﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Common.Entities.Products;
 
 namespace AVASphere.ApplicationCore.Common.Entities.Catalogs;
@@ -22,7 +22,7 @@ public class Supplier
     // JSON
     public ContactsJson? ContactsJson { get; set; } 
     public PaymentTermsJson? PaymentTermsJson { get; set; }
-    public PaymentMethodsJson? PaymentMethodsJson { get; set; } // NO USAR POR EL MOMENTO
+    public PaymentMethodsJson? PaymentMethodsJson { get; set; }
     
 }
 

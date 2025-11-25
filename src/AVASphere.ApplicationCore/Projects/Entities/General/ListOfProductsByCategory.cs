@@ -2,7 +2,7 @@
 using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
 using AVASphere.ApplicationCore.Projects.Entities.jsons;
 
-namespace AVASphere.ApplicationCore.Projects.Entities;
+namespace AVASphere.ApplicationCore.Projects.Entities.General;
 
 public class ListOfProductsByCategory
 {

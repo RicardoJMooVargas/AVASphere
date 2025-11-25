@@ -51,40 +51,27 @@ public class ProductEntitieConfig : IEntityTypeConfiguration<Product>
             .OnDelete(DeleteBehavior.Cascade);
         
         // Json Relacionado con Modelo
-        entity.OwnsMany(p => p.CodeJson, ca =>
-        {
-            ca.ToJson();
-            ca.Property(c => c.Index).HasColumnName("CodeJson_Index");
-            ca.Property(c => c.Type).HasColumnName("CodeJson_Type");
-            ca.Property(c => c.Code).HasColumnName("CodeJson_Code");
-        });
+        entity.Property(e => e.CodeJson)
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("'[]'::jsonb")
+            .IsRequired();
         
         // Json Relacionado con Modelo
-        entity.OwnsMany(p => p.CostsJson, ca =>
-        {
-            ca.ToJson();
-            ca.Property(c => c.Index).HasColumnName("CostsJson_Index");
-            ca.Property(c => c.Amount).HasColumnName("CostsJson_Amount");
-            ca.Property(c => c.Type).HasColumnName("CostsJson_Type");
-        });
+        entity.Property(e => e.CostsJson)
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("'[]'::jsonb")
+            .IsRequired();
         
         // Json Relacionado con Modelo
-        entity.OwnsMany(p => p.CategoriesJsons, ca =>
-        {
-            ca.ToJson();
-            ca.Property(c => c.Index).HasColumnName("CategoriesJson_Index");
-            ca.Property(c => c.Name).HasColumnName("CategoriesJson_Name");
-            ca.Property(c => c.NormalizedName).HasColumnName("CategoriesJson_NormalizedName");
-        });
+        entity.Property(e => e.CategoriesJsons)
+                .HasColumnType("jsonb")
+                .HasDefaultValueSql("'[]'::jsonb")
+                .IsRequired();
         
         // Json Relacionado con Modelo
-        entity.OwnsMany(p => p.SolutionsJsons, ca =>
-        {
-            ca.ToJson();
-            ca.Property(s => s.Index).HasColumnName("SolutionsJson_Index");
-            ca.Property(s => s.Name).HasColumnName("SolutionsJson_Name");
-            ca.Property(s => s.NormalizedName).HasColumnName("SolutionsJson_NormalizedName");
-        });
-        
+        entity.Property(e => e.SolutionsJsons)
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("'[]'::jsonb")
+            .IsRequired();
     }
 }

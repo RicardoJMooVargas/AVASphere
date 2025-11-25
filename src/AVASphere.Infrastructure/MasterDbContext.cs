@@ -1,13 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
 using AVASphere.ApplicationCore.Projects.Entities.General;
-using AVASphere.ApplicationCore.Projects.Entities;
 using AVASphere.Infrastructure.Common.Configuration;
 using AVASphere.Infrastructure.Projects.Configuration;
 using AVASphere.Infrastructure.Sales.Configuration;
 using AVASphere.ApplicationCore.Sales.Entities;
+using AVASphere.ApplicationCore.Common.Entities.Products;
+using AVASphere.ApplicationCore.Common.Entities.Jsons;
+using AVASphere.ApplicationCore.Projects.Entities.jsons;
+
 
 namespace AVASphere.Infrastructure;
 
@@ -23,6 +26,11 @@ public class MasterDbContext : DbContext
     public DbSet<Area> Areas { get; set; } = null!;
     public DbSet<ConfigSys> ConfigSys { get; set; } = null!;
     public DbSet<Customer> Customers { get; set; } = null!;
+    public DbSet<Property> Properties { get; set; } = null!;
+    public DbSet<PropertyValue> PropertyValues { get; set; } = null!;
+    public DbSet<Supplier> Suppliers { get; set; } = null!;
+    public DbSet<Product> Products { get; set; } = null!;
+    public DbSet<ProductProperties> ProductProperties { get; set; } = null!;
     //public DbSet<BranchOffice> BranchOffices { get; set; } = null!;
 
     // MODULO DE SALES
@@ -53,7 +61,33 @@ public class MasterDbContext : DbContext
         modelBuilder.ApplyConfiguration(new RolEntitieConfig());
         modelBuilder.ApplyConfiguration(new AreaEntitieConfig());
         modelBuilder.ApplyConfiguration(new CustomerEntitieConfig());
+        modelBuilder.ApplyConfiguration(new PropertyEntitieConfig());
+        modelBuilder.ApplyConfiguration(new PropertyValueEntitieConfig());
+        modelBuilder.ApplyConfiguration(new SupplierEntitieConfig());
+        modelBuilder.ApplyConfiguration(new ProductEntitieConfig());
+        modelBuilder.ApplyConfiguration(new ProductPropertiesEntitieConfig());
         //modelBuilder.ApplyConfiguration(new BranchOfficeEntitieConfig());
+        
+        // Ignorar clases JSON que no son entidades
+        modelBuilder.Ignore<PaymentMethodsJson>();
+        modelBuilder.Ignore<PaymentTermsJson>();
+        modelBuilder.Ignore<ContactsJson>();
+        modelBuilder.Ignore<DirectionJson>();
+        modelBuilder.Ignore<CategoriesJson>();
+        modelBuilder.Ignore<CodeJson>();
+        modelBuilder.Ignore<CostsJson>();
+        modelBuilder.Ignore<SolutionsJson>();
+        modelBuilder.Ignore<SettingsCustomerJson>();
+        modelBuilder.Ignore<ColorsJson>();
+        modelBuilder.Ignore<NotUseModuleJson>();
+        modelBuilder.Ignore<SingleProductJson>();
+        modelBuilder.Ignore<PriceSnapshotJson>();
+        modelBuilder.Ignore<SaleJson>();
+        modelBuilder.Ignore<AuxNoteDataJson>();
+        modelBuilder.Ignore<QuotationDataJson>();
+        modelBuilder.Ignore<QuotationFollowupsJson>();
+        modelBuilder.Ignore<AppointmentJson>();
+        modelBuilder.Ignore<VisitsJson>();
         
         // MODULO DE SALES
         modelBuilder.ApplyConfiguration(new QuotationEntitieConfig());

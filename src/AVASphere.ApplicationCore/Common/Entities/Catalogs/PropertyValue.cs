@@ -1,4 +1,5 @@
 ﻿using AVASphere.ApplicationCore.Common.Entities.Products;
+using AVASphere.ApplicationCore.Projects.Entities.General;
 namespace AVASphere.ApplicationCore.Common.Entities.Catalogs;
 
 public class PropertyValue
@@ -12,4 +13,6 @@ public class PropertyValue
     
     // RELACIONES
     public ICollection<ProductProperties> ProductProperties { get; set; } = new List<ProductProperties>();
+    public ICollection<IndividualListingProperties> IndividualListingProperties { get; set; } = new List<IndividualListingProperties>();
+    
 }

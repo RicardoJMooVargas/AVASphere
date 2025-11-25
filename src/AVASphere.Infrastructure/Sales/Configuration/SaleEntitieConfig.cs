@@ -96,13 +96,12 @@ public class SaleEntitieConfig : IEntityTypeConfiguration<Sale>
 
         entity.Property(s => s.CreatedAt)
             .HasColumnName("CreatedAt")
-            .HasDefaultValueSql("CURRENT_TIMESTAMP")
-            .HasDefaultValue("now()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
 
         entity.Property(s => s.UpdatedAt)
             .HasColumnName("UpdatedAt")
-            .HasDefaultValueSql("CURRENT_TIMESTAMP")
-            .HasDefaultValue("now()");
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         // Relación con Customer
         entity.HasOne(s => s.Customer)

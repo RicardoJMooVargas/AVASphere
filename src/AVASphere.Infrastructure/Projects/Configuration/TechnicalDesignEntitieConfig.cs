@@ -13,7 +13,7 @@ public class TechnicalDesignEntitieConfig : IEntityTypeConfiguration<TechnicalDe
         
         entity.Property(e => e.SavedDesign)
             .HasColumnType("text");
-        entity.Property(e => e.imageUrl)
+        entity.Property(e => e.ImageUrl)
             .HasMaxLength(500);
         // json Relacionado con Modelo
         entity.OwnsMany(p => p.SolutionsJsons, sa => 

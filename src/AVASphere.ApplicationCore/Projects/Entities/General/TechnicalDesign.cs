@@ -8,7 +8,7 @@ public class TechnicalDesign
 {
     public int IdTechnicalDesign { get; set; }
     public string? SavedDesign { get; set; }
-    public string? imageUrl { get; set; }
+    public string? ImageUrl { get; set; }
     // JSON
     public ICollection<SolutionsJson> SolutionsJsons { get; set; } = new List<SolutionsJson>();
     

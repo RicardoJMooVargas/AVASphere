@@ -1,4 +1,6 @@
 ﻿// REVISED
+
+using System.ComponentModel.DataAnnotations.Schema;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Projects.Entities.General;
@@ -28,6 +30,7 @@ public class Product
     public ICollection<CodeJson> CodeJson { get; set; } = new List<CodeJson>();
     public ICollection<CostsJson> CostsJson { get; set; } = new List<CostsJson>();
     public ICollection<CategoriesJson> CategoriesJsons { get; set; } = new List<CategoriesJson>();
+    [NotMapped]
     public ICollection<SolutionsJson> SolutionsJsons { get; set; } = new List<SolutionsJson>();
     
     // GETTERS

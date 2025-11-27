@@ -30,18 +30,15 @@ namespace AVASphere.WebApi.Sale.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // ⚙️ Datos que vendrán desde Swagger (o puedes poner valores por defecto)
             int customerId = int.TryParse(saleDto.CodeClient, out var cId) ? cId : 0;
             string createdByUserId = User?.Identity?.Name ?? "system";
             string salesExecutive = saleDto.Agente ?? "No asignado";
 
-            // ✅ Llamada correcta al servicio con todos los parámetros requeridos
             var created = await _saleService.CreateSaleAsync(saleDto, createdByUserId, customerId, salesExecutive);
 
             return CreatedAtAction(nameof(GetById), new { id = created.IdSale }, created);
         }
 
-        // GET: api/Sale/{id}
         [HttpGet("GetByIdSale")]
         public async Task<ActionResult> GetById(int IdSale)
         {
@@ -50,7 +47,6 @@ namespace AVASphere.WebApi.Sale.Controllers
             return Ok(sale);
         }
 
-        // GET: api/Sale/folio/{folio}
         [HttpGet("GetByfolio")]
         public async Task<ActionResult> GetByFolio(string folio)
         {
@@ -59,7 +55,6 @@ namespace AVASphere.WebApi.Sale.Controllers
             return Ok(sale);
         }
 
-        // DELETE: api/Sale/{id}
         [HttpDelete("DeleteIdSale")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -68,7 +63,6 @@ namespace AVASphere.WebApi.Sale.Controllers
             return NoContent();
         }
 
-        // POST: api/Sale/from-quotations
         [HttpPost("CreateFromQuotations")]
         public async Task<IActionResult> CreateFromQuotations(CreateSaleFromQuotationsDto dto)
         {
@@ -97,7 +91,6 @@ namespace AVASphere.WebApi.Sale.Controllers
             var created = await _saleService.CreateSaleFromQuotationsAsync(dto.QuotationIds, sale, User?.Identity?.Name ?? "system");
             return CreatedAtAction(nameof(GetById), new { id = created.IdSale }, created);
         }
-        // Obtiene las ventas por fecha desde la API externa (APIVAA) y verifica si existen en la base de datos.
 
         [HttpGet("GetSalesExternal")]
         public async Task<IActionResult> ObtenerVentasPorFecha(
@@ -172,10 +165,9 @@ namespace AVASphere.WebApi.Sale.Controllers
                 string.IsNullOrEmpty(serie) || string.IsNullOrEmpty(folio))
                 return BadRequest("Los parámetros 'NF', 'caja', 'serie' y 'folio' son requeridos.");
 
-            // ✅ Valor por defecto
+           
             string catalogo = "AVA01";
 
-            // ✅ Construcción de la URL con los parámetros ingresados
             string url = $"http://apivaa.ddns.net:8080/api/rest/tsm/DetalleVentaV?CATALOGO={catalogo}&NF={NF}&CAJA={caja}&SERIE={serie}&FOLIO={folio}";
 
             try
@@ -193,7 +185,6 @@ namespace AVASphere.WebApi.Sale.Controllers
                 using var document = JsonDocument.Parse(content);
                 var root = document.RootElement;
 
-                // 🔍 Buscar el arreglo de productos
                 JsonElement movimientos;
                 if (root.TryGetProperty("Registros", out var movProp))
                 {
@@ -212,7 +203,6 @@ namespace AVASphere.WebApi.Sale.Controllers
                     });
                 }
 
-                // ✅ Mapear los productos al formato solicitado
                 var productos = new List<object>();
 
                 foreach (var item in movimientos.EnumerateArray())

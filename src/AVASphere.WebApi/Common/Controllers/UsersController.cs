@@ -31,15 +31,15 @@ public class UsersController : ControllerBase
     /// <response code="404">Usuario no encontrado</response>
     /// <response code="500">Error interno del servidor</response>
     [HttpGet("{idUsers:int}")]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    /*[ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]*/
     public async Task<ActionResult> GetUser(int idUsers)
     {
         try
         {
             _logger.LogInformation("Solicitando usuario con ID: {IdUser}", idUsers);
-            
+
             var user = await _userService.SearchUsersAsync(idUsers, null);
             return Ok(new ApiResponse(user, "Usuario encontrado exitosamente", 200));
         }
@@ -56,19 +56,19 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status201Created)]
+    /*[ProducesResponseType(typeof(ApiResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]*/
     public async Task<ActionResult> CreateUser(UserCreateRequest request)
     {
         try
         {
             _logger.LogInformation("Creando nuevo usuario: {UserName}", request.UserName);
-        
+
             var user = await _userService.NewUsersAsync(request);
-        
-            return CreatedAtAction(nameof(GetUser), new { idUsers = user.IdUsers }, 
+
+            return CreatedAtAction(nameof(GetUser), new { idUsers = user.IdUsers },
                 new ApiResponse(user, "Usuario creado exitosamente", 201));
         }
         catch (InvalidOperationException opEx) when (opEx.Message.Contains("ya está en uso"))
@@ -100,11 +100,11 @@ public class UsersController : ControllerBase
     /// <response code="409">El nombre de usuario ya existe</response>
     /// <response code="500">Error interno del servidor</response>
     [HttpPut("{idUsers:int}")]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    /*[ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]    */
     public async Task<ActionResult> UpdateUser(int idUsers, UserUpdateRequest request)
     {
         try
@@ -116,7 +116,7 @@ public class UsersController : ControllerBase
             }
 
             _logger.LogInformation("Actualizando usuario con ID: {IdUser}", idUsers);
-            
+
             var user = await _userService.EditUsersAsync(request);
             return Ok(new ApiResponse(user, "Usuario actualizado exitosamente", 200));
         }
@@ -148,9 +148,9 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost("setup-admin")]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status201Created)]
+    /*[ProducesResponseType(typeof(ApiResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]*/
     public async Task<ActionResult> SetupAdminUser([FromBody] AdminSetupRequest request)
     {
         try
@@ -164,7 +164,7 @@ public class UsersController : ControllerBase
 
             var user = await _userService.SetupAdminUserAsync(request.UserName, request.Password);
 
-            return CreatedAtAction(nameof(GetUser), new { idUsers = user.IdUsers }, 
+            return CreatedAtAction(nameof(GetUser), new { idUsers = user.IdUsers },
                 new ApiResponse(user, "Usuario administrador configurado exitosamente", 201));
         }
         catch (InvalidOperationException ex)

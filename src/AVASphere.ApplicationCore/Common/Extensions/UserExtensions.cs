@@ -30,7 +30,7 @@ public static class UserExtensions
     {
         if (request == null)
             throw new ArgumentNullException(nameof(request));
-        
+
         if (existingUser == null)
             throw new ArgumentNullException(nameof(existingUser));
 
@@ -50,8 +50,8 @@ public static class UserExtensions
         if (request.Aux != null) // Permitir empty string
             existingUser.Aux = request.Aux;
 
-        if (!string.IsNullOrEmpty(request.Verified))
-            existingUser.Verified = bool.TryParse(request.Verified, out var verified) ? verified : (bool?)null;
+        if (request.Verified.HasValue)
+            existingUser.Verified = request.Verified.Value;
 
         if (request.IdRols > 0)
             existingUser.IdRol = request.IdRols;

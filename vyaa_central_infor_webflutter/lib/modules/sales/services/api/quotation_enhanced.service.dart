@@ -5,7 +5,6 @@ import '../../models/requests/quotation_req.module.dart';
 import '../../models/response/quotation_res.module.dart';
 
 class QuotationEnhancedService {
-  
   /// Obtener cotizaciones con mapeo automático
   /// Devuelve List<QuotationRes> directamente
   Future<ApiResponse<List<QuotationRes>>> getQuotationsWithModel({
@@ -18,20 +17,24 @@ class QuotationEnhancedService {
     if (limit != null) queryParams['limit'] = limit.toString();
     if (status != null) queryParams['status'] = status;
 
-    final response = await ApiService.requestWithModel<List<QuotationRes>, dynamic>(
-      ApiEndpoints.sales.quotations.getQuotationsWithModel,
-    );
+    final response =
+        await ApiService.requestWithModel<List<QuotationRes>, dynamic>(
+          ApiEndpoints.sales.quotations.getAllQuotations,
+        );
 
     return response;
   }
 
   /// Crear cotización con mapeo automático
   /// Devuelve QuotationRes directamente
-  Future<ApiResponse<QuotationRes>> createQuotationWithModel(QuotationReq quotation) async {
-    final response = await ApiService.requestWithModel<QuotationRes, QuotationReq>(
-      ApiEndpoints.sales.quotations.createQuotationWithModel,
-      model: quotation,
-    );
+  Future<ApiResponse<QuotationRes>> createQuotationWithModel(
+    QuotationReq quotation,
+  ) async {
+    final response =
+        await ApiService.requestWithModel<QuotationRes, QuotationReq>(
+          ApiEndpoints.sales.quotations.createQuotation,
+          model: quotation,
+        );
 
     return response;
   }
@@ -70,7 +73,7 @@ class QuotationEnhancedService {
       // Manejo manual del JSON
       final data = response.data;
       List<Map<String, dynamic>> quotations = [];
-      
+
       if (data is Map) {
         // Si viene en un wrapper como { "quotations": [...] }
         if (data.containsKey('quotations')) {
@@ -86,19 +89,26 @@ class QuotationEnhancedService {
       return ApiResponse.success(quotations, statusCode: response.statusCode);
     }
 
-    return ApiResponse.error(response.message ?? 'Error al obtener cotizaciones');
+    return ApiResponse.error(
+      response.message ?? 'Error al obtener cotizaciones',
+    );
   }
 
   /// Crear cotización sin mapeo (método tradicional)
   /// Devuelve Map<String, dynamic>
-  Future<ApiResponse<Map<String, dynamic>>> createQuotationTraditional(QuotationReq quotation) async {
+  Future<ApiResponse<Map<String, dynamic>>> createQuotationTraditional(
+    QuotationReq quotation,
+  ) async {
     final response = await ApiService.request(
       ApiEndpoints.sales.quotations.createQuotation,
       data: quotation.toJson(),
     );
 
     if (response.success) {
-      return ApiResponse.success(response.data, statusCode: response.statusCode);
+      return ApiResponse.success(
+        response.data,
+        statusCode: response.statusCode,
+      );
     }
 
     return ApiResponse.error(response.message ?? 'Error al crear cotización');
@@ -106,14 +116,19 @@ class QuotationEnhancedService {
 
   /// Obtener cotización por ID sin mapeo (método tradicional)
   /// Devuelve Map<String, dynamic>
-  Future<ApiResponse<Map<String, dynamic>>> getQuotationByIdTraditional(String id) async {
+  Future<ApiResponse<Map<String, dynamic>>> getQuotationByIdTraditional(
+    String id,
+  ) async {
     final response = await ApiService.request(
       ApiEndpoints.sales.quotations.getQuotationById,
       urlParams: {'id': id},
     );
 
     if (response.success) {
-      return ApiResponse.success(response.data, statusCode: response.statusCode);
+      return ApiResponse.success(
+        response.data,
+        statusCode: response.statusCode,
+      );
     }
 
     return ApiResponse.error(response.message ?? 'Error al obtener cotización');

@@ -144,8 +144,7 @@ public class QuotationService : IQuotationService
         return result;  // <--- Ya NO marca warning
 
     }
-
-
+    
     public async Task<IEnumerable<Quotation>> GetQuotationsAsync(DateTime? startDate = null, DateTime? endDate = null, string? customerName = null, int? folio = null)
     {
         if (folio.HasValue)
@@ -167,7 +166,6 @@ public class QuotationService : IQuotationService
         return await _quotationRepository.UpdateIdQuotation(IdQuotation, dto);
     }
 
-    // 🔹 Obtener por ID (solo lectura)
     public async Task<Quotation> GetByIdAsync(int IdQuotation)
     {
         var quotation = await _quotationRepository.GetByIdAsync(IdQuotation);

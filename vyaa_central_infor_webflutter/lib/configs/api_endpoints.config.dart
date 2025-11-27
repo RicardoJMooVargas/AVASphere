@@ -25,35 +25,36 @@ class _AuthController {
 
   /// POST /api/common/Auth/login
   /// Respuesta real del servidor: { "success": true, "message": "...", "token": "...", "user": {...}, "configSys": {...}, "statusCode": 200, "timestamp": "..." }
-  ApiEndpoint<AuthReq, LoginUserRes> get loginWithModel => ApiEndpoint<AuthReq, LoginUserRes>(
-    path: '${ApiEndpoints.root}/common/Auth/login',
-    method: HttpMethod.post,
-    requiresAuth: false,
-    useBody: true,
-    requestMapper: (AuthReq model) => model.toJson(),
-    responseMapper: (dynamic data) {
-      try {
-        // El servidor devuelve los datos directamente, no dentro de "data"
-        // Necesitamos extraer solo los campos que necesita LoginUserRes
-        final responseData = data as Map<String, dynamic>;
-        
-        // Debug: Imprimir la respuesta para ver qué contiene
-        debugPrint('🔍 Login response data: $responseData');
-        
-        return LoginUserRes.fromJson({
-          'message': responseData['message'],
-          'token': responseData['token'],
-          'user': responseData['user'],
-          'configSys': responseData['configSys'],
-        });
-      } catch (e) {
-        debugPrint('❌ Error in login response mapper: $e');
-        debugPrint('📄 Response data type: ${data.runtimeType}');
-        debugPrint('📄 Response data content: $data');
-        rethrow;
-      }
-    },
-  );
+  ApiEndpoint<AuthReq, LoginUserRes> get loginWithModel =>
+      ApiEndpoint<AuthReq, LoginUserRes>(
+        path: '${ApiEndpoints.root}/common/Auth/login',
+        method: HttpMethod.post,
+        requiresAuth: false,
+        useBody: true,
+        requestMapper: (AuthReq model) => model.toJson(),
+        responseMapper: (dynamic data) {
+          try {
+            // El servidor devuelve los datos directamente, no dentro de "data"
+            // Necesitamos extraer solo los campos que necesita LoginUserRes
+            final responseData = data as Map<String, dynamic>;
+
+            // Debug: Imprimir la respuesta para ver qué contiene
+            debugPrint('🔍 Login response data: $responseData');
+
+            return LoginUserRes.fromJson({
+              'message': responseData['message'],
+              'token': responseData['token'],
+              'user': responseData['user'],
+              'configSys': responseData['configSys'],
+            });
+          } catch (e) {
+            debugPrint('❌ Error in login response mapper: $e');
+            debugPrint('📄 Response data type: ${data.runtimeType}');
+            debugPrint('📄 Response data content: $data');
+            rethrow;
+          }
+        },
+      );
 
   /// POST /api/common/Auth/login (sin mapeo de modelos)
   ApiEndpoint get login => const ApiEndpoint(
@@ -82,9 +83,42 @@ class _SalesModule {
 class _QuotationController {
   const _QuotationController();
 
+  /// POST /api/sales/quotations
+  /*ApiEdpoint get createQuotation => const ApiEndpoint(
+    path: '${ApiEndpoints.root}/sales/quotations',
+    method: HttpMethod.post,
+    requiresAuth: true,
+    useBody: true,
+  );*/
+
+  /// POST /api/sales/quotations (con mapeo completo)
+  /// Respuesta esperada: { "success": true, "data": QuotationRes }
+  /*ApiEndpoint<QuotationReq, QuotationRes> get createQuotationWithModel =>
+      ApiEndpoint<QuotationReq, QuotationRes>(
+        path: '${ApiEndpoints.root}/sales/quotations',
+        method: HttpMethod.post,
+        requiresAuth: true,
+        useBody: true,
+        requestMapper: (QuotationReq model) => model.toJson(),
+        responseMapper: (dynamic data) =>
+            QuotationRes.fromJson(data as Map<String, dynamic>),
+      );*/
+
+  ApiEndpoint<QuotationReq, QuotationRes> get createQuotation =>
+      ApiEndpoint<QuotationReq, QuotationRes>(
+        path: '${ApiEndpoints.root}/api/QuotationManager/Register/Quotation',
+        method: HttpMethod.post,
+        requiresAuth: true,
+        useBody: true,
+        requestMapper: (QuotationReq dto) => dto.toJson(),
+        responseMapper: (dynamic data) =>
+            QuotationRes.fromJson(data as Map<String, dynamic>),
+      );
+
   /// GET /api/sales/quotations (con mapeo de respuesta)
-  /// Respuesta esperada: { "success": true, "data": [QuotationRes, ...] }
-  ApiEndpoint<dynamic, List<QuotationRes>> get getQuotationsWithModel => ApiEndpoint<dynamic, List<QuotationRes>>(
+  /* Respuesta esperada: { "success": true, "data": [QuotationRes, ...] }
+  ApiEndpoint<dynamic, List<QuotationRes>>
+  get getQuotationsWithModel => ApiEndpoint<dynamic, List<QuotationRes>>(
     path: '${ApiEndpoints.root}/sales/quotations',
     method: HttpMethod.get,
     requiresAuth: true,
@@ -92,37 +126,59 @@ class _QuotationController {
     responseMapper: (dynamic data) {
       // data ya contiene solo el contenido de "data" extraído por ApiService
       if (data is List) {
-        return data.map((item) => QuotationRes.fromJson(item as Map<String, dynamic>)).toList();
+        return data
+            .map((item) => QuotationRes.fromJson(item as Map<String, dynamic>))
+            .toList();
       }
       // Si viene como objeto con array interno
       if (data is Map<String, dynamic>) {
         final quotations = data['quotations'] as List? ?? [];
-        return quotations.map((item) => QuotationRes.fromJson(item as Map<String, dynamic>)).toList();
+        return quotations
+            .map((item) => QuotationRes.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      return <QuotationRes>[];
+    },
+  );*/
+
+  /// GET /api/QuotationManager/GetAll/Quotations (con mapeo de respuesta)
+  /// Parámetros query: startDate, endDate, customerName, folio
+  /// Respuesta esperada: { "success": true, "data": [QuotationRes, ...] }
+  ApiEndpoint<dynamic, List<QuotationRes>>
+  get getAllQuotations => ApiEndpoint<dynamic, List<QuotationRes>>(
+    path: '${ApiEndpoints.root}/QuotationManager/GetAll/Quotations',
+    method: HttpMethod.get,
+    requiresAuth: true,
+    useQuery: true,
+    responseMapper: (dynamic data) {
+      // data ya contiene solo el contenido de "data" extraído por ApiService
+      if (data is List) {
+        return data
+            .map((item) => QuotationRes.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+      // Si viene como objeto con array interno
+      if (data is Map<String, dynamic>) {
+        final quotations = data['quotations'] as List? ?? [];
+        return quotations
+            .map((item) => QuotationRes.fromJson(item as Map<String, dynamic>))
+            .toList();
       }
       return <QuotationRes>[];
     },
   );
 
-  /// POST /api/sales/quotations (con mapeo completo)
-  /// Respuesta esperada: { "success": true, "data": QuotationRes }
-  ApiEndpoint<QuotationReq, QuotationRes> get createQuotationWithModel => ApiEndpoint<QuotationReq, QuotationRes>(
-    path: '${ApiEndpoints.root}/sales/quotations',
-    method: HttpMethod.post,
-    requiresAuth: true,
-    useBody: true,
-    requestMapper: (QuotationReq model) => model.toJson(),
-    responseMapper: (dynamic data) => QuotationRes.fromJson(data as Map<String, dynamic>),
-  );
-
   /// GET /api/sales/quotations/{id} (con mapeo de respuesta)
   /// Respuesta esperada: { "success": true, "data": QuotationRes }
-  ApiEndpoint<dynamic, QuotationRes> get getQuotationByIdWithModel => ApiEndpoint<dynamic, QuotationRes>(
-    path: '${ApiEndpoints.root}/sales/quotations/{id}',
-    method: HttpMethod.get,
-    requiresAuth: true,
-    urlParams: ['id'],
-    responseMapper: (dynamic data) => QuotationRes.fromJson(data as Map<String, dynamic>),
-  );
+  ApiEndpoint<dynamic, QuotationRes> get getQuotationByIdWithModel =>
+      ApiEndpoint<dynamic, QuotationRes>(
+        path: '${ApiEndpoints.root}/sales/quotations/{id}',
+        method: HttpMethod.get,
+        requiresAuth: true,
+        urlParams: ['id'],
+        responseMapper: (dynamic data) =>
+            QuotationRes.fromJson(data as Map<String, dynamic>),
+      );
 
   /// Endpoints sin mapeo (para compatibilidad)
   /// GET /api/sales/quotations
@@ -131,14 +187,6 @@ class _QuotationController {
     method: HttpMethod.get,
     requiresAuth: true,
     useQuery: true,
-  );
-
-  /// POST /api/sales/quotations
-  ApiEndpoint get createQuotation => const ApiEndpoint(
-    path: '${ApiEndpoints.root}/sales/quotations',
-    method: HttpMethod.post,
-    requiresAuth: true,
-    useBody: true,
   );
 
   /// GET /api/sales/quotations/{id}
@@ -184,43 +232,49 @@ class _ConfigController {
 
   /// GET /api/system/Config/check-initial-config
   /// Respuesta esperada: { "success": true, "message": "Success", "data": {...}, "statusCode": 200, "timestamp": "..." }
-  ApiEndpoint<dynamic, CheckInitConfigData> get checkInitialConfig => ApiEndpoint<dynamic, CheckInitConfigData>(
-    path: '${ApiEndpoints.root}/system/Config/check-initial-config',
-    method: HttpMethod.get,
-    requiresAuth: false,
-    responseMapper: (dynamic data) => CheckInitConfigData.fromJson(data as Map<String, dynamic>),
-  );
+  ApiEndpoint<dynamic, CheckInitConfigData> get checkInitialConfig =>
+      ApiEndpoint<dynamic, CheckInitConfigData>(
+        path: '${ApiEndpoints.root}/system/Config/check-initial-config',
+        method: HttpMethod.get,
+        requiresAuth: false,
+        responseMapper: (dynamic data) =>
+            CheckInitConfigData.fromJson(data as Map<String, dynamic>),
+      );
 
   /// GET /api/system/Config/diagnose-migrations
   /// Respuesta esperada: { "success": true, "message": "Success", "data": {...}, "statusCode": 200, "timestamp": "..." }
-  ApiEndpoint<dynamic, DiagnoseMigrationsResponse> get diagnoseMigrations => ApiEndpoint<dynamic, DiagnoseMigrationsResponse>(
-    path: '${ApiEndpoints.root}/system/Config/diagnose-migrations',
-    method: HttpMethod.get,
-    requiresAuth: false,
-    responseMapper: (dynamic data) => DiagnoseMigrationsResponse.fromJson(data as Map<String, dynamic>),
-  );
+  ApiEndpoint<dynamic, DiagnoseMigrationsResponse> get diagnoseMigrations =>
+      ApiEndpoint<dynamic, DiagnoseMigrationsResponse>(
+        path: '${ApiEndpoints.root}/system/Config/diagnose-migrations',
+        method: HttpMethod.get,
+        requiresAuth: false,
+        responseMapper: (dynamic data) =>
+            DiagnoseMigrationsResponse.fromJson(data as Map<String, dynamic>),
+      );
 
   /// POST /api/system/Config/configure-system
   /// Endpoint para configurar el sistema
-  ApiEndpoint<ConfigSysReq, dynamic> get configureSystem => ApiEndpoint<ConfigSysReq, dynamic>(
-    path: '${ApiEndpoints.root}/system/Config/configure-system',
-    method: HttpMethod.post,
-    requiresAuth: false,
-    useBody: true,
-    requestMapper: (ConfigSysReq model) => model.toJson(),
-    responseMapper: (dynamic data) => data,
-  );
+  ApiEndpoint<ConfigSysReq, dynamic> get configureSystem =>
+      ApiEndpoint<ConfigSysReq, dynamic>(
+        path: '${ApiEndpoints.root}/system/Config/configure-system',
+        method: HttpMethod.post,
+        requiresAuth: false,
+        useBody: true,
+        requestMapper: (ConfigSysReq model) => model.toJson(),
+        responseMapper: (dynamic data) => data,
+      );
 
   /// POST /api/system/Config/configure-admin
   /// Endpoint para configurar el administrador
-  ApiEndpoint<ConfigAdminReq, dynamic> get configureAdmin => ApiEndpoint<ConfigAdminReq, dynamic>(
-    path: '${ApiEndpoints.root}/system/Config/configure-admin',
-    method: HttpMethod.post,
-    requiresAuth: false,
-    useBody: true,
-    requestMapper: (ConfigAdminReq model) => model.toJson(),
-    responseMapper: (dynamic data) => data,
-  );
+  ApiEndpoint<ConfigAdminReq, dynamic> get configureAdmin =>
+      ApiEndpoint<ConfigAdminReq, dynamic>(
+        path: '${ApiEndpoints.root}/system/Config/configure-admin',
+        method: HttpMethod.post,
+        requiresAuth: false,
+        useBody: true,
+        requestMapper: (ConfigAdminReq model) => model.toJson(),
+        responseMapper: (dynamic data) => data,
+      );
 }
 
 class _ToolsController {
@@ -257,10 +311,12 @@ class _DbToolsController {
   /// GET /api/system/DbTools/check
   /// Endpoint para verificar estado de la base de datos
   /// Respuesta esperada: { "success": true, "message": "Success", "data": { "isConnected": true, "hasData": true, "message": "..." }, "statusCode": 200, "timestamp": "..." }
-  ApiEndpoint<dynamic, DbCheckResponse> get check => ApiEndpoint<dynamic, DbCheckResponse>(
-    path: '${ApiEndpoints.root}/system/DbTools/check',
-    method: HttpMethod.get,
-    requiresAuth: false,
-    responseMapper: (dynamic data) => DbCheckResponse.fromJson(data as Map<String, dynamic>),
-  );
+  ApiEndpoint<dynamic, DbCheckResponse> get check =>
+      ApiEndpoint<dynamic, DbCheckResponse>(
+        path: '${ApiEndpoints.root}/system/DbTools/check',
+        method: HttpMethod.get,
+        requiresAuth: false,
+        responseMapper: (dynamic data) =>
+            DbCheckResponse.fromJson(data as Map<String, dynamic>),
+      );
 }

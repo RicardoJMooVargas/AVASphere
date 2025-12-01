@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:vyaa_central_infor_webflutter/modules/sales/models/requests/quotation_req.module.dart';
 import '../../../../Core/services/data/cache.service.dart';
@@ -10,10 +11,13 @@ import '../../../../core/controllers/notification_services.dart';
 class QuotationManagerService {
   final ApiSettings _settings;
 
-  QuotationManagerService([ApiSettings? settings]) : _settings = settings ?? ApiSettings();
+  QuotationManagerService([ApiSettings? settings])
+    : _settings = settings ?? ApiSettings();
 
   Uri _url(String path, [Map<String, String>? queryParameters]) {
-    return Uri.parse('${_settings.baseUrl}$path').replace(queryParameters: queryParameters);
+    return Uri.parse(
+      '${_settings.baseUrl}$path',
+    ).replace(queryParameters: queryParameters);
   }
 
   Future<ApiResponse<List<QuotationRes>>> getQuotations({
@@ -51,14 +55,13 @@ class QuotationManagerService {
       final headers = Map<String, String>.from(_settings.headers);
       headers['Authorization'] = 'Bearer $token';
 
-      final response = await http.get(
-        uri,
-        headers: headers,
-      );
+      final response = await http.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonResponse = json.decode(response.body);
-        final quotations = jsonResponse.map((json) => QuotationRes.fromJson(json)).toList();
+        final quotations = jsonResponse
+            .map((json) => QuotationRes.fromJson(json))
+            .toList();
         return ApiResponse.success(quotations);
       }
 
@@ -68,13 +71,21 @@ class QuotationManagerService {
         return ApiResponse.error('Token expirado');
       }
 
-      final errorMessage = ApiResponse.getErrorMessage(response.statusCode, response.body);
+      final errorMessage = ApiResponse.getErrorMessage(
+        response.statusCode,
+        response.body,
+      );
       return ApiResponse.error(errorMessage);
     } catch (e) {
-      if (e.toString().contains('SocketException') || e.toString().contains('TimeoutException')) {
-        return ApiResponse.error('Error de conexión: Verifique su conexión a internet');
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('TimeoutException')) {
+        return ApiResponse.error(
+          'Error de conexión: Verifique su conexión a internet',
+        );
       } else if (e.toString().contains('FormatException')) {
-        return ApiResponse.error('Error en el formato de respuesta del servidor');
+        return ApiResponse.error(
+          'Error en el formato de respuesta del servidor',
+        );
       } else {
         return ApiResponse.error('Error inesperado: ${e.toString()}');
       }
@@ -82,57 +93,111 @@ class QuotationManagerService {
   }
 
   // En tu QuotationManagerService existente
-Future<ApiResponse<QuotationRes>> createQuotation({
-  required QuotationReq quotationReq,
-}) async {
-  try {
-    final token = await CacheService.getToken();
-    final userId = await CacheService.getUserId();
-    if (token == null) {
-      return ApiResponse.error('No hay token guardado: Debe iniciar sesión');
-    }
-    if (userId == null) {
-      return ApiResponse.error('No hay UserId guardado: Debe iniciar sesión');
-    }
+  Future<ApiResponse<QuotationRes>> createQuotation({
+    required QuotationReq quotationReq,
+  }) async {
+    try {
+      final token = await CacheService.getToken();
+      final userId = await CacheService.getUserId();
+      if (token == null) {
+        return ApiResponse.error('No hay token guardado: Debe iniciar sesión');
+      }
+      if (userId == null) {
+        return ApiResponse.error('No hay UserId guardado: Debe iniciar sesión');
+      }
 
-    final uri = _url('/api/QuotationManager');
+      final uri = _url('/api/QuotationManager');
 
-    final headers = Map<String, String>.from(_settings.headers);
-    headers['Authorization'] = 'Bearer $token';
-    headers['UserId'] = userId; // Header parameter
-    headers['Content-Type'] = 'application/json';
+      final headers = Map<String, String>.from(_settings.headers);
+      headers['Authorization'] = 'Bearer $token';
+      headers['UserId'] = userId; // Header parameter
+      headers['Content-Type'] = 'application/json';
 
-    // Aquí quotationReq.toJson() generará exactamente el JSON que necesitas
-    final body = json.encode(quotationReq.toJson());
+      // Aquí quotationReq.toJson() generará exactamente el JSON que necesitas
+      final body = json.encode(quotationReq.toJson());
 
-    final response = await http.post(
-      uri,
-      headers: headers,
-      body: body,
-    );
+      final response = await http.post(uri, headers: headers, body: body);
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final dynamic jsonResponse = json.decode(response.body);
-      final quotation = QuotationRes.fromJson(jsonResponse);
-      return ApiResponse.success(quotation);
-    }
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final dynamic jsonResponse = json.decode(response.body);
+        final quotation = QuotationRes.fromJson(jsonResponse);
+        return ApiResponse.success(quotation);
+      }
 
-    // If token is invalid, handle token expiration
-    if (response.statusCode == 401) {
-      NotificationService.handleTokenExpired();
-      return ApiResponse.error('Token expirado');
-    }
+      // If token is invalid, handle token expiration
+      if (response.statusCode == 401) {
+        NotificationService.handleTokenExpired();
+        return ApiResponse.error('Token expirado');
+      }
 
-    final errorMessage = ApiResponse.getErrorMessage(response.statusCode, response.body);
-    return ApiResponse.error(errorMessage);
-  } catch (e) {
-    if (e.toString().contains('SocketException') || e.toString().contains('TimeoutException')) {
-      return ApiResponse.error('Error de conexión: Verifique su conexión a internet');
-    } else if (e.toString().contains('FormatException')) {
-      return ApiResponse.error('Error en el formato de respuesta del servidor');
-    } else {
-      return ApiResponse.error('Error inesperado: ${e.toString()}');
+      final errorMessage = ApiResponse.getErrorMessage(
+        response.statusCode,
+        response.body,
+      );
+      return ApiResponse.error(errorMessage);
+    } catch (e) {
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('TimeoutException')) {
+        return ApiResponse.error(
+          'Error de conexión: Verifique su conexión a internet',
+        );
+      } else if (e.toString().contains('FormatException')) {
+        return ApiResponse.error(
+          'Error en el formato de respuesta del servidor',
+        );
+      } else {
+        return ApiResponse.error('Error inesperado: ${e.toString()}');
+      }
     }
   }
-}
+
+  /// Obtener cotizaciones por ID de cliente
+  Future<List<QuotationRes>> getQuotationsByCustomer({
+    required int customerId,
+  }) async {
+    try {
+      final token = await CacheService.getToken();
+      if (token == null) {
+        throw Exception('No hay token guardado: Debe iniciar sesión');
+      }
+
+      final uri = _url('/api/QuotationManager/Customer/IdCustomer', {
+        'IdCustomer': customerId.toString(),
+      });
+
+      final headers = Map<String, String>.from(_settings.headers);
+      headers['Authorization'] = 'Bearer $token';
+
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final dynamic jsonResponse = json.decode(response.body);
+        if (jsonResponse is List) {
+          return jsonResponse
+              .map(
+                (json) => QuotationRes.fromJson(json as Map<String, dynamic>),
+              )
+              .toList();
+        } else if (jsonResponse is Map<String, dynamic>) {
+          final quotations = jsonResponse['quotations'] as List? ?? [];
+          return quotations
+              .map(
+                (json) => QuotationRes.fromJson(json as Map<String, dynamic>),
+              )
+              .toList();
+        }
+        return [];
+      }
+
+      if (response.statusCode == 401) {
+        NotificationService.handleTokenExpired();
+        throw Exception('Token expirado');
+      }
+
+      throw Exception('Error al obtener cotizaciones: ${response.statusCode}');
+    } catch (e) {
+      debugPrint('Error en getQuotationsByCustomer: $e');
+      return [];
+    }
+  }
 }

@@ -3,7 +3,10 @@ import 'package:flutter/foundation.dart';
 import '../Core/core.dart';
 import '../modules/login/models/auth_req.module.dart';
 import '../modules/sales/models/requests/quotation_req.module.dart';
+import '../modules/sales/models/requests/quotation_update_req.module.dart';
+import '../modules/sales/models/requests/create_followup_req.module.dart';
 import '../modules/sales/models/response/quotation_res.module.dart';
+import '../Core/models/responses/customer_res.module.dart';
 import 'package:vyaa_central_infor_webflutter/configs/config.dart';
 
 class ApiEndpoints {
@@ -12,6 +15,40 @@ class ApiEndpoints {
   static const common = _CommonModule();
   static const sales = _SalesModule();
   static const system = _SystemModule();
+  static const customer = _CustomerModule();
+}
+
+// MODULO DE CLIENTE
+class _CustomerModule {
+  const _CustomerModule();
+
+  /// GET /api/Customer/Search
+  /// Endpoint para buscar clientes por nombre
+  ApiEndpoint<dynamic, List<CustomerRes>> get searchCustomers =>
+      ApiEndpoint<dynamic, List<CustomerRes>>(
+        path: '${ApiEndpoints.root}/Customer/Search',
+        method: HttpMethod.get,
+        requiresAuth: true,
+        useQuery: true,
+        responseMapper: (dynamic data) {
+          if (data is List) {
+            return data
+                .map(
+                  (item) => CustomerRes.fromJson(item as Map<String, dynamic>),
+                )
+                .toList();
+          }
+          if (data is Map<String, dynamic>) {
+            final customers = data['customers'] as List? ?? [];
+            return customers
+                .map(
+                  (item) => CustomerRes.fromJson(item as Map<String, dynamic>),
+                )
+                .toList();
+          }
+          return <CustomerRes>[];
+        },
+      );
 }
 
 // MODULO COMUN
@@ -83,27 +120,6 @@ class _SalesModule {
 class _QuotationController {
   const _QuotationController();
 
-  /// POST /api/sales/quotations
-  /*ApiEdpoint get createQuotation => const ApiEndpoint(
-    path: '${ApiEndpoints.root}/sales/quotations',
-    method: HttpMethod.post,
-    requiresAuth: true,
-    useBody: true,
-  );*/
-
-  /// POST /api/sales/quotations (con mapeo completo)
-  /// Respuesta esperada: { "success": true, "data": QuotationRes }
-  /*ApiEndpoint<QuotationReq, QuotationRes> get createQuotationWithModel =>
-      ApiEndpoint<QuotationReq, QuotationRes>(
-        path: '${ApiEndpoints.root}/sales/quotations',
-        method: HttpMethod.post,
-        requiresAuth: true,
-        useBody: true,
-        requestMapper: (QuotationReq model) => model.toJson(),
-        responseMapper: (dynamic data) =>
-            QuotationRes.fromJson(data as Map<String, dynamic>),
-      );*/
-
   ApiEndpoint<QuotationReq, QuotationRes> get createQuotation =>
       ApiEndpoint<QuotationReq, QuotationRes>(
         path: '${ApiEndpoints.root}/api/QuotationManager/Register/Quotation',
@@ -115,31 +131,102 @@ class _QuotationController {
             QuotationRes.fromJson(data as Map<String, dynamic>),
       );
 
-  /// GET /api/sales/quotations (con mapeo de respuesta)
-  /* Respuesta esperada: { "success": true, "data": [QuotationRes, ...] }
-  ApiEndpoint<dynamic, List<QuotationRes>>
-  get getQuotationsWithModel => ApiEndpoint<dynamic, List<QuotationRes>>(
-    path: '${ApiEndpoints.root}/sales/quotations',
-    method: HttpMethod.get,
+  /// PUT /api/QuotationManager/Update/{IdQuotation}
+  /// Endpoint para actualizar una cotización
+  ApiEndpoint<QuotationUpdateReq, QuotationRes> get updateQuotation =>
+      ApiEndpoint<QuotationUpdateReq, QuotationRes>(
+        path: '${ApiEndpoints.root}/QuotationManager/Update/{IdQuotation}',
+        method: HttpMethod.put,
+        requiresAuth: true,
+        useBody: true,
+        urlParams: ['IdQuotation'],
+        requestMapper: (QuotationUpdateReq dto) => dto.toJson(),
+        responseMapper: (dynamic data) =>
+            QuotationRes.fromJson(data as Map<String, dynamic>),
+      );
+
+  /// DELETE /api/QuotationManager/Delete/IdQuotation
+  /// Endpoint para eliminar una cotización
+  ApiEndpoint get deleteQuotation => const ApiEndpoint(
+    path: '${ApiEndpoints.root}/QuotationManager/Delete/IdQuotation',
+    method: HttpMethod.delete,
     requiresAuth: true,
     useQuery: true,
-    responseMapper: (dynamic data) {
-      // data ya contiene solo el contenido de "data" extraído por ApiService
-      if (data is List) {
-        return data
-            .map((item) => QuotationRes.fromJson(item as Map<String, dynamic>))
-            .toList();
-      }
-      // Si viene como objeto con array interno
-      if (data is Map<String, dynamic>) {
-        final quotations = data['quotations'] as List? ?? [];
-        return quotations
-            .map((item) => QuotationRes.fromJson(item as Map<String, dynamic>))
-            .toList();
-      }
-      return <QuotationRes>[];
-    },
-  );*/
+  );
+
+  /// PUT /api/QuotationManager/Register/FollowupsJson
+  /// Endpoint para agregar un seguimiento a una cotización
+  ApiEndpoint<CreateFollowupReq, dynamic> get addFollowup =>
+      ApiEndpoint<CreateFollowupReq, dynamic>(
+        path: '${ApiEndpoints.root}/QuotationManager/Register/FollowupsJson',
+        method: HttpMethod.put,
+        requiresAuth: true,
+        useBody: true,
+        useQuery: true,
+        requestMapper: (CreateFollowupReq dto) => dto.toJson(),
+        responseMapper: (dynamic data) => data,
+      );
+
+  /// DELETE /api/QuotationManager/Delete/IdFollowupsJson
+  /// Endpoint para eliminar un seguimiento de una cotización
+  ApiEndpoint get deleteFollowup => const ApiEndpoint(
+    path: '${ApiEndpoints.root}/QuotationManager/Delete/IdFollowupsJson',
+    method: HttpMethod.delete,
+    requiresAuth: true,
+    useQuery: true,
+  );
+
+  /// GET /api/Quotation/GetById/{IdQuotation}
+  /// Endpoint para obtener una cotización por ID
+  ApiEndpoint<dynamic, QuotationRes> get getQuotationById =>
+      ApiEndpoint<dynamic, QuotationRes>(
+        path: '${ApiEndpoints.root}/Quotation/GetById/{IdQuotation}',
+        method: HttpMethod.get,
+        requiresAuth: true,
+        urlParams: ['IdQuotation'],
+        responseMapper: (dynamic data) =>
+            QuotationRes.fromJson(data as Map<String, dynamic>),
+      );
+
+  /// GET /api/QuotationManager/Get/Folio
+  /// Endpoint para obtener una cotización por folio
+  ApiEndpoint<dynamic, QuotationRes> get getQuotationByFolio =>
+      ApiEndpoint<dynamic, QuotationRes>(
+        path: '${ApiEndpoints.root}/QuotationManager/Get/Folio',
+        method: HttpMethod.get,
+        requiresAuth: true,
+        useQuery: true,
+        responseMapper: (dynamic data) =>
+            QuotationRes.fromJson(data as Map<String, dynamic>),
+      );
+
+  /// GET /api/QuotationManager/Customer/IdCustomer
+  /// Endpoint para obtener cotizaciones por ID de cliente
+  ApiEndpoint<dynamic, List<QuotationRes>> get getQuotationsByCustomer =>
+      ApiEndpoint<dynamic, List<QuotationRes>>(
+        path: '${ApiEndpoints.root}/QuotationManager/Customer/IdCustomer',
+        method: HttpMethod.get,
+        requiresAuth: true,
+        useQuery: true,
+        responseMapper: (dynamic data) {
+          if (data is List) {
+            return data
+                .map(
+                  (item) => QuotationRes.fromJson(item as Map<String, dynamic>),
+                )
+                .toList();
+          }
+          if (data is Map<String, dynamic>) {
+            final quotations = data['quotations'] as List? ?? [];
+            return quotations
+                .map(
+                  (item) => QuotationRes.fromJson(item as Map<String, dynamic>),
+                )
+                .toList();
+          }
+          return <QuotationRes>[];
+        },
+      );
 
   /// GET /api/QuotationManager/GetAll/Quotations (con mapeo de respuesta)
   /// Parámetros query: startDate, endDate, customerName, folio
@@ -187,14 +274,6 @@ class _QuotationController {
     method: HttpMethod.get,
     requiresAuth: true,
     useQuery: true,
-  );
-
-  /// GET /api/sales/quotations/{id}
-  ApiEndpoint get getQuotationById => const ApiEndpoint(
-    path: '${ApiEndpoints.root}/sales/quotations/{id}',
-    method: HttpMethod.get,
-    requiresAuth: true,
-    urlParams: ['id'],
   );
 }
 

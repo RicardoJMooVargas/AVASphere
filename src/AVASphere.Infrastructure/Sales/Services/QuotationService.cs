@@ -33,6 +33,11 @@ public class QuotationService : IQuotationService
     {
         if (dto is null) throw new ArgumentNullException(nameof(dto));
 
+        // ✅ Validar que el folio no exista
+        var folioExists = await _quotationRepository.QuotationExistsByFolioAsync(dto.Folio);
+        if (folioExists)
+            throw new Exception($"Ya existe una cotización con el folio {dto.Folio}. Por favor, use un folio diferente.");
+
         Customer? customer = null;
 
         // 1️⃣ Si envía IdCustomer válido, usarlo
@@ -44,31 +49,51 @@ public class QuotationService : IQuotationService
         }
         else
         {
-            // 2️⃣ Si NO envió IdCustomer → revisar NewCustomers
-            if (dto.NewCustomers == null || !dto.NewCustomers.Any())
-                throw new Exception("No se envió un IdCustomer válido ni datos de NewCustomer.");
-
-            var nc = dto.NewCustomers.First();
-
-            // Validaciones mínimas
-            if (string.IsNullOrWhiteSpace(nc.Name))
-                throw new Exception("El nombre del cliente es obligatorio para crear uno nuevo.");
-
-            // 3️⃣ Crear nuevo customer
-            customer = new Customer
+            // 2️⃣ Si NO envió IdCustomer → revisar NewCustomers o crear cliente genérico
+            if (dto.NewCustomers != null && dto.NewCustomers.Any())
             {
-                ExternalId = 0,
-                Name = nc.Name,
-                Email = nc.Email,
-                PhoneNumber = string.IsNullOrWhiteSpace(nc.Phone) ? "+00" : nc.Phone,
-                DirectionJson = new DirectionJson { Colony = nc.Direction },
-                SettingsCustomerJson = new SettingsCustomerJson { Index = 1, Type = "General" }
-            };
+                var nc = dto.NewCustomers.First();
 
-            customer = await _customerRepository.InsertAsync(customer);
+                // Validaciones mínimas
+                if (string.IsNullOrWhiteSpace(nc.Name))
+                    throw new Exception("El nombre del cliente es obligatorio para crear uno nuevo.");
+
+                // 3️⃣ Crear nuevo customer con ExternalId auto-generado
+                var nextExternalId = await _customerRepository.GetNextExternalIdAsync();
+                
+                customer = new Customer
+                {
+                    ExternalId = nextExternalId,
+                    Name = nc.Name,
+                    Email = nc.Email,
+                    PhoneNumber = string.IsNullOrWhiteSpace(nc.Phone) ? "+00" : nc.Phone,
+                    DirectionJson = new DirectionJson { Colony = nc.Direction },
+                    SettingsCustomerJson = new SettingsCustomerJson { Index = 1, Type = "General" }
+                };
+
+                customer = await _customerRepository.InsertAsync(customer);
+            }
+            else
+            {
+                // 4️⃣ Crear cliente genérico si no se proporcionaron datos
+                var nextExternalId = await _customerRepository.GetNextExternalIdAsync();
+                
+                customer = new Customer
+                {
+                    ExternalId = nextExternalId,
+                    Name = "Cliente",
+                    LastName = "Genérico",
+                    Email = null,
+                    PhoneNumber = "+00",
+                    DirectionJson = new DirectionJson { Index = 1 },
+                    SettingsCustomerJson = new SettingsCustomerJson { Index = 1, Type = "General" }
+                };
+
+                customer = await _customerRepository.InsertAsync(customer);
+            }
         }
 
-        // 4️⃣ Crear Quotation
+        // 5️⃣ Crear Quotation
         var quotation = new Quotation
         {
             Folio = dto.Folio,
@@ -86,14 +111,15 @@ public class QuotationService : IQuotationService
 
         var createdQuotation = await _quotationRepository.CreateQuotationAsync(quotation);
 
-        // 5️⃣ Agregar followups (opcional)
+        // 6️⃣ Agregar followups iniciales (opcional)
         if (dto.Followups != null && dto.Followups.Any())
         {
+            int followupIdCounter = 1;
             foreach (var f in dto.Followups)
             {
                 createdQuotation.FollowupsJson.Add(new QuotationFollowupsJson
                 {
-                    Id = await _quotationRepository.GetNextFollowupIdAsync(createdQuotation.IdQuotation),
+                    Id = followupIdCounter++,
                     Date = f.Date ?? DateTime.UtcNow,
                     Comment = f.Comment,
                     UserId = f.UserId ?? createdByUserId,
@@ -104,31 +130,29 @@ public class QuotationService : IQuotationService
             await _quotationRepository.UpdateQuotationAsync(createdQuotation);
         }
 
-        // 6️⃣ Crear versión
+        // 7️⃣ Crear versión inicial si hay productos
         if (dto.Products != null && dto.Products.Any())
         {
             var version = new QuotationVersion
             {
                 IdQuotation = createdQuotation.IdQuotation,
-                VersionNumber = await _versionRepository.GetNextVersionNumberAsync(createdQuotation.IdQuotation),
+                VersionNumber = 1,
                 CreatedBy = createdByUserId,
                 CreatedAt = DateTime.UtcNow,
                 ProductsJson = dto.Products.ToList(),
-                // NO establecer Quotation ni QuotationDataJson aquí (evita ciclos)
                 Quotation = null,
                 QuotationDataJson = null
             };
             await _versionRepository.CreateAsync(version);
         }
 
-        // 5) Releer la cotización con versiones (para retorno coherente)
+        // 8️⃣ Releer la cotización con versiones
         var result = await _quotationRepository.GetByIdAsync(createdQuotation.IdQuotation);
 
-        // Asegurar null-check para evitar CS8603
         if (result == null)
             throw new Exception($"Error inesperado: la cotización {createdQuotation.IdQuotation} no pudo ser recuperada después de ser creada.");
 
-        // 6) SANITIZAR: eliminar referencias circulares antes de devolver
+        // 9️⃣ SANITIZAR: eliminar referencias circulares antes de devolver
         result.Customer = null;
         result.ConfigSys = null;
 
@@ -141,24 +165,89 @@ public class QuotationService : IQuotationService
             }
         }
 
-        return result;  // <--- Ya NO marca warning
-
+        return result;
     }
     
-    public async Task<IEnumerable<Quotation>> GetQuotationsAsync(DateTime? startDate = null, DateTime? endDate = null, string? customerName = null, int? folio = null)
+    public async Task<IEnumerable<GetQuotationResponseDto>> GetQuotationsAsync(DateTime? startDate = null, DateTime? endDate = null, string? customerName = null, int? folio = null)
     {
+        IEnumerable<Quotation> quotations;
+        
         if (folio.HasValue)
         {
             var q = await _quotationRepository.GetQuotationByFolioAsync(folio.Value);
-            return q != null ? new[] { q } : Array.Empty<Quotation>();
+            quotations = q != null ? new[] { q } : Array.Empty<Quotation>();
         }
-
-        if (startDate.HasValue && endDate.HasValue)
+        else if (startDate.HasValue && endDate.HasValue)
         {
-            return await _quotationRepository.GetQuotationsByDateRangeAsync(startDate.Value, endDate.Value);
+            quotations = await _quotationRepository.GetQuotationsByDateRangeAsync(startDate.Value, endDate.Value);
+        }
+        else
+        {
+            quotations = await _quotationRepository.GetAllQuotationsAsync();
         }
 
-        return await _quotationRepository.GetAllQuotationsAsync();
+        // Mapear a DTO incluyendo datos del cliente
+        var quotationDtos = new List<GetQuotationResponseDto>();
+        
+        foreach (var quotation in quotations)
+        {
+            // Obtener datos del cliente si no están cargados
+            if (quotation.Customer == null && quotation.IdCustomer > 0)
+            {
+                quotation.Customer = await _customerRepository.GetByIdAsync(quotation.IdCustomer);
+            }
+
+            var dto = new GetQuotationResponseDto
+            {
+                IdQuotation = quotation.IdQuotation,
+                Folio = quotation.Folio,
+                SaleDate = quotation.SaleDate,
+                Status = quotation.Status,
+                GeneralComment = quotation.GeneralComment,
+                SalesExecutives = quotation.SalesExecutives ?? new List<string>(),
+                Products = quotation.ProductsJson,
+                LinkedSaleId = quotation.LinkedSaleId,
+                LinkedSaleFolio = quotation.LinkedSaleFolio,
+                IsLinkedToSale = quotation.IsLinkedToSale,
+                CreatedAt = quotation.CreatedAt,
+                UpdatedAt = quotation.UpdatedAt,
+                IdConfigSys = quotation.IdConfigSys,
+                Customer = quotation.Customer != null ? new CustomerInQuotationDto
+                {
+                    IdCustomer = quotation.Customer.IdCustomer,
+                    ExternalId = quotation.Customer.ExternalId,
+                    Name = quotation.Customer.Name,
+                    LastName = quotation.Customer.LastName,
+                    PhoneNumber = quotation.Customer.PhoneNumber,
+                    Email = quotation.Customer.Email,
+                    TaxId = quotation.Customer.TaxId,
+                    Direction = quotation.Customer.DirectionJson,
+                    Settings = quotation.Customer.SettingsCustomerJson,
+                    PaymentMethods = quotation.Customer.PaymentMethodsJson,
+                    PaymentTerms = quotation.Customer.PaymentTermsJson
+                } : new CustomerInQuotationDto(),
+                Followups = quotation.FollowupsJson?.Select(f => new QuotationFollowupResponseDto
+                {
+                    Id = f.Id,
+                    Date = f.Date,
+                    Comment = f.Comment,
+                    UserId = f.UserId,
+                    CreatedAt = f.CreatedAt
+                }).ToList() ?? new List<QuotationFollowupResponseDto>()
+            };
+
+            // Filtrar por nombre de cliente si se especificó
+            if (!string.IsNullOrWhiteSpace(customerName) && dto.Customer != null)
+            {
+                var fullName = dto.Customer.FullName.ToLowerInvariant();
+                if (!fullName.Contains(customerName.ToLowerInvariant()))
+                    continue;
+            }
+
+            quotationDtos.Add(dto);
+        }
+
+        return quotationDtos;
     }
 
     public async Task<Quotation?> UpdateIdQuotation(int IdQuotation, QuotationUpdateDto dto)

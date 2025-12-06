@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../Core/theme/app_colors.dart';
+import '../../../Core/Widgets/system/app_navbar.widget.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -17,12 +18,9 @@ class HomeContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text('Dashboard'),
+      appBar: AppNavbarWidget(
+        title: 'Dashboard',
         backgroundColor: AppColors.primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false, // Quitar el botón de atrás ya que tenemos sidebar
       ),
       body: Center(
         child: Column(

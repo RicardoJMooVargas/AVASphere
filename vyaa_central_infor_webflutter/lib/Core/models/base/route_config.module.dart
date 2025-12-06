@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 // Layouts imports
 import 'package:vyaa_central_infor_webflutter/Core/layouts/sidebar_layout.dart';
 import 'package:vyaa_central_infor_webflutter/Core/layouts/main_app_layout.dart';
-import 'package:vyaa_central_infor_webflutter/Core/Widgets/app_sidebar.widget.dart';
+import 'package:vyaa_central_infor_webflutter/Core/Widgets/system/app_sidebar.widget.dart';
 // Enums
 import 'package:vyaa_central_infor_webflutter/configs/enums.dart';
 

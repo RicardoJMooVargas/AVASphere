@@ -24,17 +24,28 @@ public class QuotationManagerController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var created = await _quotationService.CreateQuotationAsync(dto, User?.Identity?.Name ?? "system");
-        return CreatedAtRoute(
-            "GetQuotationById",
-            new { id = created.IdQuotation },
-            created
-        );
+        try
+        {
+            var created = await _quotationService.CreateQuotationAsync(dto, User?.Identity?.Name ?? "system");
+            return CreatedAtRoute(
+                "GetQuotationById",
+                new { id = created.IdQuotation },
+                created
+            );
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new 
+            { 
+                error = ex.Message,
+                type = ex.GetType().Name
+            });
+        }
     }
 
     // GET: api/QuotationManager
     [HttpGet("GetAll/Quotations")]
-    public async Task<ActionResult> GetAll([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] string? customerName = null, [FromQuery] int? folio = null)
+    public async Task<ActionResult<IEnumerable<GetQuotationResponseDto>>> GetAll([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null, [FromQuery] string? customerName = null, [FromQuery] int? folio = null)
     {
         var items = await _quotationService.GetQuotationsAsync(startDate, endDate, customerName, folio);
         return Ok(items);
@@ -50,20 +61,20 @@ public class QuotationManagerController : ControllerBase
 
     // GET: api/QuotationManager/folio/{folio}
     [HttpGet("Get/Folio")]
-    public async Task<ActionResult> GetByFolio(int folio)
+    public async Task<ActionResult<GetQuotationResponseDto>> GetByFolio(int folio)
     {
         var items = await _quotationService.GetQuotationsAsync(null, null, null, folio);
-        var first = items?.FirstOrDefault();
+        var first = items.FirstOrDefault();
         if (first == null) return NotFound();
         return Ok(first);
     }
 
     // GET: api/QuotationManager/customer/{customerId}
     [HttpGet("Customer/IdCustomer")]
-    public async Task<ActionResult> GetByCustomer(int IdCustomer)
+    public async Task<ActionResult<IEnumerable<GetQuotationResponseDto>>> GetByCustomer(int IdCustomer)
     {
-        var items = await _quotationService.GetQuotationsAsync(); // service currently lacks customerName->id filter
-        var filtered = items.Where(q => q.IdCustomer == IdCustomer);
+        var items = await _quotationService.GetQuotationsAsync();
+        var filtered = items.Where(q => q.Customer.IdCustomer == IdCustomer);
         return Ok(filtered);
     }
 

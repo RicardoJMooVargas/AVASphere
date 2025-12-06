@@ -208,6 +208,15 @@ namespace AVASphere.Infrastructure.Common.Services
             return await _repository.DeleteAsync(idCustomer);
         }
 
+        public async Task<IEnumerable<CustomerDto>> SearchAsync(string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return new List<CustomerDto>();
+
+            var customers = await _repository.SearchByFullNameAsync(searchText);
+            return customers.Select(MapToDto);
+        }
+
         private static CustomerDto MapToDto(Customer c)
         {
             return new CustomerDto

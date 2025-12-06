@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
+﻿﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Common.Entities.General;
 
 namespace AVASphere.ApplicationCore.Common.DTOs;
@@ -9,6 +9,12 @@ public class CustomerFilterDto
     public int? IdCustomer { get; set; }
     public string? LastName { get; set; }
     public int? ExternalId { get; set; }
+}
+
+// DTO para búsqueda inteligente de Customer
+public class CustomerSearchDto
+{
+    public string SearchText { get; set; } = string.Empty;
 }
 
 // DTOs específicos para requests (sin Index)

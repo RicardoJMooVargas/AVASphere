@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/response/quotation_res.module.dart';
 import '../../../Core/theme/app_colors.dart';
+import '../../../Core/Widgets/Buttons/app_button.widget.dart';
 
 class QuotationDetailWidget extends StatelessWidget {
   final QuotationRes quotation;
@@ -70,7 +71,14 @@ class QuotationDetailWidget extends StatelessWidget {
                       ),
                     ],
                   ),
-                  IconButton(onPressed: onClose, icon: const Icon(Icons.close)),
+                  AppButton(
+                    label: '',
+                    icon: Icons.close,
+                    iconOnly: true,
+                    variant: 'text',
+                    colorType: 'secondary',
+                    onPressed: onClose,
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -192,34 +200,25 @@ class QuotationDetailWidget extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  ElevatedButton.icon(
+                  AppButton(
+                    label: 'Cerrar',
+                    icon: Icons.close,
+                    colorType: 'secondary',
                     onPressed: onClose,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey.shade300,
-                      foregroundColor: Colors.black87,
-                    ),
-                    icon: const Icon(Icons.close),
-                    label: const Text('Cerrar'),
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton.icon(
+                  AppButton(
+                    label: 'Agregar Seguimiento',
+                    icon: Icons.add_comment,
+                    customColor: Colors.blue,
                     onPressed: onAddFollowup,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                    ),
-                    icon: const Icon(Icons.add_comment),
-                    label: const Text('Agregar Seguimiento'),
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton.icon(
+                  AppButton(
+                    label: 'Editar',
+                    icon: Icons.edit,
+                    colorType: 'primary',
                     onPressed: onEdit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryColor,
-                      foregroundColor: Colors.white,
-                    ),
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Editar'),
                   ),
                 ],
               ),

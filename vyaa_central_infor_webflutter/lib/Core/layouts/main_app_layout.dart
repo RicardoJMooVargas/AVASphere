@@ -7,7 +7,7 @@ import '../services/data/user_data.service.dart';
 // Configuraciones
 import '../../configs/routes.config.dart';
 import '../../modules/dashboard/screens/home_page.dart';
-import '../../modules/sales/screens/sales_page.dart';
+import '../../modules/sales/screens/main_sales_page.dart';
 import '../../modules/inventory/screens/inventory_page.dart';
 import '../../modules/supply/screens/supply_page.dart';
 import '../../core/theme/app_colors.dart';
@@ -39,7 +39,7 @@ class _MainAppLayoutState extends State<MainAppLayout> {
     // Inicializar mapa de páginas
     _pages = {
       '/home': const HomePage(),
-      '/sales': const SalesPage(),
+      '/sales': const MainSalesPage(),
       '/inventory': const InventoryPage(),
       '/supply': const SupplyPage(),
     };

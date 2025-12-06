@@ -18,8 +18,9 @@ class QuotationEnhancedService {
     if (status != null) queryParams['status'] = status;
 
     final response =
-        await ApiService.requestWithModel<List<QuotationRes>, dynamic>(
-          ApiEndpoints.sales.quotations.getAllQuotations,
+        await ApiService.requestWithModel<List<QuotationRes>, Map<String, dynamic>>(
+          ApiEndpoints.sales.quotations.getAll,
+          model: queryParams.isNotEmpty ? queryParams : null,
         );
 
     return response;
@@ -32,7 +33,7 @@ class QuotationEnhancedService {
   ) async {
     final response =
         await ApiService.requestWithModel<QuotationRes, QuotationReq>(
-          ApiEndpoints.sales.quotations.createQuotation,
+          ApiEndpoints.sales.quotations.create,
           model: quotation,
         );
 
@@ -42,8 +43,8 @@ class QuotationEnhancedService {
   /// Obtener cotización por ID con mapeo automático
   /// Devuelve QuotationRes directamente
   Future<ApiResponse<QuotationRes>> getQuotationByIdWithModel(String id) async {
-    final response = await ApiService.requestWithModel<QuotationRes, dynamic>(
-      ApiEndpoints.sales.quotations.getQuotationByIdWithModel,
+    final response = await ApiService.requestWithModel<QuotationRes, Map<String, dynamic>>(
+      ApiEndpoints.sales.quotations.getById,
       urlParams: {'id': id},
     );
 
@@ -65,7 +66,7 @@ class QuotationEnhancedService {
     if (status != null) queryParams['status'] = status;
 
     final response = await ApiService.request(
-      ApiEndpoints.sales.quotations.getQuotations,
+      ApiEndpoints.sales.quotations.getAll,
       data: queryParams,
     );
 
@@ -100,7 +101,7 @@ class QuotationEnhancedService {
     QuotationReq quotation,
   ) async {
     final response = await ApiService.request(
-      ApiEndpoints.sales.quotations.createQuotation,
+      ApiEndpoints.sales.quotations.create,
       data: quotation.toJson(),
     );
 
@@ -120,7 +121,7 @@ class QuotationEnhancedService {
     String id,
   ) async {
     final response = await ApiService.request(
-      ApiEndpoints.sales.quotations.getQuotationById,
+      ApiEndpoints.sales.quotations.getById,
       urlParams: {'id': id},
     );
 

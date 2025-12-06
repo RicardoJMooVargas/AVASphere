@@ -20,15 +20,29 @@ class ApiService {
     try {
       // Mapear el modelo de entrada si existe
       Map<String, dynamic>? data;
-      if (model != null && endpoint.requestMapper != null) {
-        data = endpoint.requestMapper!(model);
+      if (model != null) {
+        if (endpoint.requestMapper != null) {
+          data = endpoint.requestMapper!(model);
+        } else {
+          // Si no hay requestMapper pero hay model, usarlo directamente
+          // Verificar si el modelo ya es un Map<String, dynamic>
+          if (model is Map<String, dynamic>) {
+            data = model;
+          } else {
+            throw Exception('El modelo proporcionado no es un Map<String, dynamic> y no hay requestMapper definido');
+          }
+        }
       }
 
       // Realizar la petición base
       final response = await _makeRequest(endpoint, data: data, urlParams: urlParams);
       
       if (!response.success) {
-        return ApiResponse.error(response.message ?? 'Error en la petición');
+        // Propagar el tipo de respuesta (error o warning)
+        if (response.isWarning) {
+          return ApiResponse.warning(response.message ?? 'Advertencia en la petición', statusCode: response.statusCode);
+        }
+        return ApiResponse.error(response.message ?? 'Error en la petición', statusCode: response.statusCode);
       }
 
       // Extraer datos del formato estándar { "success": true, "message": "...", "data": {...} }
@@ -123,7 +137,12 @@ class ApiService {
           break;
 
         case HttpMethod.delete:
-          response = await http.delete(uri, headers: headers);
+          final uriWithQuery = endpoint.useQuery && data != null
+              ? uri.replace(queryParameters: data.map((k, v) => MapEntry(k, v.toString())))
+              : uri;
+          debugPrint('🔧 DELETE - useQuery: ${endpoint.useQuery}, data: $data');
+          debugPrint('🔧 DELETE - URI final: $uriWithQuery');
+          response = await http.delete(uriWithQuery, headers: headers);
           break;
 
         case HttpMethod.patch:
@@ -133,6 +152,12 @@ class ApiService {
 
       // Manejo de respuesta
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Manejar respuestas vacías (común en DELETE y algunos PUT)
+        if (response.body.isEmpty || response.body.trim().isEmpty) {
+          debugPrint('✅ Respuesta exitosa sin contenido (${response.statusCode})');
+          return ApiResponse.success({'success': true, 'message': 'Operación exitosa'}, statusCode: response.statusCode);
+        }
+
         final decoded = jsonDecode(response.body);
         
         // Verificar si la respuesta tiene el formato estándar y success = false
@@ -146,6 +171,29 @@ class ApiService {
         }
         
         return ApiResponse.success(decoded, statusCode: response.statusCode);
+      }
+
+      // Bad Request - Error de validación del servidor (no es un error crítico)
+      if (response.statusCode == 400) {
+        try {
+          final decoded = jsonDecode(response.body);
+          String warningMessage = 'Solicitud inválida';
+
+          if (decoded is Map<String, dynamic>) {
+            // Intentar extraer el mensaje de error del servidor
+            if (decoded['error'] != null) {
+              warningMessage = decoded['error'].toString();
+            } else if (decoded['message'] != null) {
+              warningMessage = decoded['message'].toString();
+            }
+          }
+
+          debugPrint('⚠️ Bad Request (400): $warningMessage');
+          return ApiResponse.warning(warningMessage, statusCode: response.statusCode);
+        } catch (e) {
+          debugPrint('⚠️ Bad Request (400) - Error al parsear respuesta: $e');
+          return ApiResponse.warning('Solicitud inválida', statusCode: response.statusCode);
+        }
       }
 
       // Token expirado

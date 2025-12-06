@@ -26,7 +26,15 @@ export 'theme/app_theme.dart';
 export 'theme/app_colors.dart';
 
 //widgets
-export 'Widgets/app_sidebar.widget.dart';
-export 'Widgets/app_button.widget.dart';
-export 'Widgets/app_table.widget.dart';
-export 'Widgets/app_form.widget.dart';
+//widgets/system
+export 'Widgets/system/app_sidebar.widget.dart';
+export 'Widgets/system/app_navbar.widget.dart';
+//widgets/buttons
+export 'Widgets/Buttons/app_button.widget.dart';
+//widgets/tables
+export 'Widgets/tables/app_table.widget.dart';
+//widgets/forms
+export 'Widgets/forms/app_form.widget.dart';
+//widgets/cards
+export 'Widgets/Cards/app_card_tab.widget.dart';
+

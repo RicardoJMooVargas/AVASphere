@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/sidebar_controller.dart';
 import '../controllers/notification_services.dart';
+import '../controllers/app_init.controller.dart';
 import '../../modules/login/services/api/auth.service.dart';
-import '../services/data/user_data.service.dart';
-// Configuraciones
-import '../../configs/routes.config.dart';
-import '../../modules/dashboard/screens/home_page.dart';
-import '../../modules/sales/screens/main_sales_page.dart';
-import '../../modules/inventory/screens/inventory_page.dart';
-import '../../modules/supply/screens/supply_page.dart';
+
+// Servicios
+import '../services/data/route_app.service.dart';
+
+// Modelos
+import '../models/base/route_config.module.dart';
+
+// Theme
 import '../../core/theme/app_colors.dart';
 
 /// Layout principal de la aplicación que maneja la navegación interna
-/// sin recargar el sidebar
+/// sin recargar el sidebar. Usa RouteAppService para obtener rutas filtradas
 class MainAppLayout extends StatefulWidget {
   const MainAppLayout({super.key});
 
@@ -23,29 +25,29 @@ class MainAppLayout extends StatefulWidget {
 
 class _MainAppLayoutState extends State<MainAppLayout> {
   late SidebarController _sidebarController;
+  late RouteAppService _routeService;
+  late AppInitController _appInitController;
 
   // Mapa de rutas a widgets para navegación interna
-  late Map<String, Widget> _pages;
+  Map<String, Widget> _pages = {};
   
-  // Lista de items del sidebar filtrados según permisos del usuario
-  List<SidebarItemData> _allowedSidebarItems = [];
+  // Lista de rutas del sidebar filtradas según permisos del usuario
+  List<RouteConfig> _allowedSidebarRoutes = [];
   bool _isLoadingPermissions = true;
 
   @override
   void initState() {
     super.initState();
-    _sidebarController = Get.put(SidebarController());
     
-    // Inicializar mapa de páginas
-    _pages = {
-      '/home': const HomePage(),
-      '/sales': const MainSalesPage(),
-      '/inventory': const InventoryPage(),
-      '/supply': const SupplyPage(),
-    };
+    // Obtener o crear controladores (solo una vez)
+    _sidebarController = Get.find<SidebarController>(tag: 'sidebar');
+    _routeService = RouteAppService();
     
-    // Cargar permisos del usuario y filtrar sidebar
-    _loadUserPermissionsAndFilterSidebar();
+    // Obtener el controlador de inicialización (ya existe en Get)
+    _appInitController = Get.find<AppInitController>();
+    
+    // Cargar rutas del usuario y configurar el sidebar (solo una vez)
+    _loadUserRoutesAndSetup();
     
     // Inicializar con la ruta original desde argumentos o la ruta actual
     String initialRoute = '/home';
@@ -56,60 +58,45 @@ class _MainAppLayoutState extends State<MainAppLayout> {
       initialRoute = arguments['originalRoute'] as String;
       debugPrint('🎯 Ruta original detectada desde argumentos: $initialRoute');
     } else {
+      // Usar el controlador para resolver la ruta
       final currentRoute = Get.currentRoute;
-      if (_pages.containsKey(currentRoute)) {
-        initialRoute = currentRoute;
-      }
+      initialRoute = _appInitController.resolveAppRoute(currentRoute);
       debugPrint('🌐 MainAppLayout inicializando con ruta: $initialRoute');
     }
     
-    if (_pages.containsKey(initialRoute)) {
-      _sidebarController.updateRoute(initialRoute);
-      debugPrint('✅ Ruta válida detectada: $initialRoute');
-    } else {
-      _sidebarController.updateRoute('/home');
-      debugPrint('🏠 Usando ruta por defecto: /home');
-    }
+    _sidebarController.updateRoute(initialRoute);
+    debugPrint('✅ Ruta inicial configurada: $initialRoute');
   }
   
-  /// Cargar permisos del usuario y filtrar items del sidebar
-  Future<void> _loadUserPermissionsAndFilterSidebar() async {
+  /// Cargar rutas del usuario desde el servicio y configurar el layout
+  Future<void> _loadUserRoutesAndSetup() async {
+    // Evitar cargar múltiples veces
+    if (!_isLoadingPermissions) {
+      return;
+    }
+    
     try {
-      debugPrint('🔐 ========== CARGANDO PERMISOS DEL USUARIO ==========');
+      debugPrint('🔐 ========== CARGANDO RUTAS DEL USUARIO ==========');
       
-      // Obtener módulos del usuario
-      final userModules = await UserDataService.getUserModules();
+      // Obtener rutas del sidebar desde el servicio (ya filtradas por permisos)
+      _allowedSidebarRoutes = await _routeService.getSidebarRoutes();
       
-      debugPrint('📦 Módulos del usuario: ${userModules.length}');
-      for (var module in userModules) {
-        debugPrint('   - ${module.name} (${module.normalized})');
+      // Construir mapa de páginas desde las route configs
+      _pages = {};
+      for (var route in _allowedSidebarRoutes) {
+        if (route.page != null) {
+          _pages[route.path] = route.page!();
+        }
       }
       
-      // Obtener todos los items del sidebar
-      final allSidebarItems = AppRoutes.getSidebarItemsOrdered();
+      debugPrint('📊 Rutas cargadas: ${_allowedSidebarRoutes.length}');
+      debugPrint('📄 Páginas internas: ${_pages.length}');
       
-      // Filtrar items basándose en los módulos del usuario
-      _allowedSidebarItems = allSidebarItems.where((item) {
-        // Siempre permitir /home o /dashboard
-        if (item.route == '/home' || item.route == '/dashboard') {
-          debugPrint('✅ Permitiendo: ${item.title} (ruta base)');
-          return true;
-        }
-        
-        // Verificar si el usuario tiene acceso al módulo
-        final hasAccess = _checkModuleAccess(item, userModules);
-        
-        if (hasAccess) {
-          debugPrint('✅ Permitiendo: ${item.title} → ${item.route} [${item.moduleName}]');
-        } else {
-          debugPrint('🚫 Bloqueando: ${item.title} → ${item.route} [${item.moduleName}]');
-        }
-        
-        return hasAccess;
-      }).toList();
+      for (var route in _allowedSidebarRoutes) {
+        debugPrint('   ✅ ${route.title} → ${route.path}');
+      }
       
-      debugPrint('📊 Sidebar filtrado: ${_allowedSidebarItems.length} de ${allSidebarItems.length} items');
-      debugPrint('🔐 ========== FIN CARGA DE PERMISOS ==========');
+      debugPrint('🔐 ========== FIN CARGA DE RUTAS ==========');
       
       if (mounted) {
         setState(() {
@@ -117,10 +104,7 @@ class _MainAppLayoutState extends State<MainAppLayout> {
         });
       }
     } catch (e) {
-      debugPrint('❌ Error al cargar permisos del usuario: $e');
-      
-      // En caso de error, mostrar todos los items (fallback)
-      _allowedSidebarItems = AppRoutes.getSidebarItemsOrdered();
+      debugPrint('❌ Error al cargar rutas del usuario: $e');
       
       if (mounted) {
         setState(() {
@@ -128,40 +112,6 @@ class _MainAppLayoutState extends State<MainAppLayout> {
         });
       }
     }
-  }
-  
-  /// Verificar si el usuario tiene acceso a un módulo basándose en el item del sidebar
-  bool _checkModuleAccess(SidebarItemData item, List<dynamic> userModules) {
-    // Si el item tiene un moduleName definido, usarlo para la comparación
-    if (item.moduleName != null && item.moduleName!.isNotEmpty) {
-      // Buscar coincidencia exacta con el nombre del módulo
-      for (var module in userModules) {
-        final moduleName = module.name.toString();
-        
-        // Comparación case-insensitive
-        if (moduleName.toLowerCase() == item.moduleName!.toLowerCase()) {
-          return true;
-        }
-      }
-      return false;
-    }
-    
-    // Fallback: extraer el nombre del módulo de la ruta
-    // Ej: /sales → sales, /inventory → inventory
-    final routeName = item.route.replaceFirst('/', '').toLowerCase();
-    
-    // Buscar en los módulos del usuario
-    for (var module in userModules) {
-      final moduleName = module.name.toLowerCase();
-      final moduleNormalized = module.normalized.toLowerCase().replaceFirst('/', '');
-      
-      // Comparar por nombre o ruta normalizada
-      if (moduleName == routeName || moduleNormalized == routeName) {
-        return true;
-      }
-    }
-    
-    return false;
   }
 
   /// Navegar internamente sin afectar el sidebar
@@ -259,12 +209,13 @@ class _MainAppLayoutState extends State<MainAppLayout> {
             ),
           )
         else
-          ..._allowedSidebarItems.map((item) => Padding(
+          // Renderizar items del sidebar desde las rutas configuradas
+          ..._allowedSidebarRoutes.map((route) => Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: _buildSidebarItem(
-              icon: item.icon,
-              tooltip: item.title,
-              route: item.route,
+              icon: route.icon ?? Icons.circle_outlined,
+              tooltip: route.title ?? route.name,
+              route: route.path,
             ),
           )).toList(),
         

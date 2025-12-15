@@ -39,8 +39,7 @@ public class QuotationRepository : IQuotationRepository
             return null;
 
         // 🔸 Solo actualiza si el campo tiene datos nuevos
-        if (dto.Folio != 0 && dto.Folio != quotation.Folio)
-            quotation.Folio = dto.Folio;
+        // Nota: El Folio en Quotation es int, pero en DTO es string? - no se actualiza aquí
 
         if (dto.Status.HasValue && dto.Status.Value != quotation.Status)
             quotation.Status = dto.Status.Value;
@@ -48,11 +47,8 @@ public class QuotationRepository : IQuotationRepository
         if (!string.IsNullOrWhiteSpace(dto.GeneralComment) && dto.GeneralComment != quotation.GeneralComment)
             quotation.GeneralComment = dto.GeneralComment;
 
-        if (dto.CustomerId != 0 && dto.CustomerId != quotation.IdCustomer)
-            quotation.IdCustomer = dto.CustomerId;
-
-        if (dto.IdConfigSys != 0 && dto.IdConfigSys != quotation.IdConfigSys)
-            quotation.IdConfigSys = dto.IdConfigSys;
+        if (dto.IdConfigSys.HasValue && dto.IdConfigSys.Value != quotation.IdConfigSys)
+            quotation.IdConfigSys = dto.IdConfigSys.Value;
 
         if (dto.SalesExecutives != null && dto.SalesExecutives.Any())
             quotation.SalesExecutives = dto.SalesExecutives;
@@ -60,14 +56,14 @@ public class QuotationRepository : IQuotationRepository
             quotation.SalesExecutives ??= new List<string>(); // asegura que no sea null
 
         // 🔹 FOLLOWUPS
-        bool hasValidFollowups = dto.Followups != null &&
-            dto.Followups.Any(f =>
+        bool hasValidFollowups = dto.FollowupsToAdd != null &&
+            dto.FollowupsToAdd.Any(f =>
                 (!string.IsNullOrWhiteSpace(f.Comment) && f.Comment != "string") ||
                 (!string.IsNullOrWhiteSpace(f.UserId) && f.UserId != "string"));
 
         if (hasValidFollowups)
         {
-            quotation.FollowupsJson = dto.Followups.Select(f => new QuotationFollowupsJson
+            quotation.FollowupsJson = dto.FollowupsToAdd.Select(f => new QuotationFollowupsJson
             {
                 Date = f.Date,
                 Comment = f.Comment,
@@ -156,7 +152,7 @@ public class QuotationRepository : IQuotationRepository
     {
         var startDateOnly = DateOnly.FromDateTime(startDate);
         var endDateOnly = DateOnly.FromDateTime(endDate);
-        
+
         return await _context.Quotations
             .AsNoTracking()
             .Where(q => q.SaleDate >= startDateOnly && q.SaleDate <= endDateOnly)

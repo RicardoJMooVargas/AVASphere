@@ -2,10 +2,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-import '../../../configs/api_settings.config.dart';
-import '../../services/data/hive.service.dart';
-import '../../../configs/api_response.config.dart';
-import '../../models/base/api_endpoints.module.dart';
+import 'package:vyaa_central_infor_webflutter/configs/api_settings.config.dart';
+import 'package:vyaa_central_infor_webflutter/Core/services/data/hive.service.dart';
+import 'package:vyaa_central_infor_webflutter/configs/api_response.config.dart';
+import 'package:vyaa_central_infor_webflutter/Core/models/base/api_endpoints.module.dart';
 import 'package:vyaa_central_infor_webflutter/configs/enums.dart';
 
 class ApiService {

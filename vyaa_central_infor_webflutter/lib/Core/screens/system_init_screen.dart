@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import '../controllers/server_status.controller.dart';
@@ -75,7 +76,9 @@ class _SystemInitScreenState extends State<SystemInitScreen> {
       await Future.delayed(const Duration(milliseconds: 500));
 
       debugPrint('🎯 Navegando a ruta final: $targetRoute');
-      Get.offAllNamed(targetRoute);
+      if (mounted) {
+        context.go(targetRoute);
+      }
 
     } catch (e) {
       debugPrint('❌ Error durante la inicialización: $e');

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import '../../models/responses/check_init_config.module.dart';
-import '../../models/responses/diagnose_migrations.module.dart';
-import '../../../configs/api_endpoints.config.dart';
+import 'package:vyaa_central_infor_webflutter/Core/models/responses/check_init_config.module.dart';
+import 'package:vyaa_central_infor_webflutter/Core/models/responses/diagnose_migrations.module.dart';
+import 'package:vyaa_central_infor_webflutter/configs/api_endpoints.config.dart';
 import 'api.service.dart';
 
 class SystemService {

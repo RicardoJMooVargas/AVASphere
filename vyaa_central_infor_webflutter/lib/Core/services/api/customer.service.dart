@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import '../../../configs/api_endpoints.config.dart';
-import '../../../configs/api_response.config.dart';
-import '../../models/responses/customer_res.module.dart';
+import 'package:vyaa_central_infor_webflutter/configs/api_endpoints.config.dart';
+import 'package:vyaa_central_infor_webflutter/configs/api_response.config.dart';
+import 'package:vyaa_central_infor_webflutter/Core/models/responses/customer_res.module.dart';
 import 'api.service.dart';
 
 class CustomerService {

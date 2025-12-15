@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:vyaa_central_infor_webflutter/modules/sales/screens/sale_page.dart';
 
 // Core imports
 import '../Core/screens/system_init_screen.dart';
 import '../Core/screens/server_error_screen.dart';
 import '../Core/screens/not_found_screen.dart';
-import '../Core/layouts/main_app_layout.dart';
 
 // Module screens
- import '../modules/login/screens/login_page.dart';
+import '../modules/login/screens/login_page.dart';
 import '../modules/login/screens/setup_page.dart';
 import '../modules/dashboard/screens/home_page.dart';
-import '../modules/sales/screens/main_sales_page.dart';
+import '../modules/sales/screens/quotation_page.dart';
 import '../modules/inventory/screens/inventory_page.dart';
 import '../modules/supply/screens/supply_page.dart';
 
@@ -21,7 +20,7 @@ import '../Core/models/base/route_config.module.dart';
 /// ========================================
 /// AppRoutes - Configuración Centralizada de Rutas
 /// ========================================
-/// 
+///
 /// PROPÓSITO:
 /// Este archivo es el único lugar donde se definen todas las rutas de la aplicación.
 /// Cada ruta usa el modelo RouteConfig que permite configurar:
@@ -29,20 +28,20 @@ import '../Core/models/base/route_config.module.dart';
 /// - Permisos y autenticación
 /// - Apariencia (fullscreen vs sidebar)
 /// - Jerarquía (rutas principales y subrutas)
-/// 
+///
 /// FLUJO DE TRABAJO:
 /// 1. Todas las rutas se definen aquí en la lista AppRoutes.routes
-/// 2. RouteAppService procesa esta configuración
-/// 3. main.dart obtiene las rutas para GetMaterialApp
+/// 2. RouteAppService procesa esta configuración y la convierte a GoRouter
+/// 3. main.dart obtiene el router configurado
 /// 4. MainAppLayout obtiene las rutas filtradas para el sidebar
-/// 
+///
 /// CÓMO AGREGAR UNA NUEVA RUTA:
-/// 
+///
 /// 1. Importar el widget de la pantalla:
 ///    ```dart
 ///    import '../modules/mi_modulo/screens/mi_pantalla.dart';
 ///    ```
-/// 
+///
 /// 2. Agregar RouteConfig a la lista routes:
 ///    ```dart
 ///    RouteConfig(
@@ -56,11 +55,10 @@ import '../Core/models/base/route_config.module.dart';
 ///      showInSidebar: true,         // true = aparece en menú
 ///      sidebarOrder: 7,             // orden en el menú
 ///      moduleName: 'MiModulo',      // módulo del backend
-///      middlewares: [GlobalInitMiddleware()],
-///      transition: Transition.noTransition,
+///      middlewares: const [],
 ///    ),
 ///    ```
-/// 
+///
 /// 3. (Opcional) Agregar subrutas:
 ///    ```dart
 ///    subRoutes: [
@@ -75,34 +73,34 @@ import '../Core/models/base/route_config.module.dart';
 ///      ),
 ///    ],
 ///    ```
-/// 
+///
 /// TIPOS DE RUTAS:
-/// 
+///
 /// 1. RUTAS DEL SISTEMA (Pantalla completa, sin auth):
 ///    - / (inicialización)
 ///    - /server-error
 ///    - /404
-/// 
+///
 /// 2. RUTAS DE AUTENTICACIÓN (Pantalla completa, sin auth):
 ///    - /login
 ///    - /setup
-/// 
+///
 /// 3. RUTAS DE LA APLICACIÓN (Con sidebar, con auth):
 ///    - /home (dashboard)
 ///    - /sales, /inventory, /supply, etc.
 ///    - Estas rutas se filtran según permisos del usuario
-/// 
+///
 /// NOTA IMPORTANTE:
 /// - El campo moduleName debe coincidir con los módulos del backend
 /// - Solo las rutas con showInSidebar=true aparecen en el menú
 /// - El servicio RouteAppService filtra automáticamente según permisos
-/// 
+///
 /// ========================================
 
 /// CONFIGURACIÓN CENTRALIZADA DE RUTAS
 /// Todas las rutas de la aplicación se definen aquí usando el modelo RouteConfig
 /// El servicio RouteAppService procesa esta configuración y la proporciona a:
-/// - GetMaterialApp (rutas completas)
+/// - MaterialApp.router (usando GoRouter)
 /// - MainAppLayout (rutas de sidebar filtradas por permisos)
 class AppRoutes {
   // ===== CONFIGURACIÓN PRINCIPAL DE RUTAS =====
@@ -120,9 +118,8 @@ class AppRoutes {
       isFullScreen: true,
       requiresAuth: false,
       showInSidebar: false,
-      transition: Transition.noTransition,
     ),
-    
+
     RouteConfig(
       name: 'server_error',
       path: '/server-error',
@@ -131,9 +128,8 @@ class AppRoutes {
       isFullScreen: true,
       requiresAuth: false,
       showInSidebar: false,
-      transition: Transition.noTransition,
     ),
-    
+
     RouteConfig(
       name: 'not_found',
       path: '/404',
@@ -142,7 +138,6 @@ class AppRoutes {
       isFullScreen: true,
       requiresAuth: false,
       showInSidebar: false,
-      transition: Transition.noTransition,
     ),
 
     // ========================================
@@ -156,10 +151,9 @@ class AppRoutes {
       isFullScreen: true,
       requiresAuth: false,
       showInSidebar: false,
-      middlewares: const [], // Sin middleware para evitar conflictos con GetX
-      transition: Transition.fadeIn,
+      middlewares: const [],
     ),
-    
+
     RouteConfig(
       name: 'setup',
       path: '/setup',
@@ -168,37 +162,18 @@ class AppRoutes {
       isFullScreen: true,
       requiresAuth: false,
       showInSidebar: false,
-      transition: Transition.fadeIn,
     ),
 
     // ========================================
-    // RUTA PRINCIPAL DE LA APLICACIÓN (Con sidebar)
-    // ========================================
-    // Solo una ruta de GetX que renderiza MainAppLayout
-    // MainAppLayout maneja internamente qué contenido mostrar
-    RouteConfig(
-      name: 'app',
-      path: '/app',
-      page: () => const MainAppLayout(),
-      title: 'Aplicación',
-      isFullScreen: false,
-      requiresAuth: true,
-      showInSidebar: false, // No se muestra en sidebar
-      middlewares: const [],
-      transition: Transition.noTransition,
-    ),
-    
-    // ========================================
     // CONFIGURACIÓN DE PÁGINAS INTERNAS
     // ========================================
-    // Estas NO son rutas de GetX, son configuración para MainAppLayout
-    // MainAppLayout usa estas configuraciones para mostrar contenido interno
-    
+    // Estas rutas se envuelven automáticamente con MainAppLayout cuando requiresAuth=true y isFullScreen=false
+
     // Dashboard / Home
     RouteConfig(
       name: 'home',
       path: '/home',
-      page: () => const HomePage(), // Página real
+      page: () => const HomePage(),
       title: 'Dashboard',
       icon: Icons.dashboard,
       isFullScreen: false,
@@ -207,14 +182,13 @@ class AppRoutes {
       sidebarOrder: 1,
       moduleName: 'General',
       middlewares: const [],
-      transition: Transition.noTransition,
     ),
-    
+
     // Ventas
     RouteConfig(
       name: 'sales',
       path: '/sales',
-      page: () => const MainSalesPage(), // Página real
+      page: () => const MainSalesPage(),
       title: 'Ventas',
       description: 'Gestión de ventas y clientes',
       icon: Icons.sell_outlined,
@@ -224,27 +198,35 @@ class AppRoutes {
       sidebarOrder: 2,
       moduleName: 'Sales',
       middlewares: const [],
-      transition: Transition.noTransition,
-      // Ejemplo de subrutas (para implementación futura)
-      // subRoutes: [
-      //   RouteConfig(
-      //     name: 'sales_detail',
-      //     path: '/sales/:saleId',
-      //     page: () => const SaleDetailPage(),
-      //     title: 'Detalle de Venta',
-      //     isSubRoute: true,
-      //     parentPath: '/sales',
-      //     requiresAuth: true,
-      //     moduleName: 'Sales',
-      //   ),
-      // ],
+      subRoutes: [
+        RouteConfig(
+          name: 'quotation',
+          path: '/sales/quotation',
+          page: () => const MainSalesPage(),
+          title: 'Cotizaciones',
+          isSubRoute: true,
+          parentPath: '/sales',
+          requiresAuth: true,
+          moduleName: 'Sales',
+        ),
+        RouteConfig(
+          name: 'sale_detail',
+          path: '/sales/:saleId',
+          page: () => SalePage(),
+          title: 'Detalle de Venta',
+          isSubRoute: true,
+          parentPath: '/sales',
+          requiresAuth: true,
+          moduleName: 'Sales',
+        ),
+      ],
     ),
-    
+
     // Inventario
     RouteConfig(
       name: 'inventory',
       path: '/inventory',
-      page: () => const InventoryPage(), // Página real
+      page: () => const InventoryPage(),
       title: 'Inventario',
       description: 'Gestión de productos y stock',
       icon: Icons.inventory_2_outlined,
@@ -254,14 +236,13 @@ class AppRoutes {
       sidebarOrder: 3,
       moduleName: 'Inventory',
       middlewares: const [],
-      transition: Transition.noTransition,
     ),
-    
+
     // Compras
     RouteConfig(
       name: 'supply',
       path: '/supply',
-      page: () => const SupplyPage(), // Página real
+      page: () => const SupplyPage(),
       title: 'Compras',
       description: 'Gestión de compras y proveedores',
       icon: Icons.shopping_cart_outlined,
@@ -271,10 +252,10 @@ class AppRoutes {
       sidebarOrder: 4,
       moduleName: 'Shopping',
       middlewares: const [],
-      transition: Transition.noTransition,
     ),
-    
+
     // Proyectos
+    /*
     RouteConfig(
       name: 'projects',
       path: '/projects',
@@ -288,7 +269,6 @@ class AppRoutes {
       sidebarOrder: 5,
       moduleName: 'Projects',
       middlewares: const [],
-      transition: Transition.noTransition,
       // Ejemplo de cómo definir subrutas jerárquicas
       // subRoutes: [
       //   RouteConfig(
@@ -315,7 +295,8 @@ class AppRoutes {
       //   ),
       // ],
     ),
-    
+    */
+
     // Sistema
     RouteConfig(
       name: 'system',
@@ -330,25 +311,23 @@ class AppRoutes {
       sidebarOrder: 6,
       moduleName: 'System',
       middlewares: const [],
-      transition: Transition.noTransition,
     ),
   ];
 
   // ===== RUTA PARA PÁGINAS NO ENCONTRADAS =====
   /// Configuración de la ruta 404
-  static final RouteConfig unknownRoute = RouteConfig(
-    name: 'not_found',
-    path: '/404',
-    page: () => const NotFoundScreen(),
-    title: 'Página No Encontrada',
-    isFullScreen: true,
-    requiresAuth: false,
-    showInSidebar: false,
-    transition: Transition.noTransition,
-  );
+  static RouteConfig get unknownRoute => RouteConfig(
+        name: 'not_found',
+        path: '/404',
+        page: () => const NotFoundScreen(),
+        title: 'Página No Encontrada',
+        isFullScreen: true,
+        requiresAuth: false,
+        showInSidebar: false,
+      );
 
   // ===== MÉTODOS UTILITARIOS =====
-  
+
   /// Obtiene todas las rutas configuradas (lista plana con subrutas)
   static List<RouteConfig> getAllRoutes() {
     List<RouteConfig> allRoutes = [];
@@ -365,10 +344,12 @@ class AppRoutes {
 
   /// Obtiene las rutas que se muestran en el sidebar
   static List<RouteConfig> getSidebarRoutes() {
-    return routes.where((route) => 
-      !route.isSubRoute && route.showInSidebar
-    ).toList()
-      ..sort((a, b) => (a.sidebarOrder ?? 999).compareTo(b.sidebarOrder ?? 999));
+    return routes
+        .where((route) => !route.isSubRoute && route.showInSidebar)
+        .toList()
+      ..sort(
+        (a, b) => (a.sidebarOrder ?? 999).compareTo(b.sidebarOrder ?? 999),
+      );
   }
 
   /// Busca una ruta por su path
@@ -421,15 +402,19 @@ class AppRoutes {
     debugPrint('\n🛣️ === CONFIGURACIÓN DE RUTAS ===');
     debugPrint('📊 Total: ${routes.length} rutas principales');
     debugPrint('📊 Total con subrutas: ${getAllRoutes().length} rutas');
-    
+
     final sidebarRoutes = getSidebarRoutes();
     debugPrint('📋 Sidebar: ${sidebarRoutes.length} items');
-    
+
     for (final route in sidebarRoutes) {
-      final subs = route.hasSubRoutes ? ' (${route.totalSubRoutes} subrutas)' : '';
-      debugPrint('   ${route.sidebarOrder}. ${route.title} -> ${route.path}$subs');
+      final subs = route.hasSubRoutes
+          ? ' (${route.totalSubRoutes} subrutas)'
+          : '';
+      debugPrint(
+        '   ${route.sidebarOrder}. ${route.title} -> ${route.path}$subs',
+      );
     }
-    
+
     debugPrint('🛣️ === FIN CONFIGURACIÓN ===\n');
   }
 
@@ -470,43 +455,10 @@ class SidebarItemData {
   String toString() => 'SidebarItem($title -> $route [module: $moduleName])';
 }
 
-/// ===== EXTENSIONES PARA NAVEGACIÓN SIMPLIFICADA =====
-extension AppNavigation on GetInterface {
-  /// Navegación simple a cualquier ruta de la app
-  void toAppRoute(String route) {
-    final title = AppRoutes.getRouteTitle(route);
-    debugPrint('🧭 Navegando a: ${title ?? route}');
-    Get.toNamed(route);
-  }
-
-  /// Reemplazar ruta actual
-  void offAppRoute(String route) {
-    final title = AppRoutes.getRouteTitle(route);
-    debugPrint('🔄 Reemplazando con: ${title ?? route}');
-    Get.offNamed(route);
-  }
-
-  /// Ir al inicio limpiando todo
-  void offAllToHome() {
-    debugPrint('🏠 Navegando al inicio');
-    Get.offAllNamed(AppRoutes.home);
-  }
-
-  /// Ir al login limpiando todo
-  void offAllToLogin() {
-    debugPrint('🔑 Navegando al login');
-    Get.offAllNamed(AppRoutes.login);
-  }
-
-  /// Ir a setup limpiando todo
-  void offAllToSetup() {
-    debugPrint('⚙️ Navegando al setup');
-    Get.offAllNamed(AppRoutes.setup);
-  }
-
-  /// Ir al error del servidor
-  void toServerError() {
-    debugPrint('❌ Navegando a error del servidor');
-    Get.toNamed(AppRoutes.serverError);
-  }
-}
+/// ===== NOTA SOBRE NAVEGACIÓN =====
+/// La navegación ahora se maneja con go_router a través de:
+/// - RouteAppService.navigateTo(context, route)
+/// - context.toAppRoute(route) - extensión de BuildContext
+/// - context.go(route) - método nativo de go_router
+///
+/// Las extensiones están disponibles en route_app.service.dart

@@ -41,14 +41,14 @@ class SystemInitService {
         // Verificar si existe sesión válida en Hive
         final hasValidSession = await HiveService.hasValidSession();
         if (hasValidSession) {
-          final session = await HiveService.getActiveUserSession();
+  final session = await HiveService.getActiveUserSession();
           debugPrint('🔑 Sesión válida encontrada en Hive:');
           debugPrint('   - User ID: ${session?.userId}');
           debugPrint('   - Username: ${session?.username}');
           debugPrint('   - Token: ${session?.token?.substring(0, 20)}...');
           debugPrint('   - Es válida: ${session?.isValid}');
           debugPrint('✅ Redirigiendo a aplicación principal');
-          return '/home'; // Siempre /home, MainAppLayout maneja el contenido específico
+          return '/app/home'; // ← CAMBIADO: /home → /app/home
         } else {
           debugPrint('🚫 No hay sesión válida en Hive - Redirigiendo a login');
           return '/login';

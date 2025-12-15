@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 /// ========================================
 /// RouteConfig - Modelo de Configuración de Rutas
@@ -106,10 +105,8 @@ class RouteConfig {
   final bool requiresAuth;
   
   /// Middlewares que se ejecutan antes de acceder a la ruta
-  final List<GetMiddleware> middlewares;
-  
-  /// Transición de navegación
-  final Transition? transition;
+  /// NOTA: Ya no se usa con go_router, solo se mantiene por compatibilidad
+  final List<dynamic> middlewares;
   
   /// Duración de la transición
   final Duration? transitionDuration;
@@ -147,7 +144,6 @@ class RouteConfig {
     this.isFullScreen = false,
     this.requiresAuth = true,
     this.middlewares = const [],
-    this.transition,
     this.transitionDuration,
     this.showInSidebar = false,
     this.sidebarOrder,
@@ -185,31 +181,8 @@ class RouteConfig {
     return count;
   }
 
-  /// Convierte la ruta a GetPage para GetMaterialApp
-  /// Retorna null si la ruta no tiene página (es solo configuración)
-  GetPage? toGetPage() {
-    // Si no hay página, esta ruta es solo configuración
-    if (page == null) return null;
-    
-    return GetPage(
-      name: path,
-      page: page!,
-      // Crear una lista mutable si hay middlewares, vacía si no
-      middlewares: middlewares.isEmpty ? [] : List.from(middlewares),
-      transition: transition ?? Transition.noTransition,
-      transitionDuration: transitionDuration,
-    );
-  }
-
-  /// Obtiene todas las GetPages (principal + subrutas)
-  /// Solo incluye rutas que tienen página definida
-  List<GetPage> getAllGetPages() {
-    return getAllRoutes()
-        .map((route) => route.toGetPage())
-        .where((page) => page != null)
-        .cast<GetPage>()
-        .toList();
-  }
+  /// DEPRECATED: Métodos de GetX ya no se usan con go_router
+  /// Se mantienen por compatibilidad pero no deben usarse
 
   /// Verifica si la ruta coincide con un path dado
   bool matchesPath(String testPath) {
@@ -246,8 +219,7 @@ class RouteConfig {
     IconData? icon,
     bool? isFullScreen,
     bool? requiresAuth,
-    List<GetMiddleware>? middlewares,
-    Transition? transition,
+    List<dynamic>? middlewares,
     Duration? transitionDuration,
     bool? showInSidebar,
     int? sidebarOrder,
@@ -267,7 +239,6 @@ class RouteConfig {
       isFullScreen: isFullScreen ?? this.isFullScreen,
       requiresAuth: requiresAuth ?? this.requiresAuth,
       middlewares: middlewares ?? this.middlewares,
-      transition: transition ?? this.transition,
       transitionDuration: transitionDuration ?? this.transitionDuration,
       showInSidebar: showInSidebar ?? this.showInSidebar,
       sidebarOrder: sidebarOrder ?? this.sidebarOrder,

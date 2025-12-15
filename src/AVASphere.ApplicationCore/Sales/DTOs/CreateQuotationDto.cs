@@ -32,7 +32,7 @@ public class CreateQuotationDto
     // Lista de productos simplificada (se serializa a JSONB)
     public List<SingleProductJson>? Products { get; set; }
 
-    // Configuración del sistema (si aplica)
+    // Configuración del sistema
     public int IdConfigSys { get; set; } = 0;
 }
 

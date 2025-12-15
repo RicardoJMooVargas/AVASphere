@@ -40,7 +40,7 @@ class _AppSidebarState extends State<AppSidebar> {
 
   void _logout() {
     NotificationService.showLogoutConfirmation(
-      onConfirm: () => NotificationService.handleLogout(),
+      onConfirm: () => NotificationService.handleLogout(context),
     );
   }
 

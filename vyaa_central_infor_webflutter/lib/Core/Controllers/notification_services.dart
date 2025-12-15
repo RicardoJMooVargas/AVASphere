@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 import 'package:vyaa_central_infor_webflutter/modules/login/services/api/auth.service.dart';
 
 class NotificationService {
@@ -114,7 +115,8 @@ class NotificationService {
   }
 
   /// Maneja la expiración del token y redirecciona al login
-  static void handleTokenExpired() async {
+  /// Requiere BuildContext para usar go_router
+  static void handleTokenExpired(BuildContext context) async {
     debugPrint('⏰ Token expirado - ejecutando logout...');
     
     try {
@@ -163,8 +165,10 @@ class NotificationService {
     // Esperar un momento para que el usuario vea el mensaje
     await Future.delayed(const Duration(milliseconds: 1500));
     
-    // Redirigir al login y limpiar el stack de navegación
-    Get.offAllNamed('/login');
+    // Redirigir al login usando go_router
+    if (context.mounted) {
+      context.go('/login');
+    }
   }
 
   /// Muestra un diálogo de confirmación para logout
@@ -204,7 +208,8 @@ class NotificationService {
   }
 
   /// Maneja el logout manual del usuario
-  static void handleLogout() async {
+  /// Requiere BuildContext para usar go_router
+  static void handleLogout(BuildContext context) async {
     try {
       // Crear instancia de AuthService y ejecutar logout
       final authService = AuthService();
@@ -215,9 +220,11 @@ class NotificationService {
       // Esperar un momento para que el usuario vea el mensaje
       await Future.delayed(const Duration(milliseconds: 500));
       
-      // Redirigir a la ruta raíz y limpiar el stack de navegación
+      // Redirigir a la ruta raíz usando go_router
       debugPrint('🏠 Redirigiendo a ruta raíz "/"');
-      Get.offAllNamed('/');
+      if (context.mounted) {
+        context.go('/');
+      }
       
     } catch (e, stackTrace) {
       debugPrint('❌ ERROR durante el logout: $e');

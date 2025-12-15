@@ -1,9 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import '../services/system_init.service.dart';
+import 'package:go_router/go_router.dart';
 import '../controllers/server_status.controller.dart';
-import '../middlewares/global_init.middleware.dart';
 
 class ServerErrorScreen extends StatefulWidget {
   const ServerErrorScreen({super.key});
@@ -176,11 +174,10 @@ class _ServerErrorScreenState extends State<ServerErrorScreen> {
     try {
       debugPrint('🔄 Reintentando conexión con el servidor...');
       
-      // Resetear el estado de inicialización para forzar nueva verificación
-      GlobalInitMiddleware.reset();
-      
       // Volver a la pantalla de inicialización para verificar el estado
-      Get.offAllNamed('/');
+      if (mounted) {
+        context.go('/');
+      }
       
     } catch (e) {
       debugPrint('❌ Error al reintentar: $e');
@@ -245,11 +242,18 @@ class _ServerErrorScreenState extends State<ServerErrorScreen> {
   void _continueWithoutVerification() {
     debugPrint('🚧 Continuando sin verificación de servidor (modo debug)');
     
-    // Marcar servidor como disponible y continuar al login
-    final serverStatus = Get.find<ServerStatusController>();
-    serverStatus.markServerAvailable();
+    // Marcar servidor como disponible (si el controlador está disponible)
+    try {
+      final serverStatus = ServerStatusController();
+      serverStatus.markServerAvailable();
+    } catch (e) {
+      debugPrint('⚠️ No se pudo marcar servidor como disponible: $e');
+    }
     
-    Get.offAllNamed('/login');
+    // Continuar al login usando go_router
+    if (mounted) {
+      context.go('/login');
+    }
   }
 }
 

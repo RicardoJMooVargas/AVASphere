@@ -44,7 +44,6 @@ namespace AVASphere.WebApi.Sale.Controllers
         /// <returns>Lista filtrada y paginada de ventas combinadas.</returns>*/
         [HttpGet("GetSalesExternal")]
         public async Task<IActionResult> GetSalesExternal(
-            [FromQuery] string? catalogo,
             [FromQuery] DateTime? fecha = null,
             [FromQuery] string? search = null,
             [FromQuery] string? customerName = null,
@@ -58,9 +57,8 @@ namespace AVASphere.WebApi.Sale.Controllers
         {
             try
             {
-                // Validar catálogo obligatorio
-                if (string.IsNullOrWhiteSpace(catalogo))
-                    return BadRequest(new { success = false, error = "El parámetro 'catalogo' es obligatorio." });
+                // Catálogo fijo automático
+                const string catalogo = "AVA01";
 
                 // Construir filtro
                 var filter = new SaleFilterDto

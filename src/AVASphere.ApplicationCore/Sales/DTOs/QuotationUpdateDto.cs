@@ -54,12 +54,17 @@ public class QuotationUpdateDto
 
     /// <summary>
     /// Nuevos seguimientos a agregar (opcional).
-    /// Cambio: Renombrado de "Followups" a "FollowupsToAdd" para ser explícito
-    /// sobre la intención (agregar, no reemplazar).
-    /// Cambio: QuotationFollowupsJson en lugar de QuotationsFollowupDto
-    /// porque esa es la estructura de la entidad.
+    /// Cambio: Usa QuotationFollowupCreateDto que NO incluye el campo Id
+    /// porque se genera automáticamente en el servidor.
     /// </summary>
-    public List<QuotationFollowupsJson>? FollowupsToAdd { get; set; }
+    public List<QuotationFollowupCreateDto>? FollowupsToAdd { get; set; }
+
+    /// <summary>
+    /// Seguimientos existentes a editar (opcional).
+    /// Usa QuotationFollowupsJson porque incluye el campo Id necesario
+    /// para identificar cuál seguimiento específico se debe actualizar.
+    /// </summary>
+    public List<QuotationFollowupsJson>? FollowupsToEdit { get; set; }
 
     /// <summary>
     /// IDs de seguimientos a eliminar (opcional).

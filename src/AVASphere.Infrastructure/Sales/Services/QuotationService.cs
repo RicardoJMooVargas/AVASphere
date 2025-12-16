@@ -197,6 +197,7 @@ public class QuotationService : IQuotationService
                           dto.IdConfigSys.HasValue ||
                           (dto.Products != null && dto.Products.Any()) ||
                           (dto.FollowupsToAdd != null && dto.FollowupsToAdd.Any()) ||
+                          (dto.FollowupsToEdit != null && dto.FollowupsToEdit.Any()) ||
                           (dto.FollowupsToDelete != null && dto.FollowupsToDelete.Any());
 
         if (!hasChanges)
@@ -241,18 +242,42 @@ public class QuotationService : IQuotationService
             }
         }
 
-        // Agregar nuevos followups
+        // Editar followups existentes
+        if (dto.FollowupsToEdit != null && dto.FollowupsToEdit.Any())
+        {
+            foreach (var editDto in dto.FollowupsToEdit)
+            {
+                // Buscar el followup existente por Id
+                var existingFollowup = quotation.FollowupsJson.FirstOrDefault(f => f.Id == editDto.Id);
+                if (existingFollowup != null)
+                {
+                    // Actualizar campos del followup existente
+                    existingFollowup.Date = editDto.Date;
+                    existingFollowup.Comment = editDto.Comment;
+                    existingFollowup.UserId = editDto.UserId;
+                    // CreatedAt NO se actualiza, mantiene el original
+                }
+                else
+                {
+                    throw new KeyNotFoundException($"Followup with Id {editDto.Id} not found in quotation {IdQuotation}.");
+                }
+            }
+        }
+
+        // Agregar nuevos followups (sin Id)
         if (dto.FollowupsToAdd != null && dto.FollowupsToAdd.Any())
         {
-            foreach (var f in dto.FollowupsToAdd)
+            foreach (var createDto in dto.FollowupsToAdd)
             {
-                // Si no tiene ID, es uno nuevo
-                if (f.Id == 0)
+                var newFollowup = new QuotationFollowupsJson
                 {
-                    f.Id = await _quotationRepository.GetNextFollowupIdAsync(IdQuotation);
-                    f.CreatedAt = DateTime.UtcNow;
-                }
-                quotation.FollowupsJson.Add(f);
+                    Id = await _quotationRepository.GetNextFollowupIdAsync(IdQuotation),
+                    Date = createDto.Date ?? DateTime.UtcNow,
+                    Comment = createDto.Comment,
+                    UserId = createDto.UserId ?? "system",
+                    CreatedAt = DateTime.UtcNow
+                };
+                quotation.FollowupsJson.Add(newFollowup);
             }
         }
 

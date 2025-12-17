@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vyaa_central_infor_webflutter/Core/theme/app_colors.dart';
+import 'package:vyaa_central_infor_webflutter/core/theme/app_colors.dart';
 
 class LoginHeader extends StatelessWidget {
   final String title;

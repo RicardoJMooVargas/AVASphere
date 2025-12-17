@@ -1,12 +1,12 @@
 // api_endpoints.dart
 import 'package:flutter/foundation.dart';
-import '../Core/core.dart';
+import '../core/core.dart';
 import '../modules/login/models/auth_req.module.dart';
 import '../modules/sales/models/requests/quotation_req.module.dart';
 import '../modules/sales/models/requests/quotation_update_req.module.dart';
 import '../modules/sales/models/requests/create_followup_req.module.dart';
 import '../modules/sales/models/response/quotation_res.module.dart';
-import '../Core/models/responses/customer_res.module.dart';
+import '../core/models/responses/customer_res.module.dart';
 import 'package:vyaa_central_infor_webflutter/configs/config.dart';
 
 class ApiEndpoints {

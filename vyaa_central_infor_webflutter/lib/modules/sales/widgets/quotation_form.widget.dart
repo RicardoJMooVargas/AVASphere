@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/requests/quotation_req.module.dart';
 import '../models/response/quotation_res.module.dart';
-import '../../../Core/widgets/forms/app_form.widget.dart';
-import '../../../Core/widgets/buttons/app_button.widget.dart';
+import '../../../core/widgets/forms/app_form.widget.dart';
+import '../../../core/widgets/buttons/app_button.widget.dart';
 
-import '../../../Core/models/responses/customer_res.module.dart';
-import '../../../Core/services/api/customer.service.dart';
+import '../../../core/models/responses/customer_res.module.dart';
+import '../../../core/services/api/customer.service.dart';
 
-import '../../../Core/services/data/hive.service.dart';
+import '../../../core/services/data/hive.service.dart';
 import '../services/api/quotation_manager.service.dart';
 
-import '../../../Core/theme/app_colors.dart';
+import '../../../core/theme/app_colors.dart';
 
 class QuotationFormWidget extends StatefulWidget {
   final QuotationReq quotationModel;

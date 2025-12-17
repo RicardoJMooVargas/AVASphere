@@ -1,13 +1,13 @@
 // auth_service.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:vyaa_central_infor_webflutter/Core/core.dart';
+import 'package:vyaa_central_infor_webflutter/core/core.dart';
 
 import '../../models/auth_req.module.dart';
 import 'package:vyaa_central_infor_webflutter/configs/config.dart';
-import '../../../../Core/middlewares/global_init.middleware.dart';
-import '../../../../Core/services/data/hive.service.dart';
-import '../../../../Core/models/data/user_session.model.dart';
+import '../../../../core/middlewares/global_init.middleware.dart';
+import '../../../../core/services/data/hive.service.dart';
+import '../../../../core/models/data/user_session.model.dart';
 
 class AuthService {
   /// Login con usuario y contraseña

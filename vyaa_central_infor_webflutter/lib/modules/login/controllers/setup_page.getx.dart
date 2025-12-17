@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../Core/services/data/hive.service.dart';
-import '../../../Core/services/api/system.service.dart';
-import '../../../Core/services/api/api.service.dart';
-import '../../../Core/models/requests/config_sys_req.module.dart';
-import '../../../Core/models/requests/config_admin_req.module.dart';
-import '../../../Core/models/responses/check_init_config.module.dart';
+import '../../../core/services/data/hive.service.dart';
+import '../../../core/services/api/system.service.dart';
+import '../../../core/services/api/api.service.dart';
+import '../../../core/models/requests/config_sys_req.module.dart';
+import '../../../core/models/requests/config_admin_req.module.dart';
+import '../../../core/models/responses/check_init_config.module.dart';
 import '../../../configs/api_endpoints.config.dart';
-import '../../../Core/middlewares/global_init.middleware.dart';
+import '../../../core/middlewares/global_init.middleware.dart';
 
 
 class SetupController extends GetxController {

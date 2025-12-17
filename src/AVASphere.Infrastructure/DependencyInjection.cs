@@ -21,7 +21,6 @@ using Npgsql; // ✅ AGREGAR ESTE USING
 using AVASphere.ApplicationCore.Sales.Interfaces;
 using AVASphere.Infrastructure.Sales.Repositories;
 using AVASphere.Infrastructure.Sales.Services;
-using VYAACentralInforApi.ApplicationCore.Sales.Services;
 
 namespace AVASphere.Infrastructure;
 
@@ -130,6 +129,9 @@ public static class DependencyInjection
 
         services.AddScoped<IQuotationVersionRepository, QuotationVersionRepository>();
         services.AddScoped<IQuotationVersionService, QuotationVersionService>();
+
+        services.AddScoped<IExternalSalesRepository, ExternalSalesRepository>();
+        services.AddScoped<IExternalSalesService, ExternalSalesService>();
     }
 
     private static void AddCommonServices(IServiceCollection services)
@@ -146,10 +148,10 @@ public static class DependencyInjection
         services.AddScoped<ICustomerService, CustomerService>();
         // Servicios de seguridad
         services.AddScoped<IEncryptionService, EncryptionService>();
-        
+
         // Project Category
         services.AddScoped<IProjectCategoryService, ProjectCategoryService>();
         services.AddScoped<IProjectCategoryRepository, ProjectCategoryRepository>();
-        
+
     }
 }

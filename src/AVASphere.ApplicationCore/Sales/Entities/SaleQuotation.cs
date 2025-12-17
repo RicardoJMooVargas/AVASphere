@@ -23,10 +23,10 @@ namespace AVASphere.ApplicationCore.Sales.Entities
 
         [ForeignKey(nameof(IdQuotation))]
         public Quotation? Quotation { get; set; }
-        
+
         [ForeignKey(nameof(IdSale))]
         public Sale? Sale { get; set; }
-        
+
     }
     public class PriceSnapshotJson
     {

@@ -16,12 +16,153 @@ namespace AVASphere.WebApi.Sale.Controllers
     public class SaleManagerController : ControllerBase
     {
         private readonly ISaleService _saleService;
+        private readonly IExternalSalesService _externalSalesService;
         private readonly HttpClient _httpClient;
-        public SaleManagerController(ISaleService saleService, HttpClient httpClient)
+
+        public SaleManagerController(
+            ISaleService saleService,
+            IExternalSalesService externalSalesService,
+            HttpClient httpClient)
         {
             _saleService = saleService;
+            _externalSalesService = externalSalesService ?? throw new ArgumentNullException(nameof(externalSalesService));
             _httpClient = httpClient;
+        }
 
+        /* <summary>
+        /// GET: api/SaleManager/GetSalesExternal
+        /// 
+        /// PROPÓSITO: Endpoint principal que consulta ventas del sistema externo InforAVA,
+        /// las combina con información interna y permite búsquedas/filtrados avanzados.
+        /// 
+        /// MOTIVO:
+        /// 1. INTEGRACIÓN CON SISTEMAS EXTERNOS: Ver qué ventas están en InforAVA
+        /// 2. IDENTIFICAR BRECHAS: Mostrar ventas no importadas internamente
+        /// 3. BÚSQUEDA INTELIGENTE: Search automático (números → folio; texto → cliente)
+        /// 4. FILTRADOS COMPLEJOS: Por monto, satisfacción, estado de vinculación, etc.
+        /// </summary>
+        /// <returns>Lista filtrada y paginada de ventas combinadas.</returns>*/
+        [HttpGet("GetSalesExternal")]
+        public async Task<IActionResult> GetSalesExternal(
+            [FromQuery] DateTime? fecha = null,
+            [FromQuery] string? search = null,
+            [FromQuery] string? customerName = null,
+            [FromQuery] string? folio = null,
+            [FromQuery] bool? isLinked = null,
+            [FromQuery] decimal? minAmount = null,
+            [FromQuery] decimal? maxAmount = null,
+            [FromQuery] int? satisfactionLevel = null,
+            [FromQuery] int? limit = 100,
+            [FromQuery] int? offset = 0)
+        {
+            try
+            {
+                // Catálogo fijo automático
+                const string catalogo = "AVA01";
+
+                // Construir filtro
+                var filter = new SaleFilterDto
+                {
+                    Catalogo = catalogo,
+                    Fecha = fecha,
+                    Search = search,
+                    CustomerName = customerName,
+                    Folio = folio,
+                    IsLinked = isLinked,
+                    MinAmount = minAmount,
+                    MaxAmount = maxAmount,
+                    SatisfactionLevel = satisfactionLevel,
+                    Limit = limit,
+                    Offset = offset
+                };
+
+                // Llamar al servicio con filtros
+                var combinedSales = await _externalSalesService.GetExternalSalesWithInternalDataAsync(filter);
+                var salesList = combinedSales.ToList();
+
+                // Retornar respuesta estructurada
+                return Ok(new
+                {
+                    success = true,
+                    catalogo = filter.Catalogo,
+                    fecha = (filter.Fecha ?? DateTime.UtcNow).ToString("yyyy-MM-dd"),
+                    filtrosAplicados = new
+                    {
+                        search = filter.Search,
+                        customerName = filter.CustomerName,
+                        folio = filter.Folio,
+                        isLinked = filter.IsLinked,
+                        montoMin = filter.MinAmount,
+                        montoMax = filter.MaxAmount,
+                        satisfactionLevel = filter.SatisfactionLevel
+                    },
+                    paginacion = new
+                    {
+                        limit = filter.Limit ?? 100,
+                        offset = filter.Offset ?? 0,
+                        totalResultados = salesList.Count
+                    },
+                    resumen = new
+                    {
+                        totalVentas = salesList.Count,
+                        ventasVinculadas = salesList.Count(c => c.IsLinked),
+                        ventasNoVinculadas = salesList.Count(c => !c.IsLinked)
+                    },
+                    datos = salesList
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(502, new
+                {
+                    success = false,
+                    error = "El sistema externo InforAVA no está disponible.",
+                    detalles = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    error = "Error al procesar la solicitud.",
+                    detalles = ex.Message
+                });
+            }
+        }
+
+
+        // GET: api/SaleManager/VerifyExternalConnection
+        [HttpGet("VerifyExternalConnection")]
+        public async Task<IActionResult> VerifyExternalConnection()
+        {
+            try
+            {
+                var isAvailable = await _externalSalesService.VerifyExternalConnectionAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    available = isAvailable,
+                    mensaje = isAvailable
+                        ? "Sistema externo InforAVA disponible."
+                        : "Sistema externo InforAVA no disponible."
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(502, new
+                {
+                    success = false,
+                    available = false,
+                    mensaje = "No se pudo verificar la conectividad.",
+                    detalles = ex.Message
+                });
+            }
         }
 
         [HttpPost("CreateSale")]
@@ -39,22 +180,15 @@ namespace AVASphere.WebApi.Sale.Controllers
             return CreatedAtAction(nameof(GetById), new { id = created.IdSale }, created);
         }
 
-        [HttpGet("GetByIdSale")]
-        public async Task<ActionResult> GetById(int IdSale)
+        // GET: api/Sale/{id}
+        private async Task<ActionResult> GetById(int IdSale)
         {
             var sale = await _saleService.GetSaleByIdAsync(IdSale);
             if (sale == null) return NotFound();
             return Ok(sale);
         }
 
-        [HttpGet("GetByfolio")]
-        public async Task<ActionResult> GetByFolio(string folio)
-        {
-            var sale = await _saleService.GetSaleByFolioAsync(folio);
-            if (sale == null) return NotFound();
-            return Ok(sale);
-        }
-
+        // DELETE: api/Sale/{id}
         [HttpDelete("DeleteIdSale")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -92,12 +226,8 @@ namespace AVASphere.WebApi.Sale.Controllers
             return CreatedAtAction(nameof(GetById), new { id = created.IdSale }, created);
         }
 
-        [HttpGet("GetSalesExternal")]
-        public async Task<IActionResult> ObtenerVentasPorFecha(
-            [FromQuery] string fecha,
-            [FromQuery] string? folio,
-            [FromQuery] string? nombreCliente,
-            [FromQuery] string? cliente)
+        [HttpGet("ObtenerVentasPorFecha")]
+        public async Task<IActionResult> ObtenerVentasPorFecha([FromQuery] string fecha, [FromQuery] string? folio, [FromQuery] string? nombreCliente, [FromQuery] string? cliente)
         {
             if (string.IsNullOrEmpty(fecha))
                 return BadRequest("El parámetro 'fecha' es requerido.");
@@ -154,94 +284,61 @@ namespace AVASphere.WebApi.Sale.Controllers
             }
         }
 
+
         [HttpGet("External-Detail")]
-        public async Task<IActionResult> ObtenerVentaDetalleExterno(
-            [FromQuery] string NF,
-            [FromQuery] string caja,
-            [FromQuery] string serie,
-            [FromQuery] string folio)
+        public async Task<IActionResult> ObtenerVentaDetalleExterno([FromQuery] string nf, [FromQuery] string caja, [FromQuery] string serie, [FromQuery] string folio)
         {
-            if (string.IsNullOrEmpty(NF) || string.IsNullOrEmpty(caja) ||
-                string.IsNullOrEmpty(serie) || string.IsNullOrEmpty(folio))
-                return BadRequest("Los parámetros 'NF', 'caja', 'serie' y 'folio' son requeridos.");
-
-           
-            string catalogo = "AVA01";
-
-            string url = $"http://apivaa.ddns.net:8080/api/rest/tsm/DetalleVentaV?CATALOGO={catalogo}&NF={NF}&CAJA={caja}&SERIE={serie}&FOLIO={folio}";
-
             try
             {
-                var response = await _httpClient.GetAsync(url);
-
-                if (!response.IsSuccessStatusCode)
-                    return StatusCode((int)response.StatusCode, $"Error al consultar la venta externa: {response.ReasonPhrase}");
-
-                var content = await response.Content.ReadAsStringAsync();
-
-                if (string.IsNullOrWhiteSpace(content))
-                    return BadRequest("La respuesta del servicio externo está vacía.");
-
-                using var document = JsonDocument.Parse(content);
-                var root = document.RootElement;
-
-                JsonElement movimientos;
-                if (root.TryGetProperty("Registros", out var movProp))
-                {
-                    movimientos = movProp;
-                }
-                else if (root.ValueKind == JsonValueKind.Array)
-                {
-                    movimientos = root;
-                }
-                else
-                {
+                // Validar parámetros requeridos
+                if (string.IsNullOrWhiteSpace(nf) || string.IsNullOrWhiteSpace(caja) ||
+                    string.IsNullOrWhiteSpace(serie) || string.IsNullOrWhiteSpace(folio))
                     return BadRequest(new
                     {
-                        Mensaje = "La respuesta no contiene un arreglo de productos válido.",
-                        Ejemplo = content
+                        success = false,
+                        error = "Los parámetros 'NF', 'Caja', 'Serie' y 'Folio' son obligatorios."
                     });
-                }
 
-                var productos = new List<object>();
+                // Obtener detalles a través del repositorio centralizado
+                var detalles = await _externalSalesService.GetSaleDetailAsync(nf, caja, serie, folio);
+                var detallesList = detalles.ToList();
 
-                foreach (var item in movimientos.EnumerateArray())
+                // Retornar respuesta estructurada
+                return Ok(new
                 {
-                    productos.Add(new
-                    {
-                        Mov = item.TryGetProperty("Mov", out var mov) ? mov.GetInt32() : 0,
-                        Codigo = item.TryGetProperty("Codigo", out var cod) ? cod.GetString() ?? string.Empty : string.Empty,
-                        Descripcion = item.TryGetProperty("Descripcion", out var desc) ? desc.GetString() ?? string.Empty : string.Empty,
-                        Unidad = item.TryGetProperty("Unidad", out var uni) ? uni.GetString() ?? string.Empty : string.Empty,
-                        Cantidad = item.TryGetProperty("Cantidad", out var cant) ? cant.GetDouble() : 0,
-                        Tprc = item.TryGetProperty("Tprc", out var tprc) ? tprc.GetInt32() : 0,
-                        Precio = item.TryGetProperty("Precio", out var prec) ? prec.GetDouble() : 0,
-                        Dcto = item.TryGetProperty("Dcto", out var dcto) ? dcto.GetDouble() : 0,
-                        Impto = item.TryGetProperty("Impto", out var impto) ? impto.GetDouble() : 0,
-                        Importe = item.TryGetProperty("Importe", out var imp) ? imp.GetDouble() : 0,
-                        Descuento = item.TryGetProperty("Descuento", out var des) ? des.GetDouble() : 0,
-                        Impuesto = item.TryGetProperty("Impuesto", out var impu) ? impu.GetDouble() : 0,
-                        Total = item.TryGetProperty("Total", out var tot) ? tot.GetDouble() : 0
-                    });
-                }
-
-                return Ok(productos);
+                    success = true,
+                    identificadores = new { nf, caja, serie, folio },
+                    totalProductos = detallesList.Count,
+                    datos = detallesList
+                });
             }
-            catch (HttpRequestException ex)
+            catch (ArgumentException ex)
             {
-                return StatusCode(500, $"Error en la solicitud HTTP: {ex.Message}");
+                return BadRequest(new
+                {
+                    success = false,
+                    error = ex.Message
+                });
             }
-            catch (JsonException ex)
+            catch (InvalidOperationException ex)
             {
-                return StatusCode(500, $"Error al analizar el JSON: {ex.Message}");
+                return StatusCode(502, new
+                {
+                    success = false,
+                    error = "El sistema externo InforAVA no está disponible.",
+                    detalles = ex.Message
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error inesperado: {ex.Message}");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    error = "Error al obtener los detalles de la venta.",
+                    detalles = ex.Message
+                });
             }
         }
-
-
 
     }
 }

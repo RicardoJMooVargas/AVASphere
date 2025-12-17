@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vyaa_central_infor_webflutter/Core/core.dart';
+import 'package:vyaa_central_infor_webflutter/core/core.dart';
 import 'dart:ui';
 import 'package:vyaa_central_infor_webflutter/core/controllers/notification_services.dart';
 import '../services/api/auth.service.dart';

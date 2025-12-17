@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import '../../../../Core/services/api/api.service.dart';
-import '../../../../Core/services/data/hive.service.dart';
+import '../../../../core/services/api/api.service.dart';
+import '../../../../core/services/data/hive.service.dart';
 import '../../../../configs/api_endpoints.config.dart';
 import '../../../../configs/api_response.config.dart';
 import '../../models/requests/quotation_req.module.dart';

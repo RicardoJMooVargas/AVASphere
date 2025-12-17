@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:vyaa_central_infor_webflutter/modules/sales/screens/sale_page.dart';
 
 // Core imports
-import '../Core/screens/system_init_screen.dart';
-import '../Core/screens/server_error_screen.dart';
-import '../Core/screens/not_found_screen.dart';
+import '../core/screens/system_init_screen.dart';
+import '../core/screens/server_error_screen.dart';
+import '../core/screens/not_found_screen.dart';
 
 // Module screens
 import '../modules/login/screens/login_page.dart';
@@ -15,7 +15,7 @@ import '../modules/inventory/screens/inventory_page.dart';
 import '../modules/supply/screens/supply_page.dart';
 
 // Modelo de configuración de rutas
-import '../Core/models/base/route_config.module.dart';
+import '../core/models/base/route_config.module.dart';
 
 /// ========================================
 /// AppRoutes - Configuración Centralizada de Rutas

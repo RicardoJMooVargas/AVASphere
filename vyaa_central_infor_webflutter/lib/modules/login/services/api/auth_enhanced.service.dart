@@ -1,7 +1,7 @@
 // auth_enhanced_service.dart
 import 'dart:convert';
-import 'package:vyaa_central_infor_webflutter/Core/core.dart';
-import 'package:vyaa_central_infor_webflutter/Core/models/responses/login_user_res.module.dart';
+import 'package:vyaa_central_infor_webflutter/core/core.dart';
+import 'package:vyaa_central_infor_webflutter/core/models/responses/login_user_res.module.dart';
 
 import '../../models/auth_req.module.dart';
 import 'package:vyaa_central_infor_webflutter/configs/config.dart';

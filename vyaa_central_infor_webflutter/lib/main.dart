@@ -5,13 +5,13 @@ import 'package:get/get.dart';
 import 'core/theme/app_theme.dart';
 
 // Hive Database
-import 'Core/services/data/hive.service.dart';
+import 'core/services/data/hive.service.dart';
 
 // Servicio de rutas
-import 'Core/services/data/route_app.service.dart';
+import 'core/services/data/route_app.service.dart';
 
 // Servicio de inicialización del sistema
-import 'Core/services/system_init.service.dart';
+import 'core/services/system_init.service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -24,12 +24,23 @@ public class QuotationManagerController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var created = await _quotationService.CreateQuotationAsync(dto, User?.Identity?.Name ?? "system");
-        return CreatedAtRoute(
-            "GetQuotationById",
-            new { id = created.IdQuotation },
-            created
-        );
+        try
+        {
+            var created = await _quotationService.CreateQuotationAsync(dto, User?.Identity?.Name ?? "system");
+            return CreatedAtRoute(
+                "GetQuotationById",
+                new { id = created.IdQuotation },
+                created
+            );
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new 
+            { 
+                error = ex.Message,
+                type = ex.GetType().Name
+            });
+        }
     }
 
     // GET: api/QuotationManager

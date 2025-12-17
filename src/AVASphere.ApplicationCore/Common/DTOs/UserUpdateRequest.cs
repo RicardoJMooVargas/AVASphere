@@ -26,8 +26,7 @@ public class UserUpdateRequest
     [StringLength(100, ErrorMessage = "El campo auxiliar no puede exceder 100 caracteres")]
     public string? Aux { get; set; }
 
-    [StringLength(10, ErrorMessage = "El campo de verificación no puede exceder 10 caracteres")]
-    public string? Verified { get; set; }
+    public bool? Verified { get; set; }
 
     [Range(1, int.MaxValue, ErrorMessage = "El ID del rol debe ser mayor a 0")]
     public int IdRols { get; set; }

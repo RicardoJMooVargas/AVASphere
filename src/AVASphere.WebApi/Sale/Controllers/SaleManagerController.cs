@@ -171,12 +171,10 @@ namespace AVASphere.WebApi.Sale.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // ⚙️ Datos que vendrán desde Swagger (o puedes poner valores por defecto)
             int customerId = int.TryParse(saleDto.CodeClient, out var cId) ? cId : 0;
             string createdByUserId = User?.Identity?.Name ?? "system";
             string salesExecutive = saleDto.Agente ?? "No asignado";
 
-            // ✅ Llamada correcta al servicio con todos los parámetros requeridos
             var created = await _saleService.CreateSaleAsync(saleDto, createdByUserId, customerId, salesExecutive);
 
             return CreatedAtAction(nameof(GetById), new { id = created.IdSale }, created);
@@ -199,7 +197,6 @@ namespace AVASphere.WebApi.Sale.Controllers
             return NoContent();
         }
 
-        // POST: api/Sale/from-quotations
         [HttpPost("CreateFromQuotations")]
         public async Task<IActionResult> CreateFromQuotations(CreateSaleFromQuotationsDto dto)
         {
@@ -228,7 +225,6 @@ namespace AVASphere.WebApi.Sale.Controllers
             var created = await _saleService.CreateSaleFromQuotationsAsync(dto.QuotationIds, sale, User?.Identity?.Name ?? "system");
             return CreatedAtAction(nameof(GetById), new { id = created.IdSale }, created);
         }
-        // Obtiene las ventas por fecha desde la API externa (APIVAA) y verifica si existen en la base de datos.
 
         [HttpGet("ObtenerVentasPorFecha")]
         public async Task<IActionResult> ObtenerVentasPorFecha([FromQuery] string fecha, [FromQuery] string? folio, [FromQuery] string? nombreCliente, [FromQuery] string? cliente)

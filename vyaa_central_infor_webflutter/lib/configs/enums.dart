@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 
 enum HttpMethod { get, post, put, delete, patch }
 
@@ -33,3 +34,36 @@ enum LayoutType {
   clean,       // Layout limpio sin elementos adicionales
 }
 
+/// Enum para los estados de cotización
+enum StatusEnum {
+  pending(1, 'Pendiente', Color(0xFFFFA500)), // Naranja
+  accepted(2, 'Aceptado', Color(0xFF008000)), // Verde
+  rejected(3, 'Rechazado', Color(0xFFFF0000)); // Rojo
+
+  const StatusEnum(this.value, this.displayName, this.color);
+  final int value;
+  final String displayName;
+  final Color color;
+
+  static StatusEnum fromValue(int value) {
+    return StatusEnum.values.firstWhere(
+          (status) => status.value == value,
+      orElse: () => StatusEnum.pending,
+    );
+  }
+
+  static String getDisplayName(int value) {
+    return fromValue(value).displayName;
+  }
+
+  static Color getColor(int value) {
+    return fromValue(value).color;
+  }
+
+  static Color getColorByName(String name) {
+    return StatusEnum.values.firstWhere(
+          (status) => status.displayName.toLowerCase() == name.toLowerCase(),
+      orElse: () => StatusEnum.pending,
+    ).color;
+  }
+}

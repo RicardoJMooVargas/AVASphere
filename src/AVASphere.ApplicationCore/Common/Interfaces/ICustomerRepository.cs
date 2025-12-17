@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.General;
+﻿﻿﻿using AVASphere.ApplicationCore.Common.Entities.General;
 namespace AVASphere.ApplicationCore.Common.Interfaces;
 
 public interface ICustomerRepository
@@ -22,7 +22,13 @@ public interface ICustomerRepository
     Task<int> GetNextIndexForDirectionAsync();
     Task<int> GetNextIndexForPaymentMethodsAsync();
     Task<int> GetNextIndexForPaymentTermsAsync();
+    
+    // Método para obtener el siguiente ExternalId disponible
+    Task<int> GetNextExternalIdAsync();
 
     // 👇 Nuevo método
     Task<Customer?> FindByNameOrCodeAsync(string clienteCodeOrName);
+
+    // Búsqueda inteligente por coincidencia de texto en nombre completo
+    Task<IEnumerable<Customer>> SearchByFullNameAsync(string searchText);
 }

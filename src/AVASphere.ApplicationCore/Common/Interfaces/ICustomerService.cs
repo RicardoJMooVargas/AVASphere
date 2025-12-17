@@ -15,4 +15,7 @@ public interface ICustomerService
 
     // 4) Eliminar un cliente por Id
     Task<bool> DeleteAsync(int idCustomer);
+
+    // 5) Búsqueda inteligente por nombre completo
+    Task<IEnumerable<CustomerDto>> SearchAsync(string searchText);
 }

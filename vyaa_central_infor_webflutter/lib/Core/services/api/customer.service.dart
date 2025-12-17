@@ -1,79 +1,66 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../data/cache.service.dart';
-import '../../../configs/api_settings.config.dart';
+import 'package:flutter/foundation.dart';
+import '../../../configs/api_endpoints.config.dart';
 import '../../../configs/api_response.config.dart';
 import '../../models/responses/customer_res.module.dart';
-import '../../Controllers/notification_services.dart';
+import 'api.service.dart';
 
 class CustomerService {
-  final ApiSettings _settings;
 
-  CustomerService([ApiSettings? settings]) : _settings = settings ?? ApiSettings();
-
-  Uri _url(String path, [Map<String, String>? queryParameters]) {
-    return Uri.parse('${_settings.baseUrl}$path').replace(queryParameters: queryParameters);
-  }
-
+  /// Busca clientes por nombre usando el endpoint tipado
+  /// Retorna una lista de clientes que coincidan con el término de búsqueda
+  /// Utiliza requestWithModel para manejo correcto de tipos genéricos
+  ///
+  /// Ejemplo de uso:
+  /// ```dart
+  /// final customerService = CustomerService();
+  /// try {
+  ///   final response = await customerService.searchCustomers(name: 'Juan');
+  ///   if (response.success) {
+  ///     final customers = response.data!;
+  ///     print('Clientes encontrados: ${customers.length}');
+  ///   }
+  /// } catch (e) {
+  ///   print('Error: $e');
+  /// }
+  /// ```
   Future<ApiResponse<List<CustomerRes>>> searchCustomers({
     required String name,
   }) async {
     try {
-      // Validar que el nombre tenga al menos 3 caracteres
+      // Validar que el nombre tenga al menos 2 caracteres
       if (name.isEmpty) {
         return ApiResponse.error('El término de búsqueda no puede estar vacío');
       }
 
       if (name.length < 2) {
-        return ApiResponse.error('Ingrese al menos 3 caracteres para realizar la búsqueda');
-      }
-  
-      final token = await CacheService.getToken();
-      if (token == null) {
-        return ApiResponse.error('No hay token guardado: Debe iniciar sesión');
+        return ApiResponse.error('Ingrese al menos 2 caracteres para realizar la búsqueda');
       }
 
-      final Map<String, String> queryParameters = {
-        'name': name,
-      };
+      debugPrint('🔍 Buscando clientes con texto: "$name"');
 
-      final uri = _url('/api/customer/search', queryParameters);
+      // Usar el endpoint correcto para búsqueda de clientes
+      final endpoint = ApiEndpoints.system.customer.search;
 
-      final headers = Map<String, String>.from(_settings.headers);
-      headers['Authorization'] = 'Bearer $token';
-
-      final response = await http.get(
-        uri,
-        headers: headers,
+      // Usar requestWithModel para un manejo correcto de tipos genéricos
+      final apiResponse = await ApiService.requestWithModel<List<CustomerRes>, Map<String, dynamic>>(
+        endpoint,
+        model: {'searchText': name}, // Para endpoints con useQuery: true, se pasa como model
       );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> jsonResponse = json.decode(response.body);
-        final customers = jsonResponse.map((json) => CustomerRes.fromJson(json)).toList();
-        return ApiResponse.success(customers);
+      if (!apiResponse.success) {
+        debugPrint('❌ Error en búsqueda de clientes: ${apiResponse.message}');
+        return ApiResponse.error(apiResponse.message ?? 'Error al buscar clientes');
       }
 
-      // Si el servidor devuelve 400 (Bad Request) por nombre vacío o muy corto
-      if (response.statusCode == 400) {
-        return ApiResponse.error('Término de búsqueda inválido: Ingrese al menos 3 caracteres');
-      }
+      // La respuesta ya viene correctamente tipada gracias a requestWithModel
+      final customers = apiResponse.data ?? <CustomerRes>[];
 
-      // If token is invalid, handle token expiration
-      if (response.statusCode == 401) {
-        NotificationService.handleTokenExpired();
-        return ApiResponse.error('Token expirado');
-      }
-
-      final errorMessage = ApiResponse.getErrorMessage(response.statusCode, response.body);
-      return ApiResponse.error(errorMessage);
+      debugPrint('✅ Clientes encontrados: ${customers.length}');
+      return ApiResponse.success(customers);
+      
     } catch (e) {
-      if (e.toString().contains('SocketException') || e.toString().contains('TimeoutException')) {
-        return ApiResponse.error('Error de conexión: Verifique su conexión a internet');
-      } else if (e.toString().contains('FormatException')) {
-        return ApiResponse.error('Error en el formato de respuesta del servidor');
-      } else {
-        return ApiResponse.error('Error inesperado: ${e.toString()}');
-      }
+      debugPrint('❌ Error inesperado en búsqueda de clientes: $e');
+      return ApiResponse.error('Error inesperado: ${e.toString()}');
     }
   }
 }

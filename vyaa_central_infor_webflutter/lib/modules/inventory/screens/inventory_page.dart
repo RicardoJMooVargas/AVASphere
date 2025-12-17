@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../Core/theme/app_colors.dart';
+import '../../../Core/Widgets/system/app_navbar.widget.dart';
 
 class InventoryPage extends StatelessWidget {
   const InventoryPage({super.key});
@@ -8,12 +9,9 @@ class InventoryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text('Módulo de Inventario'),
+      appBar: AppNavbarWidget(
+        title: 'Módulo de Inventario',
         backgroundColor: AppColors.secondaryColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: Column(

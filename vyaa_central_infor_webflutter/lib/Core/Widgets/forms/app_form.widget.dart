@@ -1,4 +1,5 @@
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -140,6 +141,7 @@ class _AppFormState extends State<AppForm> {
   // 👇 Estado para sugerencias
   final Map<FormFieldConfig, List<dynamic>> _suggestions = {};
   final Map<FormFieldConfig, bool> _isLoading = {};
+  final Map<FormFieldConfig, Timer?> _debounceTimers = {};
 
   @override
   void initState() {
@@ -154,12 +156,21 @@ class _AppFormState extends State<AppForm> {
   }
 
   @override
+  void dispose() {
+    // Cancelar todos los timers activos
+    for (final timer in _debounceTimers.values) {
+      timer?.cancel();
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
       child: SingleChildScrollView(
         physics: widget.physics,
-        padding: widget.padding ?? const EdgeInsets.all(16.0),
+        padding: widget.padding ??  EdgeInsets.zero,
         child: Column(
           crossAxisAlignment: widget.crossAxisAlignment,
           children: [
@@ -287,13 +298,51 @@ class _AppFormState extends State<AppForm> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
           ),
           enabled: config.enabled,
-          onChanged: (value) async {
+          onChanged: (value) {
             if (config.onSearch == null) return;
+            
+            // Cancelar timer anterior si existe
+            _debounceTimers[config]?.cancel();
+            
+            // Si el valor está vacío, limpiar sugerencias
+            if (value.trim().isEmpty) {
+              setState(() {
+                _suggestions[config] = [];
+                _isLoading[config] = false;
+              });
+              return;
+            }
+            
+            // Si el valor es muy corto, no buscar
+            if (value.length < 2) {
+              setState(() {
+                _suggestions[config] = [];
+                _isLoading[config] = false;
+              });
+              return;
+            }
+            
+            // Mostrar loading
             setState(() => _isLoading[config] = true);
-            final results = await config.onSearch!.call(value);
-            setState(() {
-              _suggestions[config] = results;
-              _isLoading[config] = false;
+            
+            // Crear nuevo timer con debounce de 500ms
+            _debounceTimers[config] = Timer(const Duration(milliseconds: 500), () async {
+              try {
+                final results = await config.onSearch!.call(value);
+                if (mounted) {
+                  setState(() {
+                    _suggestions[config] = results;
+                    _isLoading[config] = false;
+                  });
+                }
+              } catch (e) {
+                if (mounted) {
+                  setState(() {
+                    _suggestions[config] = [];
+                    _isLoading[config] = false;
+                  });
+                }
+              }
             });
           },
           validator: config.validator ?? (config.isRequired ? (value) {
@@ -324,15 +373,26 @@ class _AppFormState extends State<AppForm> {
               itemBuilder: (context, index) {
                 final item = _suggestions[config]![index];
                 final label = config.itemToString?.call(item) ?? item.toString();
-                return ListTile(
-                  title: Text(label),
+                return InkWell(
                   onTap: () {
+                    // Actualizar el texto del campo
                     controller.text = label;
+                    // Ejecutar callback de selección
                     config.onItemSelected?.call(item);
+                    // Limpiar sugerencias
                     setState(() {
                       _suggestions[config] = [];
                     });
+                    // Quitar foco del campo
+                    FocusScope.of(context).unfocus();
                   },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Text(
+                      label,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
                 );
               },
             ),

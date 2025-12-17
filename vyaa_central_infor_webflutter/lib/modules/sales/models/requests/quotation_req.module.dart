@@ -34,15 +34,35 @@ class QuotationReq {
     required this.saleDate,
   });
 
-  /// Produce a Map ready for JSON encoding (solo campos necesarios según el JSON)
+  /// Produce a Map ready for JSON encoding según la estructura del backend
   Map<String, dynamic> toJson() {
     final folioValue = int.tryParse(folioController.text.trim()) ?? 0;
+    final customerIdValue = int.tryParse(customer.customerIdController.text.trim()) ?? 0;
+    final isNewCustomer = customerIdValue == 0;
+
     return {
       'folio': folioValue,
-      'saleDate': saleDate.toIso8601String(),
+      'saleDate': saleDate.toIso8601String().split('T')[0], // Solo la fecha YYYY-MM-DD
+      'status': 1, // Por defecto 1
       'generalComment': generalCommentController.text.trim(),
-      'customer': customer.toJson(),
+      'customerId': isNewCustomer ? 0 : customerIdValue,
+      'newCustomers': isNewCustomer ? [
+        {
+          'customerId': 0,
+          'codeCustomer': customer.codeController.text.trim(),
+          'name': customer.fullNameController.text.trim(),
+          'email': customer.emailController.text.trim(),
+          'phone': customer.phoneController.text.trim(),
+          'direction': '', // Por ahora vacío, se puede agregar después
+        }
+      ] : null,
+      'salesExecutives': salesExecutiveControllers
+          .map((controller) => controller.text.trim())
+          .where((executive) => executive.isNotEmpty)
+          .toList(),
       'followups': followups.map((followup) => followup.toJson()).toList(),
+      'products': <Map<String, dynamic>>[], // Vacío por ahora
+      'idConfigSys': 0, // Se establecerá en el servicio
     };
   }
 

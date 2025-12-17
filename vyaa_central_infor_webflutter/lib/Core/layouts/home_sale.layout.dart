@@ -12,15 +12,18 @@ import 'package:flutter/material.dart';
 /// - Columna derecha: 70% del ancho
 ///   - Header derecho: 15% de la altura
 ///   - Body derecho: 85% de la altura
-class HomeLayout extends StatelessWidget {
-  /// Widget para la columna izquierda (sidebar).
-  final Widget leftColumn;
-  
+class HomeSaleLayout extends StatelessWidget {
+  /// Widget para la columna izquierda (sidebar). Opcional.
+  final Widget? leftColumn;
+
   /// Widget para la sección superior derecha (header).
   final Widget rightHeader;
   
   /// Widget para la sección inferior derecha (body principal).
   final Widget rightBody;
+
+  /// AppBar opcional para el Scaffold.
+  final PreferredSizeWidget? appBar;
 
   /// Color de fondo del layout.
   final Color? backgroundColor;
@@ -31,19 +34,29 @@ class HomeLayout extends StatelessWidget {
   /// Ancho de los bordes entre secciones.
   final double borderWidth;
 
-  /// Crea un [HomeLayout] con las tres secciones especificadas.
+  /// Crea un [HomeSaleLayout] con las tres secciones especificadas.
   /// 
   /// Ejemplo de uso:
   /// ```dart
-  /// HomeLayout(
+  /// // Con sidebar
+  /// HomeSaleLayout(
+  ///   appBar: MyAppBar(),
   ///   leftColumn: MySidebar(),
   ///   rightHeader: MyHeader(),
   ///   rightBody: MyDataTable(),
   /// )
+  ///
+  /// // Sin sidebar (ancho completo)
+  /// HomeSaleLayout(
+  ///   appBar: MyAppBar(),
+  ///   rightHeader: MyHeader(),
+  ///   rightBody: MyDataTable(),
+  /// )
   /// ```
-  const HomeLayout({
+  const HomeSaleLayout({
     Key? key,
-    required this.leftColumn,
+    this.appBar,
+    this.leftColumn,
     required this.rightHeader,
     required this.rightBody,
     this.backgroundColor,
@@ -53,60 +66,65 @@ class HomeLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
-      child: Row(
-        children: [
-          // === COLUMNA IZQUIERDA (30%) ===
-          Expanded(
-            flex: 3,
-            child: Container(
-              decoration: borderWidth > 0 ? BoxDecoration(
-                border: Border(
-                  right: BorderSide(
-                    color: borderColor,
-                    width: borderWidth,
-                  ),
-                ),
-              ) : null,
-              child: leftColumn,
-            ),
-          ),
-
-          // === COLUMNA DERECHA (70%) ===
-          Expanded(
-            flex: 7,
-            child: Column(
-              children: [
-                // --- HEADER DERECHO (10% altura) ---
-                Expanded(
-                  flex: 10,
-                  child: Container(
-                    width: double.infinity,
-                    decoration: borderWidth > 0 ? BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: borderColor,
-                          width: borderWidth,
-                        ),
+    return Scaffold(
+      appBar: appBar,
+      backgroundColor: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
+      body: Container(
+        color: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
+        child: Row(
+          children: [
+            // === COLUMNA IZQUIERDA (30%) - Solo si se proporciona ===
+            if (leftColumn != null)
+              Expanded(
+                flex: 3,
+                child: Container(
+                  decoration: borderWidth > 0 ? BoxDecoration(
+                    border: Border(
+                      right: BorderSide(
+                        color: borderColor,
+                        width: borderWidth,
                       ),
-                    ) : null,
-                    child: rightHeader,
-                  ),
+                    ),
+                  ) : null,
+                  child: leftColumn,
                 ),
+              ),
 
-                // --- BODY DERECHO (90% altura) ---
-                Expanded(
-                  flex: 90,
-                  child: Container(
-                    width: double.infinity,
-                    child: rightBody,
+            // === COLUMNA DERECHA (70% o 100% si no hay leftColumn) ===
+            Expanded(
+              flex: leftColumn != null ? 7 : 10,
+              child: Column(
+                children: [
+                  // --- HEADER DERECHO (10% altura) ---
+                  Expanded(
+                    flex: 10,
+                    child: Container(
+                      width: double.infinity,
+                      decoration: borderWidth > 0 ? BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: borderColor,
+                            width: borderWidth,
+                          ),
+                        ),
+                      ) : null,
+                      child: rightHeader,
+                    ),
                   ),
-                ),
-              ],
+
+                  // --- BODY DERECHO (90% altura) ---
+                  Expanded(
+                    flex: 90,
+                    child: Container(
+                      width: double.infinity,
+                      child: rightBody,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -214,7 +232,7 @@ class HomeLayoutDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: HomeLayout(
+      body: HomeSaleLayout(
         leftColumn: const UnderConstructionCard(
           title: 'Navegación',
           description: 'Menú lateral y opciones de navegación',

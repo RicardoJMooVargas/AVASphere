@@ -33,6 +33,11 @@ public class QuotationService : IQuotationService
     {
         if (dto is null) throw new ArgumentNullException(nameof(dto));
 
+        // ✅ Validar que el folio no exista
+        var folioExists = await _quotationRepository.QuotationExistsByFolioAsync(dto.Folio);
+        if (folioExists)
+            throw new Exception($"Ya existe una cotización con el folio {dto.Folio}. Por favor, use un folio diferente.");
+
         Customer? customer = null;
 
         if (dto.CustomerId > 0)
@@ -49,9 +54,9 @@ public class QuotationService : IQuotationService
 
             var nc = dto.NewCustomers.First();
 
-            // Validaciones mínimas
-            if (string.IsNullOrWhiteSpace(nc.Name))
-                throw new Exception("El nombre del cliente es obligatorio para crear uno nuevo.");
+                // Validaciones mínimas
+                if (string.IsNullOrWhiteSpace(nc.Name))
+                    throw new Exception("El nombre del cliente es obligatorio para crear uno nuevo.");
 
             // Crear nuevo customer
             customer = new Customer
@@ -74,7 +79,7 @@ public class QuotationService : IQuotationService
             customer = await _customerRepository.InsertAsync(customer);
         }
 
-        // 4️⃣ Crear Quotation
+        // 5️⃣ Crear Quotation
         var quotation = new Quotation
         {
             Folio = dto.Folio,
@@ -92,14 +97,15 @@ public class QuotationService : IQuotationService
 
         var createdQuotation = await _quotationRepository.CreateQuotationAsync(quotation);
 
-        // 5️⃣ Agregar followups (opcional)
+        // 6️⃣ Agregar followups iniciales (opcional)
         if (dto.Followups != null && dto.Followups.Any())
         {
+            int followupIdCounter = 1;
             foreach (var f in dto.Followups)
             {
                 createdQuotation.FollowupsJson.Add(new QuotationFollowupsJson
                 {
-                    Id = await _quotationRepository.GetNextFollowupIdAsync(createdQuotation.IdQuotation),
+                    Id = followupIdCounter++,
                     Date = f.Date ?? DateTime.UtcNow,
                     Comment = f.Comment,
                     UserId = f.UserId ?? createdByUserId,
@@ -110,31 +116,29 @@ public class QuotationService : IQuotationService
             await _quotationRepository.UpdateQuotationAsync(createdQuotation);
         }
 
-        // 6️⃣ Crear versión
+        // 7️⃣ Crear versión inicial si hay productos
         if (dto.Products != null && dto.Products.Any())
         {
             var version = new QuotationVersion
             {
                 IdQuotation = createdQuotation.IdQuotation,
-                VersionNumber = await _versionRepository.GetNextVersionNumberAsync(createdQuotation.IdQuotation),
+                VersionNumber = 1,
                 CreatedBy = createdByUserId,
                 CreatedAt = DateTime.UtcNow,
                 ProductsJson = dto.Products.ToList(),
-                // NO establecer Quotation ni QuotationDataJson aquí (evita ciclos)
                 Quotation = null,
                 QuotationDataJson = null
             };
             await _versionRepository.CreateAsync(version);
         }
 
-        // 5) Releer la cotización con versiones (para retorno coherente)
+        // 8️⃣ Releer la cotización con versiones
         var result = await _quotationRepository.GetByIdAsync(createdQuotation.IdQuotation);
 
-        // Asegurar null-check para evitar CS8603
         if (result == null)
             throw new Exception($"Error inesperado: la cotización {createdQuotation.IdQuotation} no pudo ser recuperada después de ser creada.");
 
-        // 6) SANITIZAR: eliminar referencias circulares antes de devolver
+        // 9️⃣ SANITIZAR: eliminar referencias circulares antes de devolver
         result.Customer = null;
         result.ConfigSys = null;
 
@@ -147,8 +151,7 @@ public class QuotationService : IQuotationService
             }
         }
 
-        return result;  // <--- Ya NO marca warning
-
+        return result;
     }
 
 
@@ -290,7 +293,6 @@ public class QuotationService : IQuotationService
         return quotation;
     }
 
-    // 🔹 Obtener por ID (solo lectura)
     public async Task<Quotation> GetByIdAsync(int IdQuotation)
     {
         var quotation = await _quotationRepository.GetByIdAsync(IdQuotation);

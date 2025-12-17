@@ -143,6 +143,19 @@ public class CustomerRepository : ICustomerRepository
         return maxIndex + 1;
     }
 
+    public async Task<int> GetNextExternalIdAsync()
+    {
+        // Traer datos a memoria primero para evitar problemas de traducción LINQ
+        var externalIds = await _context.Customers
+            .AsNoTracking()
+            .Select(c => c.ExternalId)
+            .ToListAsync();
+
+        var maxExternalId = externalIds.DefaultIfEmpty(0).Max();
+
+        return maxExternalId + 1;
+    }
+
     public async Task<Customer?> FindByNameOrCodeAsync(string clienteCodeOrName)
     {
         if (string.IsNullOrWhiteSpace(clienteCodeOrName))
@@ -162,7 +175,22 @@ public class CustomerRepository : ICustomerRepository
             .FirstOrDefaultAsync(c => c.IdCustomer == idCustomer);
     }
 
+    public async Task<IEnumerable<Customer>> SearchByFullNameAsync(string searchText)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return new List<Customer>();
 
+        // Normalizar texto de búsqueda (quitar espacios extra y convertir a minúsculas)
+        var normalizedSearchText = searchText.Trim().ToLower();
 
+        // Búsqueda usando ILIKE de PostgreSQL para coincidencia parcial
+        var query = _context.Customers
+            .Where(c => 
+                EF.Functions.ILike((c.Name ?? "") + " " + (c.LastName ?? ""), $"%{normalizedSearchText}%") ||
+                EF.Functions.ILike(c.Name ?? "", $"%{normalizedSearchText}%") ||
+                EF.Functions.ILike(c.LastName ?? "", $"%{normalizedSearchText}%")
+            );
 
+        return await query.AsNoTracking().ToListAsync();
+    }
 }

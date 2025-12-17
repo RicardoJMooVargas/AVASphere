@@ -67,7 +67,7 @@ public class MasterDbContext : DbContext
         modelBuilder.ApplyConfiguration(new ProductEntitieConfig());
         modelBuilder.ApplyConfiguration(new ProductPropertiesEntitieConfig());
         //modelBuilder.ApplyConfiguration(new BranchOfficeEntitieConfig());
-        
+
         // Ignorar clases JSON que no son entidades
         modelBuilder.Ignore<PaymentMethodsJson>();
         modelBuilder.Ignore<PaymentTermsJson>();
@@ -83,12 +83,12 @@ public class MasterDbContext : DbContext
         modelBuilder.Ignore<SingleProductJson>();
         modelBuilder.Ignore<PriceSnapshotJson>();
         modelBuilder.Ignore<SaleJson>();
-        modelBuilder.Ignore<AuxNoteDataJson>();
+        modelBuilder.Ignore<AVASphere.ApplicationCore.Sales.Entities.AuxNoteDataJson>();
         modelBuilder.Ignore<QuotationDataJson>();
         modelBuilder.Ignore<QuotationFollowupsJson>();
         modelBuilder.Ignore<AppointmentJson>();
         modelBuilder.Ignore<VisitsJson>();
-        
+
         // MODULO DE SALES
         modelBuilder.ApplyConfiguration(new QuotationEntitieConfig());
         modelBuilder.ApplyConfiguration(new SaleEntitieConfig());

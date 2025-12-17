@@ -26,8 +26,6 @@ public class Customer
     public List<Project> Projects { get; set; } = new List<Project>();
     public List<Sale> Sales { get; set; } = new List<Sale>();
 
-
-
     // Devuelve ExternalId como string.
     /* Si se necesita un formato o proveedor lo puedes pasar en la sobrecarga.
 

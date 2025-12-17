@@ -5,14 +5,13 @@ namespace AVASphere.ApplicationCore.Sales.Interfaces;
 
 public interface IQuotationService
 {
-    // Operaciones de negocio (usualmente reciben DTOs; aquí muestro con entidades por simplicidad)
+    // Operaciones de negocio
     Task<Quotation> CreateQuotationAsync(CreateQuotationDto createQuotationDto, string createdByUserId);
-    Task<IEnumerable<GetQuotationResponseDto>> GetQuotationsAsync(DateTime? startDate = null, DateTime? endDate = null, string? customerName = null, int? folio = null);
+    Task<IEnumerable<Quotation>> GetQuotationsAsync(QuotationFilterDto? filter = null);
     Task<Quotation?> UpdateIdQuotation(int IdQuotation, QuotationUpdateDto dto);
     Task<Quotation> GetByIdAsync(int IdQuotation);
     Task<bool> DeleteQuotationAsync(int IdQuotation);
 
-    // Reglas de negocio para FollowupsJson (maneja validaciones y auditable)
-    Task<bool> AddFollowupAsync(int quotationId, QuotationFollowupsJson followup, string userId);
+    // Operación para eliminar seguimientos específicos
     Task<bool> DeleteFollowupFromQuotationAsync(int quotationId, int followupId);
 }

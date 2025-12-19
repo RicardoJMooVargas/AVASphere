@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.DTOs;
+﻿﻿using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Common.Enums;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Projects.DTOs;
@@ -15,15 +15,23 @@ public class CatalogsController : ControllerBase
 {
     private readonly IAreaService _areaService;
     private readonly IProjectCategoryService _projectCategoryService;
+    private readonly IPropertyService _propertyService;
+    private readonly IPropertyValueService _propertyValueService;
     private readonly ILogger<CatalogsController> _logger;
-    
-    public CatalogsController(IAreaService areaService,IProjectCategoryService projectCategoryService, ILogger<CatalogsController> logger)
+
+    public CatalogsController(IAreaService areaService, IProjectCategoryService projectCategoryService, IPropertyService propertyService,
+        IPropertyValueService propertyValueService, ILogger<CatalogsController> logger)
     {
         _areaService = areaService;
         _logger = logger;
+        _propertyService = propertyService;
+        _propertyValueService = propertyValueService;
         _projectCategoryService = projectCategoryService;
+        
     }
-    
+
+    //Area Controller
+
     [HttpPost("new-area")]
     public async Task<ActionResult> NewArea([FromBody] AreaRequestDto areaRequest)
     {
@@ -31,14 +39,14 @@ public class CatalogsController : ControllerBase
         {
             _logger.LogInformation("Creating a new area with name: {AreaName}", areaRequest.Name);
             var createdArea = await _areaService.CreateAsync(areaRequest);
-            
-            return CreatedAtAction(nameof(GetAreas), new { id = createdArea.IdArea }, 
+
+            return CreatedAtAction(nameof(GetAreas), new { id = createdArea.IdArea },
                 new ApiResponse(createdArea, "Area created successfully", 201));
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Business rule violation while creating area: {AreaName}", areaRequest.Name);
-            return BadRequest(new ApiResponse(ex.Message, 400));  
+            return BadRequest(new ApiResponse(ex.Message, 400));
         }
         catch (Exception ex)
         {
@@ -46,7 +54,7 @@ public class CatalogsController : ControllerBase
             return StatusCode(500, new ApiResponse("Internal server error", 500));
         }
     }
-    
+
     [HttpGet("get-areas")]
     public async Task<ActionResult> GetAreas([FromQuery] int? id, [FromQuery] string? name)
     {
@@ -58,7 +66,7 @@ public class CatalogsController : ControllerBase
                 var area = await _areaService.GetByIdAsync(id.Value);
                 if (area == null)
                     return NotFound(new ApiResponse($"Area with ID {id} not found", 404));
-            
+
                 return Ok(new ApiResponse(area, "Area retrieved successfully", 200));
             }
 
@@ -68,7 +76,7 @@ public class CatalogsController : ControllerBase
                 var area = await _areaService.GetByNameAsync(name);
                 if (area == null)
                     return NotFound(new ApiResponse($"Area with name '{name}' not found", 404));
-            
+
                 return Ok(new ApiResponse(area, "Area retrieved successfully", 200));
             }
 
@@ -82,7 +90,7 @@ public class CatalogsController : ControllerBase
             return StatusCode(500, new ApiResponse("Internal server error", 500));
         }
     }
-    
+
     [HttpPut("edit-areas/{id}")]
     public async Task<ActionResult> UpdateArea(int id, [FromBody] AreaRequestDto areaRequest)
     {
@@ -108,7 +116,7 @@ public class CatalogsController : ControllerBase
             return StatusCode(500, new ApiResponse("Internal server error", 500));
         }
     }
-    
+
     [HttpDelete("delete-areas/{id}")]
     public async Task<ActionResult> DeleteArea(int id)
     {
@@ -116,12 +124,12 @@ public class CatalogsController : ControllerBase
         {
             _logger.LogInformation("Deleting area with ID: {AreaId}", id);
             var result = await _areaService.DeleteAsync(id);
-            
+
             if (!result)
             {
                 return NotFound(new ApiResponse($"Area with ID {id} not found", 404));
             }
-            
+
             return Ok(new ApiResponse(null, "Area deleted successfully", 200));
         }
         catch (InvalidOperationException ex)
@@ -135,33 +143,36 @@ public class CatalogsController : ControllerBase
             return StatusCode(500, new ApiResponse("Internal server error", 500));
         }
     }
-    
-    
+
+
     //Project Category Controller
-    
+
     [HttpPost("new-projectCategory")]
     public async Task<ActionResult> NewProjectCategory([FromBody] ProjectCategoryRequestDto projectCategoryRequest)
     {
         try
         {
-            _logger.LogInformation("Creating a new category with name: {ProjectCategoryName}", projectCategoryRequest.Name);
+            _logger.LogInformation("Creating a new category with name: {ProjectCategoryName}",
+                projectCategoryRequest.Name);
             var createdProjectCategory = await _projectCategoryService.CreateAsync(projectCategoryRequest);
-            
-            return CreatedAtAction(nameof(GetProjectCategories), new { id = createdProjectCategory.IdProjectCategory }, 
+
+            return CreatedAtAction(nameof(GetProjectCategories), new { id = createdProjectCategory.IdProjectCategory },
                 new ApiResponse(createdProjectCategory, "Project Category created successfully", 201));
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogWarning(ex, "Business rule violation while creating category: {ProjectCategoryName}", projectCategoryRequest.Name);
-            return BadRequest(new ApiResponse(ex.Message, 400));  
+            _logger.LogWarning(ex, "Business rule violation while creating category: {ProjectCategoryName}",
+                projectCategoryRequest.Name);
+            return BadRequest(new ApiResponse(ex.Message, 400));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred while creating category with name: {ProjectCategoryName}", projectCategoryRequest.Name);
+            _logger.LogError(ex, "Error occurred while creating category with name: {ProjectCategoryName}",
+                projectCategoryRequest.Name);
             return StatusCode(500, new ApiResponse("Internal server error", 500));
         }
     }
-    
+
     [HttpGet("get-projectCategory")]
     public async Task<ActionResult> GetProjectCategories([FromQuery] int? id, [FromQuery] string? name)
     {
@@ -173,7 +184,7 @@ public class CatalogsController : ControllerBase
                 var projectCategory = await _projectCategoryService.GetByIdAsync(id.Value);
                 if (projectCategory == null)
                     return NotFound(new ApiResponse($"Project category with ID {id} not found", 404));
-            
+
                 return Ok(new ApiResponse(projectCategory, "Project category retrieved successfully", 200));
             }
 
@@ -183,7 +194,7 @@ public class CatalogsController : ControllerBase
                 var projectCategory = await _projectCategoryService.GetByNameAsync(name);
                 if (projectCategory == null)
                     return NotFound(new ApiResponse($"Project category with name '{name}' not found", 404));
-            
+
                 return Ok(new ApiResponse(projectCategory, "Project category retrieved successfully", 200));
             }
 
@@ -197,9 +208,10 @@ public class CatalogsController : ControllerBase
             return StatusCode(500, new ApiResponse("Internal server error", 500));
         }
     }
-    
+
     [HttpPut("edit-projectCategory/{id}")]
-    public async Task<ActionResult> UpdateProjectCategory(int id, [FromBody] ProjectCategoryRequestDto projectCategoryRequest)
+    public async Task<ActionResult> UpdateProjectCategory(int id,
+        [FromBody] ProjectCategoryRequestDto projectCategoryRequest)
     {
         try
         {
@@ -214,7 +226,8 @@ public class CatalogsController : ControllerBase
         }
         catch (InvalidOperationException opEx)
         {
-            _logger.LogWarning(opEx, "Business rule violation while updating project category: {ProjectCategoryId}", id);
+            _logger.LogWarning(opEx, "Business rule violation while updating project category: {ProjectCategoryId}",
+                id);
             return BadRequest(new ApiResponse(opEx.Message, 400));
         }
         catch (Exception ex)
@@ -223,7 +236,7 @@ public class CatalogsController : ControllerBase
             return StatusCode(500, new ApiResponse("Internal server error", 500));
         }
     }
-    
+
     /*[HttpDelete("delete-projectCategory/{id}")]
     public async Task<ActionResult> DeleteProjectCategory(int id)
     {
@@ -231,12 +244,12 @@ public class CatalogsController : ControllerBase
         {
             _logger.LogInformation("Deleting project category with ID: {ProjectCategoryId}", id);
             var result = await _projectCategoryService.DeleteAsync(id);
-            
+
             if (!result)
             {
                 return NotFound(new ApiResponse($"Project category with ID {id} not found", 404));
             }
-            
+
             return Ok(new ApiResponse(null, "Project category deleted successfully", 200));
         }
         catch (InvalidOperationException ex)
@@ -250,4 +263,261 @@ public class CatalogsController : ControllerBase
             return StatusCode(500, new ApiResponse("Internal server error", 500));
         }
     }*/
+
+    // Property Controller
+    
+    [HttpPost("new-property")] 
+     public async Task<ActionResult> NewProperty([FromBody] PropertyRequestDto propertyRequest)
+      {
+          try
+          {
+              _logger.LogInformation("Creating a new property with name: {PropertyName}",
+                  propertyRequest.Name);
+              var createdProperty = await _propertyService.CreateAsync(propertyRequest);
+
+              return CreatedAtAction(nameof(GetProperties), new { id = createdProperty.IdProperty },
+                  new ApiResponse(createdProperty, "Property created successfully", 201));
+          }
+          catch (InvalidOperationException ex)
+          {
+              _logger.LogWarning(ex, "Business rule violation while creating property: {PropertyName}",
+                  propertyRequest.Name);
+              return BadRequest(new ApiResponse(ex.Message, 400));
+          }
+          catch (Exception ex)
+          {
+              _logger.LogError(ex, "Error occurred while creating property with name: {PropertyName}",
+                  propertyRequest.Name);
+              return StatusCode(500, new ApiResponse("Internal server error", 500));
+          }
+      }
+      
+     [HttpGet("get-property")] 
+      public async Task<ActionResult> GetProperties([FromQuery] int? id, [FromQuery] string? name)
+      {
+          try
+          {
+              if (id.HasValue)
+              {
+                  _logger.LogInformation("Retrieving property with ID: {PropertyId}", id);
+                  var property = await _propertyService.GetByIdAsync(id.Value);
+                  if (property == null)
+                      return NotFound(new ApiResponse($"Property with ID {id} not found", 404));
+
+                  return Ok(new ApiResponse(property, "Property retrieved successfully", 200));
+              }
+
+              if (!string.IsNullOrEmpty(name))
+              {
+                  _logger.LogInformation("Retrieving property with name: {PropertyName}", name);
+                  var property = await _propertyService.GetByNameAsync(name);
+                  if (property == null)
+                      return NotFound(new ApiResponse($"Property with name '{name}' not found", 404));
+
+                  return Ok(new ApiResponse(property, "Property retrieved successfully", 200));
+              }
+
+              _logger.LogInformation("Retrieving all properties");
+              var properties = await _propertyService.GetAllAsync();
+              return Ok(new ApiResponse(properties, "Property retrieved successfully", 200));
+          }
+          catch (Exception ex)
+          {
+              _logger.LogError(ex, "Error retrieving properties");
+              return StatusCode(500, new ApiResponse("Internal server error", 500));
+          }
+      }
+      
+      [HttpPut("edit-property/{id}")]
+      public async Task<ActionResult> UpdateProperty(int id,
+          [FromBody] PropertyRequestDto propertyRequest)
+      {
+          try
+          {
+              _logger.LogInformation("Updating property with ID: {PropertyId}", id);
+              var updatedProperty = await _propertyService.UpdateAsync(id, propertyRequest);
+              return Ok(new ApiResponse(updatedProperty, "Property updated successfully", 200));
+          }
+          catch (KeyNotFoundException keyEx)
+          {
+              _logger.LogWarning(keyEx, "Property not found for update: {PropertyId}", id);
+              return NotFound(new ApiResponse(keyEx.Message, 404));
+          }
+          catch (InvalidOperationException opEx)
+          {
+              _logger.LogWarning(opEx, "Business rule violation while updating property: {PropertyId}",
+                  id);
+              return BadRequest(new ApiResponse(opEx.Message, 400));
+          }
+          catch (Exception ex)
+          {
+              _logger.LogError(ex, "Error updating property with ID: {PropertyId}", id);
+              return StatusCode(500, new ApiResponse("Internal server error", 500));
+          }
+      }
+      
+      [HttpDelete("delete-property/{id}")]
+   public async Task<ActionResult> DeleteProperty(int id)
+   {
+       try
+       {
+           _logger.LogInformation("Deleting property with ID: {PropertyId}", id);
+           var result = await _propertyService.DeleteAsync(id);
+
+           if (!result)
+           {
+               return NotFound(new ApiResponse($"Property with ID {id} not found", 404));
+           }
+
+           return Ok(new ApiResponse(null, "Property deleted successfully", 200));
+       }
+       catch (InvalidOperationException ex)
+       {
+           _logger.LogWarning(ex, "Business rule violation while deleting property: {PropertyId}", id);
+           return BadRequest(new ApiResponse(ex.Message, 400));
+       }
+       catch (Exception ex)
+       {
+           _logger.LogError(ex, "Error deleting property with ID: {PropertyId}", id);
+           return StatusCode(500, new ApiResponse("Internal server error", 500));
+       }
+   }
+    
+    // PropertyValue Controller
+    
+    [HttpGet("get-propertyValue")]
+    public async Task<ActionResult> GetPropertyValues(
+        [FromQuery] int? idPropertyValue, 
+        [FromQuery] string? value, 
+        [FromQuery] string? idPropertyOrName)
+    {
+        try
+        {
+            var filter = new PropertyValueFilterDto
+            {
+                IdPropertyValue = idPropertyValue,
+                Value = value,
+                IdPropertyOrName = idPropertyOrName
+            };
+
+            _logger.LogInformation("Retrieving property values with filters: IdPropertyValue={IdPropertyValue}, Value={Value}, IdPropertyOrName={IdPropertyOrName}", 
+                idPropertyValue, value, idPropertyOrName);
+
+            var propertyValues = await _propertyValueService.GetFilteredAsync(filter);
+            return Ok(new ApiResponse(propertyValues, "Property values retrieved successfully", 200));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving property values");
+            return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
+
+    [HttpPost("new-propertyValue")]
+    public async Task<ActionResult> NewPropertyValue([FromBody] PropertyValueRequestDto propertyValueRequest)
+    {
+        try
+        {
+            _logger.LogInformation("Creating a new property value with value: {Value} for property ID: {IdProperty}", 
+                propertyValueRequest.Value, propertyValueRequest.IdProperty);
+            
+            var createdPropertyValue = await _propertyValueService.CreateAsync(propertyValueRequest);
+
+            return CreatedAtAction(nameof(GetPropertyValues), new { idPropertyValue = createdPropertyValue.IdPropertyValue },
+                new ApiResponse(createdPropertyValue, "Property value created successfully", 201));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Property not found while creating property value");
+            return NotFound(new ApiResponse(ex.Message, 404));
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Business rule violation while creating property value: {Value}", 
+                propertyValueRequest.Value);
+            return BadRequest(new ApiResponse(ex.Message, 400));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred while creating property value with value: {Value}", 
+                propertyValueRequest.Value);
+            return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
+
+    [HttpPut("edit-propertyValue/{id}")]
+    public async Task<ActionResult> UpdatePropertyValue(int id, [FromBody] PropertyValueUpdateDto propertyValueUpdate)
+    {
+        try
+        {
+            _logger.LogInformation("Updating property value with ID: {PropertyValueId}", id);
+            var updatedPropertyValue = await _propertyValueService.UpdateAsync(id, propertyValueUpdate);
+            return Ok(new ApiResponse(updatedPropertyValue, "Property value updated successfully", 200));
+        }
+        catch (KeyNotFoundException keyEx)
+        {
+            _logger.LogWarning(keyEx, "Property value or property not found for update: {PropertyValueId}", id);
+            return NotFound(new ApiResponse(keyEx.Message, 404));
+        }
+        catch (InvalidOperationException opEx)
+        {
+            _logger.LogWarning(opEx, "Business rule violation while updating property value: {PropertyValueId}", id);
+            return BadRequest(new ApiResponse(opEx.Message, 400));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating property value with ID: {PropertyValueId}", id);
+            return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
+
+    [HttpDelete("delete-propertyValue/{id}")]
+    public async Task<ActionResult> DeletePropertyValue(int id)
+    {
+        try
+        {
+            _logger.LogInformation("Deleting property value with ID: {PropertyValueId}", id);
+            var result = await _propertyValueService.DeleteAsync(id);
+
+            if (!result)
+            {
+                return NotFound(new ApiResponse($"Property value with ID {id} not found", 404));
+            }
+
+            return Ok(new ApiResponse(null, "Property value deleted successfully", 200));
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Business rule violation while deleting property value: {PropertyValueId}", id);
+            return BadRequest(new ApiResponse(ex.Message, 400));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting property value with ID: {PropertyValueId}", id);
+            return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
+
+    [HttpDelete("force-delete-propertyValue/{id}")]
+    public async Task<ActionResult> ForceDeletePropertyValue(int id)
+    {
+        try
+        {
+            _logger.LogInformation("Force deleting property value with ID: {PropertyValueId}", id);
+            var result = await _propertyValueService.ForceDeleteAsync(id);
+
+            if (!result)
+            {
+                return NotFound(new ApiResponse($"Property value with ID {id} not found", 404));
+            }
+
+            return Ok(new ApiResponse(null, "Property value force deleted successfully. Related records updated with generic value", 200));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error force deleting property value with ID: {PropertyValueId}", id);
+            return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
+    
 }

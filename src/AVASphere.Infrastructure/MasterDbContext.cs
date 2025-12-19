@@ -49,6 +49,7 @@ public class MasterDbContext : DbContext
     public DbSet<TechnicalDesign> TechnicalDesigns { get; set; } = null!;
     public DbSet<IndividualListingProperties> IndividualListingProperties { get; set; } = null!;
     public DbSet<ListOfProductsToQuot> ListOfProductsToQuot { get; set; } = null!;
+   
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -19,4 +19,8 @@ public interface IPropertyRepository
     
     // Delete
     Task<bool> DeleteAsync(int id);
+    
+    // Relaciones
+    Task<IEnumerable<Property>> GetPropertyValuesByPropertyAsync(int propertyId);
+    
 }

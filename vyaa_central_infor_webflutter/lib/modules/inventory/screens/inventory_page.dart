@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../Core/theme/app_colors.dart';
-import '../../../Core/Widgets/system/app_navbar.widget.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/system/app_navbar.widget.dart';
 
 class InventoryPage extends StatelessWidget {
   const InventoryPage({super.key});

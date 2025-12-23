@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:vyaa_central_infor_webflutter/Core/widgets/buttons/app_button.widget.dart';
+import 'package:vyaa_central_infor_webflutter/core/widgets/buttons/app_button.widget.dart';
 import '../models/response/quotation_res.module.dart';
-import '../../../Core/theme/app_colors.dart';
-import '../../../Core/Widgets/tables/app_table.widget.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/tables/app_table.widget.dart';
 
 class QuotationListWidget extends StatefulWidget {
   final List<QuotationRes> quotations;

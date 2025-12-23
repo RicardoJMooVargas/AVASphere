@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/response/quotation_res.module.dart';
-import '../../../Core/theme/app_colors.dart';
-import '../../../Core/Widgets/Buttons/app_button.widget.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/buttons/app_button.widget.dart';
 
 class QuotationDetailWidget extends StatelessWidget {
   final QuotationRes quotation;

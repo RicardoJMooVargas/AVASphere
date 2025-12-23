@@ -8,5 +8,5 @@ public class Property
     
     
     // RELACIONES
-    public ICollection<PropertyValue> CatalogValue { get; set; } = new List<PropertyValue>();
+    public ICollection<PropertyValue> CatalogValue { get; set; } = new List<PropertyValue>(); //Cambiar el nombre de la variable por PropertyValue
 }

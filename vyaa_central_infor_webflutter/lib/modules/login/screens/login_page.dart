@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:vyaa_central_infor_webflutter/Core/core.dart';
+import 'package:go_router/go_router.dart';
+import 'package:vyaa_central_infor_webflutter/core/core.dart';
 import 'dart:ui';
 import 'package:vyaa_central_infor_webflutter/core/controllers/notification_services.dart';
 import '../services/api/auth.service.dart';
@@ -32,15 +32,52 @@ class _LoginPageState extends State<LoginPage> {
       final response = await service.login(_authModel);
 
       if (response.success) {
-        NotificationService.showSuccess('Inicio de sesión exitoso');
-        Get.offAllNamed('/home');
+        // Navegar al home directamente sin mostrar notificación
+        debugPrint('✅ Login exitoso - Navegando al dashboard');
+        if (mounted) {
+          context.go('/app/home');
+        }
       } else {
-        NotificationService.showError(
-          response.message ?? 'Error al iniciar sesión',
-        );
+        // Solo mostrar errores cuando falla el login
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(response.message ?? 'Error al iniciar sesión'),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.red.shade700,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       }
     } catch (e) {
-      NotificationService.showError('Error inesperado: ${e.toString()}');
+      debugPrint('❌ Error en login: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Error inesperado: ${e.toString()}'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red.shade700,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -239,9 +276,19 @@ class _LoginPageState extends State<LoginPage> {
         // Enlace de ayuda
         GestureDetector(
           onTap: () {
-            // Navegar a pantalla de ayuda o mostrar diálogo
-            NotificationService.showInfo(
-              'Funcionalidad de ayuda en desarrollo',
+            // Mostrar diálogo de ayuda sin usar GetX
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Ayuda'),
+                content: const Text('Funcionalidad de ayuda en desarrollo'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
             );
           },
           child: Text(

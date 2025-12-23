@@ -146,6 +146,12 @@ public static class DependencyInjection
         services.AddScoped<IRolService, RolService>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<IPropertyRepository, PropertyRepository>();
+        services.AddScoped<IPropertyService, PropertyService>();
+        services.AddScoped<IPropertyValueRepository, PropertyValueRepository>();
+        services.AddScoped<IPropertyValueService, PropertyValueService>();
+        
+
         // Servicios de seguridad
         services.AddScoped<IEncryptionService, EncryptionService>();
 

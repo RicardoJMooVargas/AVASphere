@@ -160,27 +160,54 @@ public class QuotationService : IQuotationService
         // Si no se proporciona filtro, crear uno con valores por defecto
         filter ??= new QuotationFilterDto();
 
+        IEnumerable<Quotation> quotations;
+
         // 1️⃣ Si se especifica IdQuotation, buscarlo directamente
         if (filter.IdQuotation.HasValue)
         {
             var q = await _quotationRepository.GetByIdAsync(filter.IdQuotation.Value);
-            return q != null ? new[] { q } : Array.Empty<Quotation>();
+            quotations = q != null ? new[] { q } : Array.Empty<Quotation>();
         }
-
         // 2️⃣ Si se especifica Folio, buscarlo
-        if (filter.Folio.HasValue)
+        else if (filter.Folio.HasValue)
         {
             var q = await _quotationRepository.GetQuotationByFolioAsync(filter.Folio.Value);
-            return q != null ? new[] { q } : Array.Empty<Quotation>();
+            quotations = q != null ? new[] { q } : Array.Empty<Quotation>();
+        }
+        // 3️⃣ Buscar por rango de fechas (por defecto mes actual)
+        else
+        {
+            quotations = await _quotationRepository.GetQuotationsByDateRangeAsync(filter.StartDate, filter.EndDate);
+
+            // 4️⃣ Filtrar por IdCustomer si se especifica
+            if (filter.IdCustomer.HasValue)
+            {
+                quotations = quotations.Where(q => q.IdCustomer == filter.IdCustomer.Value);
+            }
         }
 
-        // 3️⃣ Buscar por rango de fechas (por defecto mes actual)
-        var quotations = await _quotationRepository.GetQuotationsByDateRangeAsync(filter.StartDate, filter.EndDate);
-
-        // 4️⃣ Filtrar por IdCustomer si se especifica
-        if (filter.IdCustomer.HasValue)
+        // 5️⃣ Limpiar referencias circulares problemáticas pero mantener datos del customer
+        foreach (var quotation in quotations)
         {
-            quotations = quotations.Where(q => q.IdCustomer == filter.IdCustomer.Value);
+            // Mantener Customer pero limpiar sus referencias circulares
+            if (quotation.Customer != null)
+            {
+                quotation.Customer.Quotations = new List<Quotation>();
+                quotation.Customer.Sales = new List<Sale>();
+                quotation.Customer.Projects = new List<AVASphere.ApplicationCore.Projects.Entities.General.Project>();
+            }
+
+            // Limpiar ConfigSys si existe
+            quotation.ConfigSys = null;
+
+            // Limpiar referencias circulares en Versions
+            if (quotation.Versions != null)
+            {
+                foreach (var version in quotation.Versions)
+                {
+                    version.Quotation = null;
+                }
+            }
         }
 
         return quotations;

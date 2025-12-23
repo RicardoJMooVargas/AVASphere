@@ -58,6 +58,8 @@ public class QuotationRepository : IQuotationRepository
     {
         return await _context.Quotations
             .AsNoTracking()
+            .Include(q => q.Customer)
+            .Include(q => q.Versions)
             .FirstOrDefaultAsync(q => q.Folio == folio);
     }
 
@@ -76,6 +78,8 @@ public class QuotationRepository : IQuotationRepository
 
         return await _context.Quotations
             .AsNoTracking()
+            .Include(q => q.Customer)
+            .Include(q => q.Versions)
             .Where(q => q.SaleDate >= startDateOnly && q.SaleDate <= endDateOnly)
             .ToListAsync();
     }
@@ -94,6 +98,8 @@ public class QuotationRepository : IQuotationRepository
     {
         return await _context.Quotations
             .AsNoTracking()
+            .Include(q => q.Customer)
+            .Include(q => q.Versions)
             .FirstOrDefaultAsync(q => q.IdQuotation == id);
     }
 

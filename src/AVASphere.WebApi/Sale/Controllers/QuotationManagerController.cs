@@ -18,7 +18,7 @@ public class QuotationManagerController : ControllerBase
     {
         _quotationService = quotationService;
     }
-    // POST: api/QuotationManager
+    // POST: api/QuotationManager/Register/Quotation
     [HttpPost("Register/Quotation")]
     public async Task<ActionResult> CreateQuotation(CreateQuotationDto dto)
     {
@@ -27,16 +27,12 @@ public class QuotationManagerController : ControllerBase
         try
         {
             var created = await _quotationService.CreateQuotationAsync(dto, User?.Identity?.Name ?? "system");
-            return CreatedAtRoute(
-                "GetQuotationById",
-                new { id = created.IdQuotation },
-                created
-            );
+            return Ok(created);
         }
         catch (Exception ex)
         {
-            return BadRequest(new 
-            { 
+            return BadRequest(new
+            {
                 error = ex.Message,
                 type = ex.GetType().Name
             });
@@ -63,7 +59,10 @@ public class QuotationManagerController : ControllerBase
             if (updated == null)
                 return NotFound("Quotation not found");
 
-            return Ok(updated);
+            return Ok(new
+            {
+                message = "Quotation updated successfully"
+            });
         }
         catch (Exception ex)
         {

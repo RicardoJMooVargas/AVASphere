@@ -157,5 +157,10 @@ public static class DependencyInjection
         services.AddScoped<IProjectCategoryService, ProjectCategoryService>();
         services.AddScoped<IProjectCategoryRepository, ProjectCategoryRepository>();
         
+        // Project
+        services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<ListOfCategoriesRepository>();
+        
     }
 }

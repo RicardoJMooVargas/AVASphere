@@ -11,7 +11,6 @@ namespace AVASphere.ApplicationCore.Sales.Interfaces
         // Lecturas
         Task<IEnumerable<Quotation>> GetAllQuotationsAsync();
         Task<Quotation?> GetByIdAsync(int id);
-        Task<Quotation?> UpdateIdQuotation(int id, QuotationUpdateDto dto);
         Task<Quotation> UpdateQuotationAsync(Quotation quotation);
         Task<Quotation?> GetQuotationByFolioAsync(int folio);
         Task<IEnumerable<Quotation>> GetQuotationsByCustomerIdAsync(int customerId);
@@ -23,7 +22,7 @@ namespace AVASphere.ApplicationCore.Sales.Interfaces
         // Helpers / checks
         Task<bool> QuotationExistsByFolioAsync(int folio);
 
-        // Followups
+        // FollowupsJson
         Task<int> GetNextFollowupIdAsync(int quotationId);
     }
 }

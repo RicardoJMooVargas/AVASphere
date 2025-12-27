@@ -5,12 +5,15 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using AVASphere.ApplicationCore.System.Interfaces;
 using AVASphere.ApplicationCore.Common.Interfaces;
+using AVASphere.ApplicationCore.Projects.Interfaces;
 using AVASphere.Infrastructure.System.Services;
 using AVASphere.Infrastructure.System.Configuration;
 using AVASphere.Infrastructure.Common.Data.Repositories;
 using AVASphere.Infrastructure.Common.Repository;
 using AVASphere.Infrastructure.Common.Security;
 using AVASphere.Infrastructure.Common.Services;
+using AVASphere.Infrastructure.Projects.Repository;
+using AVASphere.Infrastructure.Projects.Services;
 using Microsoft.EntityFrameworkCore;
 using Npgsql; // ✅ AGREGAR ESTE USING
 
@@ -18,7 +21,6 @@ using Npgsql; // ✅ AGREGAR ESTE USING
 using AVASphere.ApplicationCore.Sales.Interfaces;
 using AVASphere.Infrastructure.Sales.Repositories;
 using AVASphere.Infrastructure.Sales.Services;
-using VYAACentralInforApi.ApplicationCore.Sales.Services;
 
 namespace AVASphere.Infrastructure;
 
@@ -127,6 +129,9 @@ public static class DependencyInjection
 
         services.AddScoped<IQuotationVersionRepository, QuotationVersionRepository>();
         services.AddScoped<IQuotationVersionService, QuotationVersionService>();
+
+        services.AddScoped<IExternalSalesRepository, ExternalSalesRepository>();
+        services.AddScoped<IExternalSalesService, ExternalSalesService>();
     }
 
     private static void AddCommonServices(IServiceCollection services)
@@ -141,8 +146,18 @@ public static class DependencyInjection
         services.AddScoped<IRolService, RolService>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<IPropertyRepository, PropertyRepository>();
+        services.AddScoped<IPropertyService, PropertyService>();
+        services.AddScoped<IPropertyValueRepository, PropertyValueRepository>();
+        services.AddScoped<IPropertyValueService, PropertyValueService>();
+        
+
         // Servicios de seguridad
         services.AddScoped<IEncryptionService, EncryptionService>();
+
+        // Project Category
+        services.AddScoped<IProjectCategoryService, ProjectCategoryService>();
+        services.AddScoped<IProjectCategoryRepository, ProjectCategoryRepository>();
 
     }
 }

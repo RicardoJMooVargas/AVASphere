@@ -1,4 +1,7 @@
-﻿namespace AVASphere.ApplicationCore.Projects.Entities.General;
+﻿// REVISED
+using AVASphere.ApplicationCore.Common.Entities.Products;
+
+namespace AVASphere.ApplicationCore.Projects.Entities.General;
 
 public class ListOfProductsToQuot
 {
@@ -7,12 +10,6 @@ public class ListOfProductsToQuot
     // FK
     public int IdIndividualProjectQuotes { get; set; }
     public IndividualProjectQuote IndividualProjectQuotes { get; set; } = null!;
-    
-    /*
-    public int Products { get; set; }
-    public Products Products { get; set; } = null!;
-    */
-    
-    // JSON
-    public double Waste { get; set; }
+    public int IdProduct { get; set; }
+    public Product Product { get; set; } = null!;
 }

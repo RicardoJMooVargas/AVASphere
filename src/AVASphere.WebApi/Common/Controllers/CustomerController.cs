@@ -148,4 +148,37 @@ public class CustomerController : ControllerBase
             return StatusCode(500, new ApiResponse("Internal server error", 500));
         }
     }
+
+    /// <summary>
+    /// Búsqueda inteligente de clientes por nombre completo
+    /// </summary>
+    /// <remarks>
+    /// Realiza una búsqueda con coincidencia parcial en:
+    /// - Nombre completo (Name + LastName concatenados)
+    /// - Solo nombre (Name)
+    /// - Solo apellido (LastName)
+    /// 
+    /// La búsqueda es insensible a mayúsculas/minúsculas y utiliza 
+    /// coincidencia parcial con porcentaje (%) para flexibilidad.
+    /// </remarks>
+    /// <param name="searchText">Texto a buscar en el nombre completo del cliente</param>
+    [HttpGet("search")]
+    public async Task<ActionResult> SearchCustomers([FromQuery] string searchText)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                return BadRequest(new ApiResponse("Search text cannot be empty", 400));
+            }
+
+            var customers = await _customerService.SearchAsync(searchText);
+            
+            return Ok(new ApiResponse(customers, "Customer search completed successfully"));
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
 }

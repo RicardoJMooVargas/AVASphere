@@ -1,7 +1,8 @@
-﻿using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
+﻿// DEPRECATED: This class is no longer in use and will be removed in future versions.
+using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
 using AVASphere.ApplicationCore.Projects.Entities.jsons;
 
-namespace AVASphere.ApplicationCore.Projects.Entities;
+namespace AVASphere.ApplicationCore.Projects.Entities.General;
 
 public class ListOfProductsByCategory
 {

@@ -6,27 +6,27 @@ namespace AVASphere.ApplicationCore.Sales.Entities;
 
 public class Quotation
 {
-    public int QuotationId { get; set; }
-    public DateTime SaleDate { get; set; } = DateTime.UtcNow;
-    public string Status { get; set; } = "PENDIENTE";
+    public int IdQuotation { get; set; }
+    public int IdCustomer { get; set; }
+    public DateOnly SaleDate { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
+    public StatusEnum Status { get; set; } = StatusEnum.Pending;
     public List<string> SalesExecutives { get; set; } = new List<string>();
     public int Folio { get; set; }
-    public int CustomerId { get; set; }
     public string? GeneralComment { get; set; }
 
     [Column(TypeName = "jsonb")]
-    public List<QuotationFollowupsJson> Followups { get; set; } = new List<QuotationFollowupsJson>();
+    public List<QuotationFollowupsJson> FollowupsJson { get; set; } = new List<QuotationFollowupsJson>();
 
     // NUEVO: Lista simplificada de productos (JSONB) - opcional
     [Column(TypeName = "jsonb")]
-    public List<SingleProductJson>? Products { get; set; }
+    public List<SingleProductJson>? ProductsJson { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // NUEVO: Referencia a la venta vinculada (opcional)
-    public string? SaleId { get; set; }
-    public string? SaleFolio { get; set; }
+    public string? LinkedSaleId { get; set; }
+    public string? LinkedSaleFolio { get; set; }
 
     // FK a ConfigSys (si es necesaria)
     public int IdConfigSys { get; set; }
@@ -34,13 +34,14 @@ public class Quotation
     // Propiedades de navegación
     public Customer? Customer { get; set; }
     public ConfigSys? ConfigSys { get; set; }
+    public ICollection<SaleQuotation> SaleQuotations { get; set; } = new List<SaleQuotation>();
 
     // Propiedad calculada para saber si está vinculada a una venta
     [NotMapped]
-    public bool IsLinkedToSale => !string.IsNullOrEmpty(SaleId);
+    public bool IsLinkedToSale => !string.IsNullOrEmpty(LinkedSaleId);
 
     [NotMapped]
-    public bool HasProducts => Products?.Count > 0;
+    public bool HasProducts => ProductsJson?.Count > 0;
 
     public ICollection<QuotationVersion> Versions { get; set; } = new List<QuotationVersion>();
 }

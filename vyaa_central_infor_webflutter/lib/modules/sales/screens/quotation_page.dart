@@ -1,525 +1,560 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:vyaa_central_infor_webflutter/core/layouts/home.layout.dart';
-import 'package:vyaa_central_infor_webflutter/core/widgets/app_sidebar.widget.dart';
-import 'package:vyaa_central_infor_webflutter/core/widgets/app_table.widget.dart';
-import 'package:vyaa_central_infor_webflutter/core/widgets/app_form.widget.dart';
-import 'package:vyaa_central_infor_webflutter/core/widgets/app_button.widget.dart';
-import 'package:vyaa_central_infor_webflutter/modules/sales/controllers/home_screen.getx.dart';
-import 'package:vyaa_central_infor_webflutter/modules/sales/models/response/quotation_res.module.dart';
+import 'package:vyaa_central_infor_webflutter/core/controllers/notification_services.dart';
+import 'package:vyaa_central_infor_webflutter/core/layouts/home_sale.layout.dart';
 import 'package:vyaa_central_infor_webflutter/modules/sales/models/requests/quotation_req.module.dart';
-import 'package:vyaa_central_infor_webflutter/Core/models/responses/customer_res.module.dart';
-import 'package:vyaa_central_infor_webflutter/Core/services/api/customer.service.dart';
-import 'package:vyaa_central_infor_webflutter/Core/services/data/cache.service.dart';
+import 'package:vyaa_central_infor_webflutter/modules/sales/models/requests/quotation_update_req.module.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/system/app_navbar.widget.dart';
+import '../../../core/widgets/system/app_dialog.widget.dart';
+import '../../../core/widgets/buttons/app_button.widget.dart';
+import '../controllers/main_sales_page.getx.dart';
+import '../models/response/quotation_res.module.dart';
+import '../models/response/followups_res.module.dart';
+import '../widgets/quotation_form.widget.dart';
+import '../widgets/quotation_list.widget.dart';
+import '../widgets/quotation_detail.widget.dart';
 
-
-class QuotationPage extends StatelessWidget {
-  QuotationPage({super.key});
-
-  // Instancia del servicio de clientes
-  final CustomerService _customerService = CustomerService();
+// path: lib/modules/sales/screens/main_sales_page.dart
+// route: /sales
+class MainSalesPage extends StatelessWidget {
+  const MainSalesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final HomeScreenController controller = Get.put(HomeScreenController());
+    // Usar Get.find si ya existe, o Get.put si no existe
+    final SalesHomeController controller =
+        Get.isRegistered<SalesHomeController>()
+        ? Get.find<SalesHomeController>()
+        : Get.put(SalesHomeController());
 
-    return AppSidebar(
-      sidebarItems: [
-        SidebarItem(
-          name: 'Home',
-          icon: Icons.dashboard,
-          onPress: () {
-            // Acción para Home
-            print('Home pressed');
-          },
+    return HomeSaleLayout(
+      appBar: AppNavbarWidget(
+        title: 'Módulo de Ventas',
+        backgroundColor: AppColors.primaryColor,
+      ),
+      backgroundColor: AppColors.backgroundColor,
+      borderWidth: 0,
+      // Header derecho - Botón para crear cotización
+      rightHeader: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            AppDialogWidget(
+              buttonConfig: const DialogButtonConfig(
+                type: DialogButtonType.simple,
+                icon: Icons.add,
+                label: 'Nueva Cotización',
+                color: AppColors.primaryColor,
+              ),
+              title: 'Crear Cotización',
+              body: Obx(
+                () => QuotationCreateWidget(
+                  quotationModel: controller.currentQuotation.value,
+                ),
+              ),
+              footer: Obx(
+                () => Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: AppButton(
+                          label: controller.isCreating.value ? 'Creando...' : 'Crear Cotización',
+                          colorType: 'success',
+                          onPressed: controller.isCreating.value ? null : () => controller.createQuotation(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        SidebarItem(
-          name: 'Refrescar',
-          icon: Icons.refresh,
-          onPress: () => controller.refreshData(),
-        ),
-      ],
-      userAvatarTooltip: 'John Smith - Administrador',
-      showLogout: true,
-      body: Container(
-        color: Colors.grey[200],
-        child: HomeLayout(
-          backgroundColor: Colors.grey[200],
-          borderWidth: 0,
-
-          // Columna izquierda - Formulario de creación
-          leftColumn: _buildQuotationForm(controller),
-
-          // Header derecho - Panel de control con estadísticas
-          rightHeader: _buildStatsPanel(controller),
-
-          // Body derecho - Tabla de cotizaciones
-          rightBody: _buildQuotationsTable(controller),
+      ),
+      // Body derecho - Lista de cotizaciones
+      rightBody: Obx(
+        () => QuotationListWidget(
+          quotations: controller.quotations,
+          isLoading: controller.isLoading.value,
+          onRefresh: () => controller.refreshData(),
+          onEdit: (quotation) => _showEditDialog(context, controller, quotation),
+          onDelete: (quotation) => _showDeleteConfirmation(context, controller, quotation),
+          onStatusChange: (quotation, newStatus) => _showStatusChangeDialog(context, controller, quotation, newStatus),
+          onView: (quotation) => AppDialogWidget.show(
+            context: context,
+            title: 'Detalles de Cotización',
+            body: QuotationDetailWidget(
+              quotation: quotation,
+              onEdit: () {
+                Navigator.of(context).pop();
+                _showEditDialog(context, controller, quotation);
+              },
+              onClose: () => Navigator.of(context).pop(),
+              onAddFollowup: () {
+              },
+            ),
+            footer: const SizedBox.shrink(),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildQuotationForm(HomeScreenController controller) {
-    return Card(
-      color: Colors.white,
-      elevation: 2,
-      margin: const EdgeInsets.all(16),
-      child: Obx(() => AppForm(
-        padding: const EdgeInsets.all(20),
-        sections: [
-          FormSection(
-            title: 'Nueva Cotización',
-            fields: [
-              FormFieldConfig(
-                label: 'Folio',
-                type: FormFieldType.number,
-                controller: controller.currentQuotation.value.folioController,
-                isRequired: true,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
+  /// Muestra el diálogo de edición de cotización
+  void _showEditDialog(
+    BuildContext context,
+    SalesHomeController controller,
+    QuotationRes quotation,
+  ) {
+    // Crear un formulario temporal para editar
+    final quotationForm = QuotationReq(
+      folio: quotation.folio,
+      generalComment: quotation.generalComment,
+      saleDate: quotation.saleDate,
+      salesExecutives: quotation.salesExecutives,
+    );
+
+    // Cargar datos del cliente en el formulario
+    quotationForm.customer.customerIdController.text = quotation.customerId;
+    quotationForm.customer.fullNameController.text = quotation.customer.fullName;
+    if (quotation.customer.email.isNotEmpty) {
+      quotationForm.customer.emailController.text = quotation.customer.email;
+    }
+    if (quotation.customer.phoneNumber.isNotEmpty) {
+      quotationForm.customer.phoneController.text = quotation.customer.phoneNumber;
+    }
+
+    // Cargar seguimientos existentes en el formulario
+    if (quotation.followups.isNotEmpty) {
+      // Limpiar seguimientos actuales del formulario
+      for (var followup in quotationForm.followups) {
+        followup.dispose();
+      }
+      quotationForm.followups.clear();
+
+      // Agregar cada seguimiento existente
+      for (final followup in quotation.followups) {
+        quotationForm.addFollowup();
+        final lastIndex = quotationForm.followups.length - 1;
+        quotationForm.followups[lastIndex].commentController.text = followup.comment;
+        quotationForm.followups[lastIndex].userIdController.text = followup.userId;
+        // La fecha se puede actualizar si el modelo lo permite
+      }
+    }
+
+    // Variable para controlar el auto-cierre
+    bool shouldAutoClose = false;
+
+    AppDialogWidget.show(
+      context: context,
+      title: 'Editar Cotización #${quotation.folio}',
+      barrierDismissible: !controller.isUpdating.value,
+      body: Obx(
+        () {
+          // Si terminó exitosamente y aún no se ha programado el auto-cierre
+          if (!controller.isUpdating.value &&
+              controller.errorMessage.value.isEmpty &&
+              shouldAutoClose) {
+            // Cerrar automáticamente después de 1 segundo
+            Future.delayed(const Duration(milliseconds: 1000), () {
+              if (context.mounted) {
+                Navigator.pop(context);
+                // Dispose después de cerrar el diálogo
+                quotationForm.dispose();
+              }
+            });
+          }
+
+          // Si está actualizando, mostrar indicador de progreso
+          if (controller.isUpdating.value) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: AppColors.primaryColor),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Actualizando cotización...',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
                 ],
               ),
-              FormFieldConfig(
-                label: 'Fecha de Venta',
-                type: FormFieldType.date,
-                controller: TextEditingController(text: _formatDate(controller.currentQuotation.value.saleDate)),
-                isRequired: true,
-                onDateChanged: (date) {
-                  if (date != null) {
-                    controller.currentQuotation.value = QuotationReq.fromComponents(
-                      generalCommentController: controller.currentQuotation.value.generalCommentController,
-                      folioController: controller.currentQuotation.value.folioController,
-                      salesExecutiveControllers: controller.currentQuotation.value.salesExecutiveControllers,
-                      followups: controller.currentQuotation.value.followups,
-                      customer: controller.currentQuotation.value.customer,
-                      saleDate: date,
-                    );
-                  }
-                },
+            );
+          }
+
+          // Si hubo éxito, mostrar confirmación
+          if (controller.errorMessage.value.isEmpty && shouldAutoClose) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 48),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '¡Cotización actualizada correctamente!',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                ],
               ),
-              FormFieldConfig(
-                label: 'Comentario General',
-                type: FormFieldType.textarea,
-                controller: controller.currentQuotation.value.generalCommentController,
-                maxLines: 3,
-              ),
-            ],
-          ),
-          FormSection(
-            title: 'Información del Cliente',
-            isCollapsible: true,
-            headerWidget: Obx(() {
-              final hasCustomerId = controller.currentQuotation.value.customer.customerIdController.text.isNotEmpty;
-              return hasCustomerId 
-                ? Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+            );
+          }
+
+          // Mostrar formulario de edición
+          return QuotationEditWidget(
+            quotationModel: quotationForm,
+            existingQuotation: quotation,
+          );
+        },
+      ),
+      footer: Obx(
+        () {
+          // Si está actualizando o ya terminó con éxito, no mostrar botones
+          if (controller.isUpdating.value || (controller.errorMessage.value.isEmpty && shouldAutoClose)) {
+            return const SizedBox.shrink();
+          }
+
+          // Mostrar botones de acción
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: AppButton(
+                    label: 'Cancelar',
+                    colorType: 'secondary',
+                    variant: 'outlined',
+                    onPressed: () {
+                      Navigator.pop(context);
+                      // Dispose después de cerrar
+                      Future.microtask(() => quotationForm.dispose());
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: AppButton(
+                    label: 'Guardar Cambios',
+                    colorType: 'warning',
+                    onPressed: () async {
+                      // Comparar valores y crear map de cambios
+                      final Map<String, dynamic> changes = {};
+
+                      // Verificar folio
+                      final newFolio = int.tryParse(quotationForm.folioController.text);
+                      if (newFolio != null && newFolio != quotation.folio) {
+                        changes['folio'] = newFolio;
+                      }
+
+                      // Verificar comentario general
+                      final newComment = quotationForm.generalCommentController.text.trim();
+                      if (newComment != quotation.generalComment) {
+                        changes['generalComment'] = newComment;
+                      }
+
+                      // Verificar ejecutivos de venta
+                      final newExecutives = quotationForm.salesExecutiveControllers
+                          .map((c) => c.text.trim())
+                          .where((t) => t.isNotEmpty)
+                          .toList();
+                      if (!_listEquals(newExecutives, quotation.salesExecutives)) {
+                        changes['salesExecutives'] = newExecutives;
+                      }
+
+                      // Verificar fecha
+                      if (quotationForm.saleDate != quotation.saleDate) {
+                        changes['saleDate'] = quotationForm.saleDate;
+                      }
+
+                      // Verificar cliente
+                      final newCustomerId = int.tryParse(quotationForm.customer.customerIdController.text.trim());
+                      final originalCustomerId = int.tryParse(quotation.customerId);
+                      if (newCustomerId != null && newCustomerId != originalCustomerId) {
+                        changes['customerId'] = newCustomerId;
+                        debugPrint('🔄 Cliente cambió de $originalCustomerId a $newCustomerId');
+                      }
+
+                      // Verificar seguimientos (followups)
+                      if (quotationForm.followups.isNotEmpty) {
+                        // Convertir los followups del formulario a DTOs
+                        final newFollowups = quotationForm.followups.map((followup) {
+                          return QuotationFollowupUpdateDto(
+                            date: followup.date,
+                            comment: followup.commentController.text.trim(),
+                            userId: followup.userIdController.text.trim(),
+                          );
+                        }).toList();
+
+                        // Solo agregar si hay seguimientos nuevos o diferentes
+                        if (newFollowups.length != quotation.followups.length ||
+                            _hasFollowupsChanged(newFollowups, quotation.followups)) {
+                          changes['followups'] = newFollowups;
+                          debugPrint('🔄 Seguimientos actualizados: ${newFollowups.length} items');
+                        }
+                      }
+
+                      // Si no hay cambios, cerrar
+                      if (changes.isEmpty) {
+                        Navigator.pop(context);
+                        // Dispose después de cerrar
+                        Future.microtask(() => quotationForm.dispose());
+                        NotificationService.showInfo('No hay cambios para guardar');
+                        return;
+                      }
+
+                      debugPrint('📝 Cambios detectados: ${changes.keys.join(", ")}');
+
+                      // Marcar para auto-cierre después de éxito
+                      shouldAutoClose = true;
+
+                      // Ejecutar actualización
+                      await controller.updateQuotation(
+                        originalQuotation: quotation,
+                        updatedData: changes,
+                      );
+
+                      // NO llamar dispose aquí, se llama cuando el diálogo se cierra
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Helper para comparar listas
+  bool _listEquals<T>(List<T> a, List<T> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  /// Helper para verificar si los followups han cambiado
+  bool _hasFollowupsChanged(List<QuotationFollowupUpdateDto> newFollowups, List<FollowupRes> originalFollowups) {
+    if (newFollowups.length != originalFollowups.length) return true;
+
+    for (int i = 0; i < newFollowups.length; i++) {
+      final newF = newFollowups[i];
+      final origF = originalFollowups[i];
+
+      // Comparar los campos importantes
+      if (newF.comment != origF.comment ||
+          newF.userId != origF.userId ||
+          !_isSameDate(newF.date, origF.date)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /// Helper para comparar fechas (solo la parte de fecha, ignorando tiempo)
+  bool _isSameDate(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  /// Muestra un diálogo de progreso y confirmación al cambiar el status
+  void _showStatusChangeDialog(
+    BuildContext context,
+    SalesHomeController controller,
+    QuotationRes quotation,
+    String newStatusName,
+  ) {
+    // Convertir el nombre del status al valor numérico
+    int newStatusValue = 1;
+    switch (newStatusName.toLowerCase()) {
+      case 'pendiente':
+        newStatusValue = 1;
+        break;
+      case 'aceptado':
+        newStatusValue = 2;
+        break;
+      case 'rechazado':
+        newStatusValue = 3;
+        break;
+    }
+
+    // Verificar si el status cambió
+    int currentStatusValue = 1;
+    if (quotation.status.toLowerCase() == 'aceptado') {
+      currentStatusValue = 2;
+    } else if (quotation.status.toLowerCase() == 'rechazado') {
+      currentStatusValue = 3;
+    }
+
+    // Si el status no cambió, no hacer nada
+    if (currentStatusValue == newStatusValue) {
+      return;
+    }
+
+    // Variable para controlar el auto-cierre
+    bool shouldAutoClose = false;
+
+    // Mostrar diálogo de progreso
+    AppDialogWidget.show(
+      context: context,
+      title: 'Actualizando Status',
+      barrierDismissible: false, // No permitir cerrar mientras actualiza
+      body: Obx(
+        () {
+          // Si terminó exitosamente y aún no se ha programado el auto-cierre
+          if (!controller.isUpdating.value &&
+              controller.errorMessage.value.isEmpty &&
+              !shouldAutoClose) {
+            shouldAutoClose = true;
+            // Cerrar automáticamente después de 1.5 segundos
+            Future.delayed(const Duration(milliseconds: 1500), () {
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
+            });
+          }
+
+          return Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (controller.isUpdating.value) ...[
+                  CircularProgressIndicator(color: AppColors.primaryColor),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Actualizando status...',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                ] else ...[
+                  Icon(
+                    controller.errorMessage.value.isEmpty ? Icons.check_circle : Icons.error,
+                    color: controller.errorMessage.value.isEmpty ? Colors.green : Colors.red,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    controller.errorMessage.value.isEmpty
+                        ? '¡Status actualizado correctamente!'
+                        : 'Error al actualizar status',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  if (controller.errorMessage.value.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      controller.errorMessage.value,
+                      style: const TextStyle(fontSize: 12, color: Colors.red),
+                      textAlign: TextAlign.center,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.green.shade600, size: 16),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Existente - ID: ${controller.currentQuotation.value.customer.customerIdController.text}',
-                          style: TextStyle(
-                            color: Colors.green.shade700,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () {
-                            // Limpiar selección de cliente existente
-                            controller.currentQuotation.value.customer.customerIdController.clear();
-                            controller.currentQuotation.value.customer.fullNameController.clear();
-                            controller.currentQuotation.value.customer.codeController.clear();
-                            controller.currentQuotation.value.customer.emailController.clear();
-                            controller.currentQuotation.value.customer.phoneController.clear();
-                            controller.currentQuotation.refresh();
-                          },
-                          child: Icon(Icons.close, color: Colors.green.shade600, size: 16),
-                        ),
-                      ],
+                  ],
+                ],
+                const SizedBox(height: 8),
+                Text(
+                  'Cotización #${quotation.folio}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                Text(
+                  'Cliente: ${quotation.customer.fullName}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      quotation.status,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: StatusEnum.getColorByName(quotation.status),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Icon(Icons.arrow_forward, size: 16),
+                    ),
+                    Text(
+                      newStatusName,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: StatusEnum.getColorByName(newStatusName),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+      footer: Obx(
+        () => controller.isUpdating.value
+            ? const SizedBox.shrink()
+            : controller.errorMessage.value.isNotEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: AppButton(
+                      label: 'Cerrar',
+                      colorType: 'danger',
+                      onPressed: () => Navigator.pop(context),
                     ),
                   )
-                : Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.person_add, color: Colors.blue.shade600, size: 16),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Creando nuevo cliente',
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-            }),
-            fields: [
-              // Campo de búsqueda de cliente con sugerencias
-              FormFieldConfig(
-                label: 'Buscar Cliente Existente',
-                type: FormFieldType.suggest,
-                controller: TextEditingController(), // Controlador temporal para búsqueda
-                hint: 'Escriba el nombre del cliente para buscar...',
-                onSearch: (query) async {
-                  if (query.length < 2) {
-                    return <CustomerRes>[];
-                  }
-                  
-                  final response = await _customerService.searchCustomers(name: query);
-                  if (response.success && response.data != null) {
-                    return response.data!;
-                  }
-                  return <CustomerRes>[];
-                },
-                itemToString: (customer) {
-                  final customerRes = customer as CustomerRes;
-                  return '${customerRes.fullName} - ${customerRes.code}';
-                },
-                onItemSelected: (selectedCustomer) {
-                  final customer = selectedCustomer as CustomerRes;
-                  // Setear el ID del cliente (esto indica que es cliente existente)
-                  controller.currentQuotation.value.customer.customerIdController.text = customer.customerId;
-                  // Llenar todos los campos del cliente
-                  controller.currentQuotation.value.customer.fullNameController.text = customer.fullName;
-                  controller.currentQuotation.value.customer.codeController.text = customer.code;
-                  controller.currentQuotation.value.customer.emailController.text = customer.email;
-                  controller.currentQuotation.value.customer.phoneController.text = 
-                    customer.phones.isNotEmpty ? customer.phones.first : '';
-                  
-                  // Refrescar la vista
-                  controller.currentQuotation.refresh();
-                },
-              ),
-              // Campos editables del cliente
-              FormFieldConfig(
-                label: 'Nombre Completo',
-                controller: controller.currentQuotation.value.customer.fullNameController,
-                isRequired: true,
-                hint: 'Nombre del cliente',
-              ),
-              FormFieldConfig(
-                label: 'Código',
-                controller: controller.currentQuotation.value.customer.codeController,
-                hint: 'Código del cliente',
-              ),
-              FormFieldConfig(
-                label: 'Teléfono',
-                controller: controller.currentQuotation.value.customer.phoneController,
-                hint: 'Teléfono del cliente',
-              ),
-              FormFieldConfig(
-                label: 'Email',
-                type: FormFieldType.email,
-                controller: controller.currentQuotation.value.customer.emailController,
-                hint: 'Email del cliente',
-              ),
-            ],
+                : const SizedBox.shrink(), // No mostrar botón si fue exitoso (se cierra auto)
+      ),
+    );
+
+    // Ejecutar el cambio de status inmediatamente después de mostrar el diálogo
+    Future.microtask(() async {
+      await controller.updateQuotationStatus(quotation, newStatusValue);
+      // El diálogo se actualizará automáticamente gracias a Obx
+    });
+  }
+
+  void _showDeleteConfirmation(
+    BuildContext context,
+    SalesHomeController controller,
+    QuotationRes quotation,
+  ) {
+    AppDialogWidget.show(
+      context: context,
+      title: 'Confirmar eliminación',
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          '¿Estás seguro de que deseas eliminar la cotización #${quotation.folio}?',
+        ),
+      ),
+      footer: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          AppButton(
+            label: 'Cancelar',
+            variant: 'text',
+            colorType: 'secondary',
+            onPressed: () => Navigator.pop(context),
           ),
-          FormSection(
-            title: 'Seguimientos',
-            isCollapsible: true,
-            initiallyExpanded: false,
-            headerWidget: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Agregar seguimientos a la cotización',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ),
-                  AppButton(
-                    label: 'Agregar Seguimiento',
-                    size: 'small',
-                    colorType: 'primary',
-                    onPressed: () async {
-                      // Obtener el userId del cache
-                      final userId = await CacheService.getUserId();
-                      
-                      // Agregar el seguimiento
-                      controller.currentQuotation.value.addFollowup();
-                      
-                      // Establecer automáticamente el userId en el nuevo seguimiento
-                      final followups = controller.currentQuotation.value.followups;
-                      if (followups.isNotEmpty && userId != null) {
-                        followups.last.userIdController.text = userId;
-                      }
-                      
-                      controller.currentQuotation.refresh();
+          Obx(
+            () => AppButton(
+              label: controller.isLoading.value ? 'Eliminando...' : 'Eliminar',
+              variant: 'text',
+              colorType: 'danger',
+              onPressed: controller.isLoading.value
+                  ? null
+                  : () async {
+                      Navigator.pop(context);
+                      await controller.deleteQuotation(quotation);
                     },
-                  ),
-                ],
-              ),
             ),
-            fields: _buildFollowupFields(controller),
           ),
         ],
-        footer: Column(
-          children: [
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: AppButton(
-                    label: controller.isCreating.value ? 'Creando...' : 'Crear Cotización',
-                    colorType: 'success',
-                    onPressed: controller.isCreating.value ? null : () {
-                      controller.createQuotation();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: AppButton(
-                    label: 'Limpiar',
-                    colorType: 'secondary',
-                    onPressed: () => controller.resetForm(),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      )),
-    );
-  }
-
-  Widget _buildStatsPanel(HomeScreenController controller) {
-    return Card(
-      color: Colors.white,
-      elevation: 2,
-      margin: const EdgeInsets.all(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.construction,
-              size: 24,
-              color: Colors.grey.withOpacity(0.6),
-            ),
-          ],
-        ),
       ),
     );
-  }
-
-  Widget _buildQuotationsTable(HomeScreenController controller) {
-    return Card(
-      color: Colors.white,
-      elevation: 2,
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Cotizaciones',
-                  style: Theme.of(Get.context!).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: () => controller.refreshData(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: Obx(() {
-                if (controller.isLoading.value) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-
-                if (controller.quotations.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.inbox_outlined,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'No hay cotizaciones disponibles',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return GenericTable<QuotationRes>(
-                  items: controller.quotations,
-                  columns: [
-                    TableColumn<QuotationRes>(
-                      title: 'Folio',
-                      builder: (item) => Text(item.folio.toString()),
-                    ),
-                    TableColumn<QuotationRes>(
-                      title: 'Cliente',
-                      builder: (item) => Text(item.customer.fullName),
-                    ),
-                    TableColumn<QuotationRes>(
-                      title: 'Fecha',
-                      builder: (item) => Text(_formatDate(item.saleDate)),
-                    ),
-                    TableColumn<QuotationRes>(
-                      title: 'Estado',
-                      builder: (item) => Chip(
-                        label: Text(
-                          item.status,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        backgroundColor: _getStatusColor(item.status),
-                      ),
-                    ),
-                    TableColumn<QuotationRes>(
-                      title: 'Comentario',
-                      builder: (item) => Text(
-                        item.generalComment.isNotEmpty 
-                            ? item.generalComment 
-                            : 'Sin comentarios',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                  actionButtonsBuilder: (item) => TableActionButtons<QuotationRes>(
-                    item: item,
-                    onEditPressed: () {
-                      // TODO: Implementar edición
-                      print('Editar cotización: ${item.quotationId}');
-                    },
-                    onDeletePressed: () {
-                      // TODO: Implementar eliminación
-                      print('Eliminar cotización: ${item.quotationId}');
-                    },
-                  ),
-                  topActions: [
-                    AppButton(
-                      label: 'Filtrar',
-                      size: 'small',
-                      colorType: 'info',
-                      onPressed: () {
-                        // TODO: Implementar filtros
-                        print('Filtrar cotizaciones');
-                      },
-                    ),
-                  ],
-                );
-              }),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Color _getStatusColor(String status) {
-    final statusLower = status.toLowerCase();
-    if (statusLower.contains('pending') || statusLower.contains('pendiente')) {
-      return Colors.orange.withOpacity(0.2);
-    } else if (statusLower.contains('approved') || statusLower.contains('aprobado')) {
-      return Colors.green.withOpacity(0.2);
-    } else if (statusLower.contains('rejected') || statusLower.contains('rechazado')) {
-      return Colors.red.withOpacity(0.2);
-    }
-    return Colors.grey.withOpacity(0.2);
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
-  }
-
-  List<FormFieldConfig> _buildFollowupFields(HomeScreenController controller) {
-    final followups = controller.currentQuotation.value.followups;
-    final List<FormFieldConfig> fields = [];
-
-    if (followups.isEmpty) {
-      fields.add(
-        FormFieldConfig(
-          label: 'Sin seguimientos',
-          type: FormFieldType.text,
-          controller: TextEditingController(text: 'No hay seguimientos agregados. Usa el botón "Agregar Seguimiento" para crear uno.'),
-          enabled: false,
-        ),
-      );
-      return fields;
-    }
-
-    for (int i = 0; i < followups.length; i++) {
-      final followup = followups[i];
-      
-      // Campo de comentario
-      fields.add(
-        FormFieldConfig(
-          label: 'Comentario del Seguimiento ${i + 1}',
-          type: FormFieldType.textarea,
-          controller: followup.commentController,
-          maxLines: 2,
-          isRequired: true,
-          suffixIcon: followups.length > 1 ? IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red),
-            onPressed: () {
-              controller.currentQuotation.value.removeFollowup(i);
-              controller.currentQuotation.refresh();
-            },
-            tooltip: 'Eliminar seguimiento',
-          ) : null,
-        ),
-      );
-
-      // Campo de Usuario ID - Solo lectura con valor del cache
-      fields.add(
-        FormFieldConfig(
-          label: 'Usuario Responsable ${i + 1}',
-          controller: followup.userIdController,
-          enabled: false, // No editable
-          hint: 'Usuario actual (automático)',
-          prefixIcon: const Icon(Icons.person, color: Colors.grey),
-        ),
-      );
-    }
-
-    return fields;
   }
 }

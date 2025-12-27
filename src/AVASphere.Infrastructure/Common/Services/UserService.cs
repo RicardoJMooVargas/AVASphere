@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+﻿    using System.Linq.Expressions;
     using Microsoft.Extensions.Logging;
     using AVASphere.ApplicationCore.Common.Entities;
     using AVASphere.ApplicationCore.Common.Interfaces;
@@ -27,7 +27,6 @@
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _encryptionService = encryptionService ?? throw new ArgumentNullException(nameof(encryptionService));
             _configSysService = configSysService ?? throw new ArgumentNullException(nameof(configSysService)); // ✅ INICIALIZAR
-            _rolRepository = rolRepository ?? throw new ArgumentNullException(nameof(rolRepository)); // ✅ INICIALIZAR
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -127,14 +126,11 @@
 
                 // Encriptar la contraseña
                 user.HashPassword = _encryptionService.HashPassword(request.Password);
-                
-                // Limpiar la contraseña en texto plano (no almacenarla)
-                user.Password = null;
 
                 // Establecer valores por defecto
                 user.Status = !string.IsNullOrWhiteSpace(user.Status) ? user.Status : "Active";
-                user.Verified = !string.IsNullOrWhiteSpace(user.Verified) ? user.Verified : "No";
-                user.CreateAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                user.Verified = false;
+                user.CreateAt = null;
 
                 await _userRepository.CreateUsersAsync(user);
                 _logger.LogInformation("Usuario creado exitosamente con ID: {IdUser}", user.IdUser);
@@ -204,7 +200,6 @@
                 if (!string.IsNullOrEmpty(request.Password))
                 {
                     user.HashPassword = _encryptionService.HashPassword(request.Password);
-                    user.Password = null;
                 }
                 else
                 {
@@ -253,7 +248,7 @@
                     return LoginResponse.FailureResponse("Credenciales inválidas");
                 }
 
-                if (user.Status != "active")
+                if (user.Status != "Active")
                 {
                     _logger.LogWarning("Intento de login con usuario inactivo: {UserName}", loginDtOs.UserName);
                     return LoginResponse.FailureResponse("La cuenta de usuario está deshabilitada");
@@ -384,8 +379,8 @@
                     HashPassword = _encryptionService.HashPassword(password),
                     Status = "Active",
                     Aux = "",
-                    CreateAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
-                    Verified = "true",
+                    CreateAt = null,// el repositorio lo pone si ingresas null
+                    Verified = true,
                     IdConfigSys = config.IdConfigSys,
                     IdRol = adminRol.IdRol
                 };

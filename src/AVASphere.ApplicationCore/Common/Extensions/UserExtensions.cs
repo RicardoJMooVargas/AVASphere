@@ -16,11 +16,10 @@ public static class UserExtensions
             UserName = request.UserName ?? throw new ArgumentNullException(nameof(request.UserName)),
             Name = request.Name,
             LastName = request.LastName,
-            Password = null, // No almacenar contraseña en texto plano
             HashPassword = null, // Se establecerá en el servicio
             Status = "Active",
             Aux = request.Aux,
-            Verified = request.Verified ?? "No",
+            Verified = request.Verified ?? false,
             IdRol = request.IdRols,
             IdConfigSys = request.IdConfigSys // ✅ INCLUIR IdConfigSys
         };
@@ -31,7 +30,7 @@ public static class UserExtensions
     {
         if (request == null)
             throw new ArgumentNullException(nameof(request));
-        
+
         if (existingUser == null)
             throw new ArgumentNullException(nameof(existingUser));
 
@@ -51,8 +50,8 @@ public static class UserExtensions
         if (request.Aux != null) // Permitir empty string
             existingUser.Aux = request.Aux;
 
-        if (!string.IsNullOrEmpty(request.Verified))
-            existingUser.Verified = request.Verified;
+        if (request.Verified.HasValue)
+            existingUser.Verified = request.Verified.Value;
 
         if (request.IdRols > 0)
             existingUser.IdRol = request.IdRols;
@@ -81,8 +80,8 @@ public static class UserExtensions
             LastName = user.LastName,
             Status = user.Status,
             Aux = user.Aux,
-            CreateAt = user.CreateAt,
-            Verified = user.Verified,
+            CreateAt = user.CreateAt?.ToString("yyyy-MM-dd"),
+            Verified = user.Verified?.ToString(),
             IdRols = user.IdRol,
             RolName = user.Rol?.Name,
             // ✅ INCLUIR PROPIEDADES DE CONFIG SYS
@@ -112,8 +111,8 @@ public static class UserExtensions
             Status = user.Status,
             Aux = user.Aux,
             Hash = user.HashPassword,
-            CreateAt = user.CreateAt,
-            Verified = user.Verified,
+            CreateAt = user.CreateAt?.ToString("yyyy-MM-dd"),
+            Verified = user.Verified?.ToString(),
             IdRols = user.IdRol,
             RolName = user.Rol?.Name,
             // ✅ INCLUIR PROPIEDADES DE CONFIG SYS

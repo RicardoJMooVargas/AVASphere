@@ -7,7 +7,7 @@ namespace AVASphere.ApplicationCore.Sales.Entities;
 
 public class QuotationVersion
 {
-    public int QuotationVersionId { get; set; }
+    public int IdQuotationVersion { get; set; }
     public int VersionNumber { get; set; }
     public decimal? Subtotal { get; set; }
     public decimal? TaxAmount { get; set; }
@@ -16,21 +16,21 @@ public class QuotationVersion
 
     // NUEVO: Lista simplificada de productos (JSONB) - opcional
     [Column(TypeName = "jsonb")]
-    public List<SingleProductJson> Products { get; set; } = new List<SingleProductJson>();
+    public List<SingleProductJson> ProductsJson { get; set; } = new List<SingleProductJson>();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string? CreatedBy { get; set; }
     public int IdQuotation { get; set; }
 
-    // Versión completa de la cotización en formato JSONB
+    // Versión completa de la cotización en formato JSONB // NOTA: DUPLICACIÓN DE DATOS RECURSIVA
     [Column(TypeName = "jsonb")]
-    public Quotation QuotationData { get; set; } = new Quotation();
+    public QuotationDataJson QuotationDataJson { get; set; } = new QuotationDataJson();
 
-    //Navegación (opcional)
+    //Navegación
 
     [ForeignKey(nameof(IdQuotation))]
     public Quotation? Quotation { get; set; }
 
-    public IReadOnlyList<SingleProductJson> GetProducts() => Products.AsReadOnly();
+    public IReadOnlyList<SingleProductJson> GetProducts() => ProductsJson.AsReadOnly();
 
 
     // Añade un producto o actualiza si existe (por ProductId o Description)
@@ -54,7 +54,7 @@ public class QuotationVersion
         {
             // Calcula total de línea antes de añadir
             product.TotalPrice = (decimal)product.Quantity * product.UnitPrice;
-            Products.Add(product);
+            ProductsJson.Add(product);
         }
 
         RecalculateTotals();
@@ -62,9 +62,9 @@ public class QuotationVersion
 
     public bool RemoveProductById(int productId)
     {
-        var existing = Products.Find(p => p.ProductId.HasValue && p.ProductId.Value == productId);
+        var existing = ProductsJson.Find(p => p.ProductId.HasValue && p.ProductId.Value == productId);
         if (existing == null) return false;
-        Products.Remove(existing);
+        ProductsJson.Remove(existing);
         RecalculateTotals();
         return true;
     }
@@ -73,9 +73,9 @@ public class QuotationVersion
     public bool RemoveProductByDescription(string? description)
     {
         if (string.IsNullOrWhiteSpace(description)) return false;
-        var existing = Products.Find(p => string.Equals(p.Description, description, StringComparison.OrdinalIgnoreCase));
+        var existing = ProductsJson.Find(p => string.Equals(p.Description, description, StringComparison.OrdinalIgnoreCase));
         if (existing == null) return false;
-        Products.Remove(existing);
+        ProductsJson.Remove(existing);
         RecalculateTotals();
         return true;
     }
@@ -86,12 +86,12 @@ public class QuotationVersion
 
         if (product.ProductId.HasValue && product.ProductId.Value != 0)
         {
-            return Products.FirstOrDefault(p => p.ProductId.HasValue && p.ProductId.Value == product.ProductId.Value);
+            return ProductsJson.FirstOrDefault(p => p.ProductId.HasValue && p.ProductId.Value == product.ProductId.Value);
         }
 
         if (!string.IsNullOrEmpty(product.Description))
         {
-            return Products.FirstOrDefault(p => string.Equals(p.Description, product.Description, StringComparison.OrdinalIgnoreCase));
+            return ProductsJson.FirstOrDefault(p => string.Equals(p.Description, product.Description, StringComparison.OrdinalIgnoreCase));
         }
 
         return null;
@@ -100,11 +100,11 @@ public class QuotationVersion
     // Recalcula totales de la cotización a partir de los productos
     public void RecalculateTotals(decimal taxRate = 0m)
     {
-        Subtotal = Products.Count > 0 ? decimal.Round(Products.Sum(p => p.TotalPrice), 2, MidpointRounding.AwayFromZero) : 0m;
+        Subtotal = ProductsJson.Count > 0 ? decimal.Round(ProductsJson.Sum(p => p.TotalPrice), 2, MidpointRounding.AwayFromZero) : 0m;
 
         if (taxRate > 0m)
         {
-            var subtotalValue = Products.Sum(p => decimal.Round((decimal)p.Quantity * (decimal)p.UnitPrice, 2, MidpointRounding.AwayFromZero));
+            var subtotalValue = ProductsJson.Sum(p => decimal.Round((decimal)p.Quantity * (decimal)p.UnitPrice, 2, MidpointRounding.AwayFromZero));
             TaxAmount = decimal.Round(subtotalValue * taxRate, 2, MidpointRounding.AwayFromZero);
             TotalAmount = decimal.Round(subtotalValue + (TaxAmount ?? 0m), 2, MidpointRounding.AwayFromZero);
         }
@@ -115,4 +115,12 @@ public class QuotationVersion
         }
     }
 
+}
+
+public class QuotationDataJson
+{
+    public decimal SubTotal { get; set; }
+    public decimal TaxAmount { get; set; }
+    public decimal TotalAmount { get; set; }
+    public string? Corrency { get; set; }
 }

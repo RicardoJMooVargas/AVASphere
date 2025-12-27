@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../Core/theme/app_colors.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/system/app_navbar.widget.dart';
 
 class SupplyPage extends StatelessWidget {
   const SupplyPage({super.key});
@@ -8,12 +9,9 @@ class SupplyPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text('Módulo de Suministros'),
+      appBar: AppNavbarWidget(
+        title: 'Módulo de Suministros',
         backgroundColor: AppColors.tertiaryColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: Column(

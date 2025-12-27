@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import '../../../../Core/models/requests/customer_req.module.dart';
+import '../../../../core/models/requests/customer_req.module.dart';
 import 'followups_req.module.dart';
 
 class QuotationReq {

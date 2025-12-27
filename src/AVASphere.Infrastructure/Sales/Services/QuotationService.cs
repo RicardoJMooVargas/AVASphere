@@ -184,9 +184,17 @@ public class QuotationService : IQuotationService
             {
                 quotations = quotations.Where(q => q.IdCustomer == filter.IdCustomer.Value);
             }
+
+            // 5️⃣ Filtrar por CustomerName si se especifica
+            if (!string.IsNullOrWhiteSpace(filter.CustomerName))
+            {
+                quotations = quotations.Where(q => q.Customer != null &&
+                    ((q.Customer.Name?.Contains(filter.CustomerName, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                     (q.Customer.Email?.Contains(filter.CustomerName, StringComparison.OrdinalIgnoreCase) ?? false)));
+            }
         }
 
-        // 5️⃣ Limpiar referencias circulares problemáticas pero mantener datos del customer
+        // 6️⃣ Limpiar referencias circulares problemáticas pero mantener datos del customer
         foreach (var quotation in quotations)
         {
             // Mantener Customer pero limpiar sus referencias circulares

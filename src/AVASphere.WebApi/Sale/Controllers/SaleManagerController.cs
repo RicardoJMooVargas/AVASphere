@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using AVASphere.ApplicationCore.Sales.Interfaces;
 using AVASphere.ApplicationCore.Sales.Entities;
 using AVASphere.ApplicationCore.Sales.DTOs;
+using AVASphere.ApplicationCore.Sales.DTOs.SaleDTOs;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using System.Text.Json;
 using SaleEntity = AVASphere.ApplicationCore.Sales.Entities.Sale;

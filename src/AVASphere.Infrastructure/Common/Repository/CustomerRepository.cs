@@ -29,6 +29,15 @@ public class CustomerRepository : ICustomerRepository
         return await query.AsNoTracking().ToListAsync();
     }
 
+    /// <summary>
+    /// Obtiene un cliente por ID con tracking habilitado (para operaciones de actualización).
+    /// </summary>
+    public async Task<Customer?> GetByIdForUpdateAsync(int idCustomer)
+    {
+        return await _context.Customers
+            .FirstOrDefaultAsync(c => c.IdCustomer == idCustomer);
+    }
+
     public async Task<Customer> InsertAsync(Customer customer)
     {
         // Asegurar JSON requeridos
@@ -48,21 +57,36 @@ public class CustomerRepository : ICustomerRepository
         if (existing == null)
             throw new KeyNotFoundException($"Customer with Id {customer.IdCustomer} not found.");
 
-        // Actualización de campos (reemplazo completo en repositorio; actualización parcial debe manejarse en el servicio)
+        // Actualización de campos simples
         existing.ExternalId = customer.ExternalId;
         existing.Name = customer.Name;
         existing.LastName = customer.LastName;
         existing.PhoneNumber = customer.PhoneNumber;
         existing.Email = customer.Email;
         existing.TaxId = customer.TaxId;
-        existing.SettingsCustomerJson = customer.SettingsCustomerJson;
-        if (customer.DirectionJson is not null)
+
+        // Actualización de campos JSON (siempre se actualizan si se proporcionan)
+        if (customer.SettingsCustomerJson != null)
+        {
+            existing.SettingsCustomerJson = customer.SettingsCustomerJson;
+        }
+
+        if (customer.DirectionJson != null)
         {
             existing.DirectionJson = customer.DirectionJson; // requerido
         }
-        existing.PaymentMethodsJson = customer.PaymentMethodsJson;
-        existing.PaymentTermsJson = customer.PaymentTermsJson;
 
+        if (customer.PaymentMethodsJson != null)
+        {
+            existing.PaymentMethodsJson = customer.PaymentMethodsJson;
+        }
+
+        if (customer.PaymentTermsJson != null)
+        {
+            existing.PaymentTermsJson = customer.PaymentTermsJson;
+        }
+
+        _context.Customers.Update(existing);
         await _context.SaveChangesAsync();
         return existing;
     }
@@ -185,7 +209,7 @@ public class CustomerRepository : ICustomerRepository
 
         // Búsqueda usando ILIKE de PostgreSQL para coincidencia parcial
         var query = _context.Customers
-            .Where(c => 
+            .Where(c =>
                 EF.Functions.ILike((c.Name ?? "") + " " + (c.LastName ?? ""), $"%{normalizedSearchText}%") ||
                 EF.Functions.ILike(c.Name ?? "", $"%{normalizedSearchText}%") ||
                 EF.Functions.ILike(c.LastName ?? "", $"%{normalizedSearchText}%")

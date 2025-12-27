@@ -54,9 +54,9 @@ public class QuotationService : IQuotationService
 
             var nc = dto.NewCustomers.First();
 
-                // Validaciones mínimas
-                if (string.IsNullOrWhiteSpace(nc.Name))
-                    throw new Exception("El nombre del cliente es obligatorio para crear uno nuevo.");
+            // Validaciones mínimas
+            if (string.IsNullOrWhiteSpace(nc.Name))
+                throw new Exception("El nombre del cliente es obligatorio para crear uno nuevo.");
 
             // Crear nuevo customer
             customer = new Customer
@@ -65,10 +65,10 @@ public class QuotationService : IQuotationService
                 Name = nc.Name,
                 Email = nc.Email,
                 PhoneNumber = string.IsNullOrWhiteSpace(nc.PhoneNumber) ? "+00" : nc.PhoneNumber,
-                DirectionJson = new DirectionJson
+                DirectionJson = !string.IsNullOrWhiteSpace(nc.Direction) ? new DirectionJson
                 {
                     Colony = nc.Direction
-                },
+                } : null,
                 SettingsCustomerJson = new SettingsCustomerJson
                 {
                     Index = 1,

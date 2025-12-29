@@ -44,6 +44,7 @@ public class ExternalSalesService : IExternalSalesService
     /// - Search: Búsqueda inteligente (solo números → folio; texto → cliente)
     /// - CustomerName: Filtro por nombre del cliente
     /// - Folio: Filtro por folio
+    /// - Auxiliar: Filtro por agente auxiliar
     /// - IsLinked: Filtrar por estado de vinculación
     /// - MinAmount/MaxAmount: Filtro por rango de montos
     /// - SatisfactionLevel: Filtro por nivel de satisfacción
@@ -65,7 +66,7 @@ public class ExternalSalesService : IExternalSalesService
             // Usar fecha actual si no se especifica
             var fecha = filter.Fecha ?? DateTime.UtcNow;
 
-            // 1️⃣ Consultar API externa
+            //Consultar API externa
             var externalSales = await _externalSalesRepository.GetSalesByDateAndCatalogAsync(
                 filter.Catalogo,
                 fecha);
@@ -144,10 +145,11 @@ public class ExternalSalesService : IExternalSalesService
     /// 1. Search (búsqueda inteligente)
     /// 2. Folio (búsqueda exacta)
     /// 3. CustomerName (búsqueda de cliente)
-    /// 4. IsLinked (por estado de vinculación)
-    /// 5. Rango de montos (MinAmount/MaxAmount)
-    /// 6. SatisfactionLevel (nivel de satisfacción)
-    /// 7. Paginación (Limit/Offset)
+    /// 4. Auxiliar (búsqueda de agente)
+    /// 5. IsLinked (por estado de vinculación)
+    /// 6. Rango de montos (MinAmount/MaxAmount)
+    /// 7. SatisfactionLevel (nivel de satisfacción)
+    /// 8. Paginación (Limit/Offset)
     /// </summary>
     private IEnumerable<CombinedSalesDto> ApplyFilters(IEnumerable<CombinedSalesDto> sales, SaleFilterDto filter)
     {
@@ -197,13 +199,22 @@ public class ExternalSalesService : IExternalSalesService
             );
         }
 
-        // FILTRO 4: Estado de vinculación
+        // FILTRO 4: Auxiliar (agente)
+        if (!string.IsNullOrWhiteSpace(filter.Auxiliar))
+        {
+            result = result.Where(s =>
+                (s.ExternalSales?.Agente?.Contains(filter.Auxiliar, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (s.InternalSales?.AuxNoteDataJson?.Agente?.Contains(filter.Auxiliar, StringComparison.OrdinalIgnoreCase) ?? false)
+            );
+        }
+
+        // FILTRO 5: Estado de vinculación
         if (filter.IsLinked.HasValue)
         {
             result = result.Where(s => s.IsLinked == filter.IsLinked.Value);
         }
 
-        // FILTRO 5: Rango de montos
+        // FILTRO 6: Rango de montos
         if (filter.MinAmount.HasValue)
         {
             result = result.Where(s => s.ExternalSales?.Total >= filter.MinAmount.Value);
@@ -214,7 +225,7 @@ public class ExternalSalesService : IExternalSalesService
             result = result.Where(s => s.ExternalSales?.Total <= filter.MaxAmount.Value);
         }
 
-        // FILTRO 6: Nivel de satisfacción (solo para ventas vinculadas)
+        // FILTRO 7: Nivel de satisfacción (solo para ventas vinculadas)
         if (filter.SatisfactionLevel.HasValue)
         {
             result = result.Where(s =>
@@ -222,7 +233,7 @@ public class ExternalSalesService : IExternalSalesService
             );
         }
 
-        // FILTRO 7: Paginación
+        // FILTRO 8: Paginación
         if (filter.Offset.HasValue && filter.Offset.Value > 0)
         {
             result = result.Skip(filter.Offset.Value);

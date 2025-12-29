@@ -49,6 +49,7 @@ namespace AVASphere.WebApi.Sale.Controllers
             [FromQuery] string? search = null,
             [FromQuery] string? customerName = null,
             [FromQuery] string? folio = null,
+            [FromQuery] string? aux = null,
             [FromQuery] bool? isLinked = null,
             [FromQuery] decimal? minAmount = null,
             [FromQuery] decimal? maxAmount = null,
@@ -60,7 +61,12 @@ namespace AVASphere.WebApi.Sale.Controllers
             {
                 // Catálogo fijo automático
                 const string catalogo = "AVA01";
-
+                
+                if (aux == "string")
+                {
+                    aux = null;
+                }
+                
                 // Construir filtro
                 var filter = new SaleFilterDto
                 {
@@ -69,6 +75,7 @@ namespace AVASphere.WebApi.Sale.Controllers
                     Search = search,
                     CustomerName = customerName,
                     Folio = folio,
+                    Auxiliar = aux,
                     IsLinked = isLinked,
                     MinAmount = minAmount,
                     MaxAmount = maxAmount,

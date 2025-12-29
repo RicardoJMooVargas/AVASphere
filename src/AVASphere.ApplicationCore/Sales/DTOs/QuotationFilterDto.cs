@@ -26,6 +26,11 @@ public class QuotationFilterDto
     public string? CustomerName { get; set; }
 
     /// <summary>
+    /// Filtro por ID externo (opcional).
+    /// </summary>
+    public int? ExternalId { get; set; } = 0;
+
+    /// <summary>
     /// Fecha de inicio para filtrar por rango (por defecto: primer día del mes actual).
     /// </summary>
     public DateTime StartDate { get; set; }

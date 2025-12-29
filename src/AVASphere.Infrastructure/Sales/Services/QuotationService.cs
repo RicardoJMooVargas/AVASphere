@@ -192,6 +192,12 @@ public class QuotationService : IQuotationService
                     ((q.Customer.Name?.Contains(filter.CustomerName, StringComparison.OrdinalIgnoreCase) ?? false) ||
                      (q.Customer.Email?.Contains(filter.CustomerName, StringComparison.OrdinalIgnoreCase) ?? false)));
             }
+
+            // 6️⃣ Filtrar por ExternalId si se especifica
+            if (filter.ExternalId.HasValue && filter.ExternalId.Value > 0)
+            {
+                quotations = quotations.Where(q => q.Customer != null && q.Customer.ExternalId == filter.ExternalId.Value);
+            }
         }
 
         // 6️⃣ Limpiar referencias circulares problemáticas pero mantener datos del customer

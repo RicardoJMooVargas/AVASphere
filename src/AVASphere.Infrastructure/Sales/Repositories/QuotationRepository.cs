@@ -30,89 +30,6 @@ public class QuotationRepository : IQuotationRepository
            .ToListAsync();
     }
 
-    public async Task<Quotation?> UpdateIdQuotation(int id, QuotationUpdateDto dto)
-    {
-        var quotation = await _context.Quotations
-            .FirstOrDefaultAsync(q => q.IdQuotation == id);
-
-        if (quotation == null)
-            return null;
-
-        // 🔸 Solo actualiza si el campo tiene datos nuevos
-        if (dto.Folio != 0 && dto.Folio != quotation.Folio)
-            quotation.Folio = dto.Folio;
-
-        if (dto.Status.HasValue && dto.Status.Value != quotation.Status)
-            quotation.Status = dto.Status.Value;
-
-        if (!string.IsNullOrWhiteSpace(dto.GeneralComment) && dto.GeneralComment != quotation.GeneralComment)
-            quotation.GeneralComment = dto.GeneralComment;
-
-        if (dto.CustomerId != 0 && dto.CustomerId != quotation.IdCustomer)
-            quotation.IdCustomer = dto.CustomerId;
-
-        if (dto.IdConfigSys != 0 && dto.IdConfigSys != quotation.IdConfigSys)
-            quotation.IdConfigSys = dto.IdConfigSys;
-
-        if (dto.SalesExecutives != null && dto.SalesExecutives.Any())
-            quotation.SalesExecutives = dto.SalesExecutives;
-        else
-            quotation.SalesExecutives ??= new List<string>(); // asegura que no sea null
-
-        // 🔹 FOLLOWUPS
-        bool hasValidFollowups = dto.Followups != null &&
-            dto.Followups.Any(f =>
-                (!string.IsNullOrWhiteSpace(f.Comment) && f.Comment != "string") ||
-                (!string.IsNullOrWhiteSpace(f.UserId) && f.UserId != "string"));
-
-        if (hasValidFollowups)
-        {
-            quotation.FollowupsJson = dto.Followups.Select(f => new QuotationFollowupsJson
-            {
-                Date = f.Date,
-                Comment = f.Comment,
-                UserId = f.UserId,
-                CreatedAt = DateTime.UtcNow
-            }).ToList();
-        }
-        else
-        {
-            // ❌ Mantén los followups existentes
-            quotation.FollowupsJson = quotation.FollowupsJson;
-        }
-
-        // 🔹 PRODUCTS
-        bool hasValidProducts = dto.Products != null &&
-            dto.Products.Any(p =>
-                p.ProductId != 0 ||
-                p.Quantity != 0 ||
-                (!string.IsNullOrWhiteSpace(p.Description) && p.Description != "string"));
-
-        if (hasValidProducts)
-        {
-            quotation.ProductsJson = dto.Products.Select(p => new SingleProductJson
-            {
-                ProductId = p.ProductId,
-                Quantity = p.Quantity,
-                Description = p.Description,
-                UnitPrice = p.UnitPrice,
-                TotalPrice = p.TotalPrice,
-                Unit = p.Unit
-            }).ToList();
-        }
-        else
-        {
-            // ❌ Mantén los productos existentes
-            quotation.ProductsJson = quotation.ProductsJson;
-        }
-
-        quotation.UpdatedAt = DateTime.UtcNow;
-
-        _context.Quotations.Update(quotation);
-        await _context.SaveChangesAsync();
-
-        return quotation;
-    }
     // Actualiza/guarda la entidad Quotation completa (usado tras modificar la entidad en memoria)
     public async Task<Quotation> UpdateQuotationAsync(Quotation quotation)
     {
@@ -141,6 +58,8 @@ public class QuotationRepository : IQuotationRepository
     {
         return await _context.Quotations
             .AsNoTracking()
+            .Include(q => q.Customer)
+            .Include(q => q.Versions)
             .FirstOrDefaultAsync(q => q.Folio == folio);
     }
 
@@ -156,9 +75,11 @@ public class QuotationRepository : IQuotationRepository
     {
         var startDateOnly = DateOnly.FromDateTime(startDate);
         var endDateOnly = DateOnly.FromDateTime(endDate);
-        
+
         return await _context.Quotations
             .AsNoTracking()
+            .Include(q => q.Customer)
+            .Include(q => q.Versions)
             .Where(q => q.SaleDate >= startDateOnly && q.SaleDate <= endDateOnly)
             .ToListAsync();
     }
@@ -177,6 +98,8 @@ public class QuotationRepository : IQuotationRepository
     {
         return await _context.Quotations
             .AsNoTracking()
+            .Include(q => q.Customer)
+            .Include(q => q.Versions)
             .FirstOrDefaultAsync(q => q.IdQuotation == id);
     }
 

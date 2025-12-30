@@ -14,5 +14,4 @@ public class PropertyValue
     // RELACIONES
     public ICollection<ProductProperties> ProductProperties { get; set; } = new List<ProductProperties>();
     public ICollection<IndividualListingProperties> IndividualListingProperties { get; set; } = new List<IndividualListingProperties>();
-    
 }

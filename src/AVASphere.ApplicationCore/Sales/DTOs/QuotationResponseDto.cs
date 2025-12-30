@@ -1,4 +1,4 @@
-﻿﻿namespace AVASphere.ApplicationCore.Sales.DTOs;
+﻿namespace AVASphere.ApplicationCore.Sales.DTOs;
 
 public class QuotationResponseDto
 {
@@ -48,7 +48,7 @@ public class CustomerResponseDto
     public bool Status { get; set; }
 }
 
-public class QuotationFollowupResponseDto
+public class QuotationFollowupResponseDtoOld
 {
     // Mantengo string para Id porque la entidad QuotationFollowupsJson define Id como string
     public string Id { get; set; } = string.Empty;

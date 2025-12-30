@@ -31,6 +31,7 @@ class SalesPage extends StatelessWidget {
                 color: AppColors.primaryColor,
               ),
             ),
+            
             const SizedBox(height: 32),
             
             Text(

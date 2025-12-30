@@ -1,4 +1,5 @@
 using AVASphere.ApplicationCore.Sales.DTOs;
+using AVASphere.ApplicationCore.Sales.DTOs.ImportDTOs;
 using AVASphere.ApplicationCore.Sales.Entities;
 
 namespace AVASphere.ApplicationCore.Sales.Interfaces;
@@ -40,5 +41,43 @@ public interface ISaleService
     Task<Sale> InsertExternalSaleAndLinkQuotationAsync(
         InsertExternalSaleAndQuotationRequest request,
         string createdByUserId
+    );
+
+    /// <summary>
+    /// Importa ventas del sistema externo para un mes completo de forma optimizada.
+    /// 
+    /// OPTIMIZACIONES IMPLEMENTADAS:
+    /// 1. Procesamiento por lotes para reducir carga en API externa
+    /// 2. Cache de clientes existentes para evitar consultas repetitivas
+    /// 3. Detección de duplicados antes de inserción
+    /// 4. Limitación de concurrencia para no saturar API externa
+    /// 5. Reintentos con backoff exponencial en caso de errores temporales
+    /// 
+    /// PROCESO:
+    /// 1. Valida que el rango no exceda 31 días
+    /// 2. Divide el mes en lotes de días (ej: 5 días por lote)
+    /// 3. Para cada lote, consulta API externa
+    /// 4. Verifica duplicados contra BD local
+    /// 5. Crea clientes faltantes en lote
+    /// 6. Obtiene detalles de productos para cada venta
+    /// 7. Inserta ventas en lotes transaccionales
+    /// 
+    /// LIMITACIONES:
+    /// - Máximo 1 mes (31 días)
+    /// - Máximo 1000 ventas por importación
+    /// - Timeout de 10 minutos por importación completa
+    /// </summary>
+    /// <param name="year">Año a importar</param>
+    /// <param name="month">Mes a importar (1-12)</param>
+    /// <param name="idConfigSys">ID del sistema de configuración</param>
+    /// <param name="createdByUserId">Usuario que ejecuta la importación</param>
+    /// <param name="batchSize">Tamaño del lote (por defecto 5 días)</param>
+    /// <returns>Resultado de la importación con estadísticas</returns>
+    Task<ImportSalesResult> ImportSalesForMonthAsync(
+        int year, 
+        int month, 
+        int idConfigSys, 
+        string createdByUserId, 
+        int batchSize = 5
     );
 }

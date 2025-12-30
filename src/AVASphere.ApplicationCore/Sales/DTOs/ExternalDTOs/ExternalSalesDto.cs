@@ -14,16 +14,19 @@ public class ExternalSalesDto
 {
     /// <summary>
     /// Indicador NF (Nota Fiscal).
+    /// ejemplo: "F" para factura y N para notas.
     /// </summary>
     public string? NF { get; set; }
 
     /// <summary>
     /// Número de caja.
+    /// 13 para caja registradora especifica de venta.
     /// </summary>
     public string? Caja { get; set; }
 
     /// <summary>
     /// Serie de la venta.
+    /// ejemplo: "CR".
     /// </summary>
     public string? Serie { get; set; }
 

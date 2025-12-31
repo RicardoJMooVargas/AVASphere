@@ -132,6 +132,8 @@ public static class DependencyInjection
 
         services.AddScoped<IExternalSalesRepository, ExternalSalesRepository>();
         services.AddScoped<IExternalSalesService, ExternalSalesService>();
+        
+        services.AddScoped<ISaleChartService, SaleChartService>();
     }
 
     private static void AddCommonServices(IServiceCollection services)

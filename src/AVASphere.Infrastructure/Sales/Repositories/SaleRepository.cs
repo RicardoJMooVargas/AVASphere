@@ -119,4 +119,20 @@ public class SaleRepository : ISaleRepository
             .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
             .SumAsync(s => s.TotalAmount);
     }
+
+    // Métodos para importación optimizada
+    public async Task<IEnumerable<Sale>> GetSalesByFoliosAsync(IEnumerable<string> folios)
+    {
+        return await _context.Set<Sale>()
+            .Where(s => folios.Contains(s.Folio))
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<Sale> InsertAsync(Sale sale)
+    {
+        await _context.Set<Sale>().AddAsync(sale);
+        await _context.SaveChangesAsync();
+        return sale;
+    }
 }

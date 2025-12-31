@@ -57,6 +57,10 @@ public class SaleFilterDto
     /// Se aplica tanto a folios internos como externos.
     /// </summary>
     public string? Folio { get; set; }
+    /// <summary>
+    /// Filtra el dato de auxiliar de la venta que es el Agente.
+    /// </summary>
+    public string? Auxiliar { get; set; }
 
     /// <summary>
     /// Filtro por estado de vinculación.

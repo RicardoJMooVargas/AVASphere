@@ -61,6 +61,7 @@ namespace AVASphere.WebApi.Common.Controllers
                         name = authResult.User.Name,
                         lastName = authResult.User.LastName,
                         rol = authResult.User.RolName,
+                        aux = authResult.User.Aux,
                         idConfigSys = authResult.User.IdConfigSys,
                         modules = authResult.User.Modules,
                         permissions = authResult.User.Permissions

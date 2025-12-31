@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace AVASphere.ApplicationCore.Sales.DTOs
+namespace AVASphere.ApplicationCore.Sales.DTOs.SaleDTOs
 {
     public class CreateSaleFromQuotationsDto
     {

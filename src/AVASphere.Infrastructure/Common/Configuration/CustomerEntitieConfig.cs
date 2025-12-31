@@ -60,7 +60,7 @@ public class CustomerEntitieConfig : IEntityTypeConfiguration<Customer>
                      .HasColumnName("DirectionJson")
                      .HasDefaultValueSql("'{}'::jsonb")
                      .HasColumnType("jsonb")
-                     .IsRequired();
+                     .IsRequired(false);
 
               entity.Property(c => c.PaymentMethodsJson)
                      .HasColumnName("PaymentMethodsJson")

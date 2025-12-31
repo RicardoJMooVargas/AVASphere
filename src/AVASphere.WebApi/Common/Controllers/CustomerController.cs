@@ -17,7 +17,7 @@ public class CustomerController : ControllerBase
     {
         _customerService = customerService;
     }
-
+    // Obtiene clientes con filtros opcionales
     [HttpGet("get")]
     public async Task<ActionResult> GetCustomers([FromQuery] int? idCustomer, [FromQuery] string? lastName, [FromQuery] int? externalId)
     {
@@ -40,18 +40,7 @@ public class CustomerController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Crea un nuevo cliente con auto-incremento automático de índices
-    /// </summary>
-    /// <remarks>
-    /// Los índices en los JSON se asignan automáticamente de forma transparente:
-    /// - Settings: Configuraciones del cliente (ruta, tipo, descuento)
-    /// - Direction: Información de dirección (campo requerido si no se proporciona)
-    /// - PaymentMethod: Método de pago preferido
-    /// - PaymentTerms: Términos de pago del cliente
-    /// 
-    /// No es necesario especificar índices - se manejan internamente.
-    /// </remarks>
+    // Crea un nuevo cliente con auto-incremento automático de índices
     [HttpPost("create")]
     public async Task<ActionResult> CreateCustomer([FromBody] CustomerCreateRequest request)
     {
@@ -80,19 +69,7 @@ public class CustomerController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Actualiza un cliente existente con reemplazo completo de JSONs
-    /// </summary>
-    /// <remarks>
-    /// Comportamiento de actualización:
-    /// - Solo se actualizan los campos que no son null en el request
-    /// - Los JSONs se reemplazan completamente si se proporcionan
-    /// - Los índices se asignan automáticamente - transparente al usuario
-    /// - Settings: Reemplaza completamente las configuraciones del cliente
-    /// - Direction: Reemplaza completamente la información de dirección
-    /// - PaymentMethod: Reemplaza completamente el método de pago
-    /// - PaymentTerms: Reemplaza completamente los términos de pago
-    /// </remarks>
+    // Actualiza un cliente existente con reemplazo completo de JSONs
     [HttpPut("update")]
     public async Task<ActionResult> UpdateCustomer([FromBody] CustomerUpdateRequest request)
     {
@@ -129,6 +106,7 @@ public class CustomerController : ControllerBase
         }
     }
 
+    // Elimina un cliente por IdCustomer
     [HttpDelete("delete/{idCustomer}")]
     public async Task<ActionResult> DeleteCustomer(int idCustomer)
     {
@@ -149,19 +127,8 @@ public class CustomerController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Búsqueda inteligente de clientes por nombre completo
-    /// </summary>
-    /// <remarks>
-    /// Realiza una búsqueda con coincidencia parcial en:
-    /// - Nombre completo (Name + LastName concatenados)
-    /// - Solo nombre (Name)
-    /// - Solo apellido (LastName)
-    /// 
-    /// La búsqueda es insensible a mayúsculas/minúsculas y utiliza 
-    /// coincidencia parcial con porcentaje (%) para flexibilidad.
-    /// </remarks>
-    /// <param name="searchText">Texto a buscar en el nombre completo del cliente</param>
+    
+    // Búsqueda inteligente de clientes por nombre completo
     [HttpGet("search")]
     public async Task<ActionResult> SearchCustomers([FromQuery] string searchText)
     {

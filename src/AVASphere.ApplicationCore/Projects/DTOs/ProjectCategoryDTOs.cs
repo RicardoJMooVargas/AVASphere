@@ -4,6 +4,7 @@ public class ProjectCategoryRequestDto
 {
     public string Name { get; set; } = null!;
     public string? NormalizedName { get; set; }
+    public int  IdConfigSys { get; set; }
 }
 
 public class ProjectCategoryResponseDto

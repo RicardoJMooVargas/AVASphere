@@ -54,9 +54,9 @@ public class QuotationService : IQuotationService
 
             var nc = dto.NewCustomers.First();
 
-                // Validaciones mínimas
-                if (string.IsNullOrWhiteSpace(nc.Name))
-                    throw new Exception("El nombre del cliente es obligatorio para crear uno nuevo.");
+            // Validaciones mínimas
+            if (string.IsNullOrWhiteSpace(nc.Name))
+                throw new Exception("El nombre del cliente es obligatorio para crear uno nuevo.");
 
             // Crear nuevo customer
             customer = new Customer
@@ -65,10 +65,10 @@ public class QuotationService : IQuotationService
                 Name = nc.Name,
                 Email = nc.Email,
                 PhoneNumber = string.IsNullOrWhiteSpace(nc.PhoneNumber) ? "+00" : nc.PhoneNumber,
-                DirectionJson = new DirectionJson
+                DirectionJson = !string.IsNullOrWhiteSpace(nc.Direction) ? new DirectionJson
                 {
                     Colony = nc.Direction
-                },
+                } : null,
                 SettingsCustomerJson = new SettingsCustomerJson
                 {
                     Index = 1,
@@ -184,9 +184,23 @@ public class QuotationService : IQuotationService
             {
                 quotations = quotations.Where(q => q.IdCustomer == filter.IdCustomer.Value);
             }
+
+            // 5️⃣ Filtrar por CustomerName si se especifica
+            if (!string.IsNullOrWhiteSpace(filter.CustomerName))
+            {
+                quotations = quotations.Where(q => q.Customer != null &&
+                    ((q.Customer.Name?.Contains(filter.CustomerName, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                     (q.Customer.Email?.Contains(filter.CustomerName, StringComparison.OrdinalIgnoreCase) ?? false)));
+            }
+
+            // 6️⃣ Filtrar por ExternalId si se especifica
+            if (filter.ExternalId.HasValue && filter.ExternalId.Value > 0)
+            {
+                quotations = quotations.Where(q => q.Customer != null && q.Customer.ExternalId == filter.ExternalId.Value);
+            }
         }
 
-        // 5️⃣ Limpiar referencias circulares problemáticas pero mantener datos del customer
+        // 6️⃣ Limpiar referencias circulares problemáticas pero mantener datos del customer
         foreach (var quotation in quotations)
         {
             // Mantener Customer pero limpiar sus referencias circulares

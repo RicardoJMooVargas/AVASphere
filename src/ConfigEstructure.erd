@@ -1,12 +1,12 @@
-﻿{
+{
   "$schema": "https://raw.githubusercontent.com/dineug/erd-editor/main/json-schema/schema.json",
   "version": "3.0.0",
   "settings": {
     "width": 2000,
     "height": 2000,
-    "scrollTop": -222.1849,
-    "scrollLeft": -332,
-    "zoomLevel": 0.82,
+    "scrollTop": -398.9184,
+    "scrollLeft": -395.3295,
+    "zoomLevel": 0.61,
     "show": 431,
     "database": 16,
     "databaseName": "",
@@ -1229,18 +1229,6 @@
         "meta": {
           "updateAt": 1762793931300,
           "createAt": 1762793931300
-        }
-      },
-      "1AkNHSY5uD0BtJqemJ49F": {
-        "id": "1AkNHSY5uD0BtJqemJ49F",
-        "name": "",
-        "tableId": "7MvaQTSeh_abqgufRQrBk",
-        "indexColumnIds": [],
-        "seqIndexColumnIds": [],
-        "unique": false,
-        "meta": {
-          "updateAt": 1762801745506,
-          "createAt": 1762801745506
         }
       }
     },

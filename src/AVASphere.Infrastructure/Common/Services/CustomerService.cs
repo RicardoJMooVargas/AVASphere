@@ -111,8 +111,8 @@ namespace AVASphere.Infrastructure.Common.Services
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            var existingList = await _repository.SelectAsync(request.IdCustomer, null, null);
-            var existing = existingList.FirstOrDefault();
+            // Obtener el cliente con tracking habilitado para poder actualizar
+            var existing = await _repository.GetByIdForUpdateAsync(request.IdCustomer);
             if (existing == null)
                 throw new KeyNotFoundException($"Customer with Id {request.IdCustomer} not found.");
 
@@ -171,6 +171,21 @@ namespace AVASphere.Infrastructure.Common.Services
                     Colony = request.Direction.Colony,
                     City = request.Direction.City,
                     Municipality = request.Direction.Municipality
+                };
+            }
+            else
+            {
+                // Si no se proporciona dirección en la actualización, establecer valor por defecto
+                existing.DirectionJson = new DirectionJson
+                {
+                    Index = await _repository.GetNextIndexForDirectionAsync(),
+                    InteriorNumber = "SIN DIRECCIÓN",
+                    ExteriorNumber = null,
+                    NeighboringStreet = null,
+                    NeighboringStreet2 = null,
+                    Colony = null,
+                    City = null,
+                    Municipality = null
                 };
             }
 

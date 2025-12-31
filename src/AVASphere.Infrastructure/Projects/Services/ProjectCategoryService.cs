@@ -31,7 +31,8 @@ public class ProjectCategoryService : IProjectCategoryService
                 var projectCategory = new ProjectCategory
                 {
                     Name = projectCategoryRequest.Name,
-                    NormalizedName = projectCategoryRequest.NormalizedName ?? projectCategoryRequest.Name.ToUpper()
+                    NormalizedName = projectCategoryRequest.NormalizedName ?? projectCategoryRequest.Name.ToUpper(),
+                    IdConfigSys = projectCategoryRequest.IdConfigSys
                 };
     
                 var createdProjectCategory = await _projectCategoryRepository.CreateAsync(projectCategory);

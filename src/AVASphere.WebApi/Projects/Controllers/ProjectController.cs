@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.DTOs;
+﻿﻿using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Common.Enums;
 using AVASphere.ApplicationCore.Projects.DTOs;
 using AVASphere.ApplicationCore.Projects.Enum;
@@ -38,31 +38,17 @@ public class ProjectController : ControllerBase
     ///   * Cotización del proyecto (totales e impuestos)
     ///   * Categorías asociadas al proyecto
     /// </remarks>
-    /// <param name="idCustomer">ID del cliente (opcional)</param>
-    /// <param name="currentHito">Estado actual del proyecto (opcional)</param>
-    /// <param name="categoryIds">Lista de IDs de categorías para filtrar (opcional)</param>
+    /// <param name="filter">Filtro opcional para clientes y proyectos</param>
     /// <returns>Lista de clientes con sus proyectos</returns>
     /// <response code="200">Lista de clientes con proyectos obtenida exitosamente</response>
     /// <response code="500">Error interno del servidor</response>
-    
-    
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<IEnumerable<CustomerWithProjectsResponseDto>>), 200)]
     [ProducesResponseType(typeof(ApiResponse<object>), 500)]
-    public async Task<ActionResult> GetCustomersWithProjects(
-        [FromQuery] int? idCustomer = null,
-        [FromQuery] Hitos? currentHito = null,
-        [FromQuery] List<int>? categoryIds = null)
+    public async Task<ActionResult> GetCustomersWithProjects([FromQuery] GetProjectsWithCustomersFilterDto filter)
     {
         try
         {
-            var filter = new GetProjectsWithCustomersFilterDto
-            {
-                IdCustomer = idCustomer,
-                CurrentHito = currentHito,
-                CategoryIds = categoryIds
-            };
-
             var result = await _projectService.GetCustomersWithProjectsAsync(filter);
 
             return Ok(new ApiResponse<IEnumerable<CustomerWithProjectsResponseDto>>(

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Interfaces;
@@ -127,5 +127,13 @@ public class UserRepository : IUserRepository
 
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<User>> GetAllAsync()
+    {
+        return await _context.Users
+            .Include(u => u.Rol)
+            .Include(u => u.ConfigSys)
+            .ToListAsync();
     }
 }

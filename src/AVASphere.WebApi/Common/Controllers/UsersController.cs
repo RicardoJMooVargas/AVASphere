@@ -23,6 +23,61 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
+    /// Obtiene usuarios por ID, nombre de usuario o todos si no se especifica ninguno
+    /// </summary>
+    /// <param name="idUsers">ID del usuario a buscar (opcional)</param>
+    /// <param name="userName">Nombre de usuario a buscar (opcional)</param>
+    /// <returns>Información del usuario encontrado o lista de usuarios</returns>
+    /// <response code="200">Usuario(s) encontrado(s) exitosamente</response>
+    /// <response code="404">Usuario no encontrado</response>
+    /// <response code="500">Error interno del servidor</response>
+    [HttpGet]
+    /*[ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]*/
+    public async Task<ActionResult> GetUsers([FromQuery] int? idUsers, [FromQuery] string? userName)
+    {
+        try
+        {
+            _logger.LogInformation("Solicitando usuarios (ID={IdUser}, UserName={UserName})", idUsers, userName);
+
+            var users = await _userService.SearchUsersAsync(idUsers, userName);
+
+            if (idUsers.HasValue || !string.IsNullOrWhiteSpace(userName))
+            {
+                // Búsqueda específica
+                var userList = users.ToList();
+                if (!userList.Any())
+                {
+                    string criterio = idUsers.HasValue ? $"ID {idUsers}" : $"UserName '{userName}'";
+                    return NotFound(new ApiResponse($"Usuario con {criterio} no encontrado", 404));
+                }
+                return Ok(new ApiResponse(userList.First(), "Usuario encontrado exitosamente", 200));
+            }
+            else
+            {
+                // Obtener todos
+                return Ok(new ApiResponse(users, "Usuarios obtenidos exitosamente", 200));
+            }
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Parámetros inválidos para búsqueda de usuarios");
+            return BadRequest(new ApiResponse(ex.Message, 400));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Usuario no encontrado");
+            return NotFound(new ApiResponse(ex.Message, 404));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al obtener usuarios");
+            return StatusCode(500, new ApiResponse("Error interno del servidor", 500));
+        }
+    }
+
+    /// <summary>
     /// Obtiene un usuario por su ID
     /// </summary>
     /// <param name="idUsers">ID del usuario a buscar</param>
@@ -40,8 +95,13 @@ public class UsersController : ControllerBase
         {
             _logger.LogInformation("Solicitando usuario con ID: {IdUser}", idUsers);
 
-            var user = await _userService.SearchUsersAsync(idUsers, null);
-            return Ok(new ApiResponse(user, "Usuario encontrado exitosamente", 200));
+            var users = await _userService.SearchUsersAsync(idUsers, null);
+            var userList = users.ToList();
+            if (!userList.Any())
+            {
+                return NotFound(new ApiResponse($"Usuario con ID {idUsers} no encontrado", 404));
+            }
+            return Ok(new ApiResponse(userList.First(), "Usuario encontrado exitosamente", 200));
         }
         catch (KeyNotFoundException ex)
         {

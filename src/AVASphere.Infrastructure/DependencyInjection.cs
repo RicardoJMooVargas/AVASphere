@@ -116,7 +116,7 @@ public static class DependencyInjection
 
     private static void AddSalesServices(IServiceCollection services)
     {
-        /// Registrar repositorios y servicios del módulo Sales
+        // Registrar repositorios y servicios del módulo Sales
         services.AddHttpClient();
         services.AddScoped<IQuotationRepository, QuotationRepository>();
         services.AddScoped<IQuotationService, QuotationService>();
@@ -152,6 +152,8 @@ public static class DependencyInjection
         services.AddScoped<IPropertyService, PropertyService>();
         services.AddScoped<IPropertyValueRepository, PropertyValueRepository>();
         services.AddScoped<IPropertyValueService, PropertyValueService>();
+        services.AddScoped<ISupplierRepository, SupplierRepository>();
+        services.AddScoped<ISupplierService, SupplierService>();
         
 
         // Servicios de seguridad

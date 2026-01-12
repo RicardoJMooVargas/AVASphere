@@ -1,4 +1,4 @@
-﻿﻿using AVASphere.ApplicationCore.Common.DTOs;
+﻿﻿﻿using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Common.Enums;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Projects.DTOs;
@@ -17,16 +17,18 @@ public class CatalogsController : ControllerBase
     private readonly IProjectCategoryService _projectCategoryService;
     private readonly IPropertyService _propertyService;
     private readonly IPropertyValueService _propertyValueService;
+    private readonly ISupplierService _supplierService;
     private readonly ILogger<CatalogsController> _logger;
 
     public CatalogsController(IAreaService areaService, IProjectCategoryService projectCategoryService, IPropertyService propertyService,
-        IPropertyValueService propertyValueService, ILogger<CatalogsController> logger)
+        IPropertyValueService propertyValueService, ISupplierService supplierService, ILogger<CatalogsController> logger)
     {
         _areaService = areaService;
         _logger = logger;
         _propertyService = propertyService;
         _propertyValueService = propertyValueService;
         _projectCategoryService = projectCategoryService;
+        _supplierService = supplierService;
         
     }
 
@@ -516,6 +518,124 @@ public class CatalogsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error force deleting property value with ID: {PropertyValueId}", id);
+            return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
+
+    // Supplier Controller
+
+    [HttpPost("new-supplier")]
+    public async Task<ActionResult> NewSupplier([FromBody] CreateSupplierDto supplierRequest)
+    {
+        try
+        {
+            _logger.LogInformation("Creating a new supplier with name: {SupplierName}", supplierRequest.Name);
+            var createdSupplier = await _supplierService.CreateSupplierAsync(supplierRequest);
+
+            return CreatedAtAction(nameof(GetSuppliers), new { id = createdSupplier.IdSupplier },
+                new ApiResponse(createdSupplier, "Supplier created successfully", 201));
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Business rule violation while creating supplier: {SupplierName}", supplierRequest.Name);
+            return BadRequest(new ApiResponse(ex.Message, 400));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating supplier with name: {SupplierName}", supplierRequest.Name);
+            return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
+
+    [HttpGet("get-suppliers")]
+    public async Task<ActionResult> GetSuppliers()
+    {
+        try
+        {
+            _logger.LogInformation("Retrieving all suppliers");
+            var suppliers = await _supplierService.GetSuppliersBasicAsync();
+
+            return Ok(new ApiResponse(suppliers, "Suppliers retrieved successfully", 200));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving suppliers");
+            return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
+
+    [HttpGet("get-supplier/{id}")]
+    public async Task<ActionResult> GetSupplier(int id)
+    {
+        try
+        {
+            _logger.LogInformation("Retrieving supplier with ID: {SupplierId}", id);
+            var supplier = await _supplierService.GetSupplierByIdAsync(id);
+
+            if (supplier == null)
+            {
+                return NotFound(new ApiResponse($"Supplier with ID {id} not found", 404));
+            }
+
+            return Ok(new ApiResponse(supplier, "Supplier retrieved successfully", 200));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving supplier with ID: {SupplierId}", id);
+            return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
+
+    [HttpPut("edit-supplier/{id}")]
+    public async Task<ActionResult> EditSupplier(int id, [FromBody] UpdateSupplierDto supplierRequest)
+    {
+        try
+        {
+            _logger.LogInformation("Editing supplier with ID: {SupplierId}", id);
+            var updatedSupplier = await _supplierService.UpdateSupplierAsync(id, supplierRequest);
+
+            if (updatedSupplier == null)
+            {
+                return NotFound(new ApiResponse($"Supplier with ID {id} not found", 404));
+            }
+
+            return Ok(new ApiResponse(updatedSupplier, "Supplier updated successfully", 200));
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Business rule violation while editing supplier with ID: {SupplierId}", id);
+            return BadRequest(new ApiResponse(ex.Message, 400));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error editing supplier with ID: {SupplierId}", id);
+            return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
+
+    [HttpDelete("delete-supplier/{id}")]
+    public async Task<ActionResult> DeleteSupplier(int id)
+    {
+        try
+        {
+            _logger.LogInformation("Deleting supplier with ID: {SupplierId}", id);
+            var result = await _supplierService.DeleteSupplierAsync(id);
+
+            if (!result)
+            {
+                return NotFound(new ApiResponse($"Supplier with ID {id} not found", 404));
+            }
+
+            return Ok(new ApiResponse(null, "Supplier deleted successfully", 200));
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot delete supplier with ID: {SupplierId}", id);
+            return BadRequest(new ApiResponse(ex.Message, 400));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting supplier with ID: {SupplierId}", id);
             return StatusCode(500, new ApiResponse("Internal server error", 500));
         }
     }

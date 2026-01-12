@@ -132,7 +132,7 @@ public static class DependencyInjection
 
         services.AddScoped<IExternalSalesRepository, ExternalSalesRepository>();
         services.AddScoped<IExternalSalesService, ExternalSalesService>();
-        
+
         services.AddScoped<ISaleChartService, SaleChartService>();
     }
 
@@ -152,7 +152,7 @@ public static class DependencyInjection
         services.AddScoped<IPropertyService, PropertyService>();
         services.AddScoped<IPropertyValueRepository, PropertyValueRepository>();
         services.AddScoped<IPropertyValueService, PropertyValueService>();
-        
+
 
         // Servicios de seguridad
         services.AddScoped<IEncryptionService, EncryptionService>();
@@ -160,11 +160,15 @@ public static class DependencyInjection
         // Project Category
         services.AddScoped<IProjectCategoryService, ProjectCategoryService>();
         services.AddScoped<IProjectCategoryRepository, ProjectCategoryRepository>();
-        
+
         // Project
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<ListOfCategoriesRepository>();
-        
+
+        // Product Services
+        services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IProductService, ProductService>();
+
     }
 }

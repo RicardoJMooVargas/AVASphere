@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
+﻿﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Common.Entities.General;
 
 namespace AVASphere.ApplicationCore.Common.DTOs;
@@ -9,6 +9,12 @@ public class CustomerFilterDto
     public int? IdCustomer { get; set; }
     public string? LastName { get; set; }
     public int? ExternalId { get; set; }
+}
+
+// DTO para búsqueda inteligente de Customer
+public class CustomerSearchDto
+{
+    public string SearchText { get; set; } = string.Empty;
 }
 
 // DTOs específicos para requests (sin Index)
@@ -53,7 +59,7 @@ public class CustomerCreateRequest
     public int ExternalId { get; set; }
     public string? Name { get; set; }
     public string? LastName { get; set; }
-    public int PhoneNumber { get; set; }
+    public string PhoneNumber { get; set; }
     public string? Email { get; set; }
     public string? TaxId { get; set; }
 
@@ -74,7 +80,7 @@ public class CustomerUpdateRequest
     public int? ExternalId { get; set; }
     public string? Name { get; set; }
     public string? LastName { get; set; }
-    public int? PhoneNumber { get; set; }
+    public string? PhoneNumber { get; set; }
     public string? Email { get; set; }
     public string? TaxId { get; set; }
 
@@ -92,7 +98,7 @@ public class CustomerDto
     public int ExternalId { get; set; }
     public string? Name { get; set; }
     public string? LastName { get; set; }
-    public int PhoneNumber { get; set; }
+    public string PhoneNumber { get; set; }
     public string? Email { get; set; }
     public string? TaxId { get; set; }
 

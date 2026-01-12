@@ -8,7 +8,6 @@ using AVASphere.ApplicationCore.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
-using AVASphere.WebApi.Common.Extensions;
 
 [ApiController]
 [Route("api/common/[controller]")]

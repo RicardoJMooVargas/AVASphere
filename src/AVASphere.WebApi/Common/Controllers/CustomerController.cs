@@ -17,7 +17,7 @@ public class CustomerController : ControllerBase
     {
         _customerService = customerService;
     }
-
+    // Obtiene clientes con filtros opcionales
     [HttpGet("get")]
     public async Task<ActionResult> GetCustomers([FromQuery] int? idCustomer, [FromQuery] string? lastName, [FromQuery] int? externalId)
     {
@@ -40,18 +40,7 @@ public class CustomerController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Crea un nuevo cliente con auto-incremento automático de índices
-    /// </summary>
-    /// <remarks>
-    /// Los índices en los JSON se asignan automáticamente de forma transparente:
-    /// - Settings: Configuraciones del cliente (ruta, tipo, descuento)
-    /// - Direction: Información de dirección (campo requerido si no se proporciona)
-    /// - PaymentMethod: Método de pago preferido
-    /// - PaymentTerms: Términos de pago del cliente
-    /// 
-    /// No es necesario especificar índices - se manejan internamente.
-    /// </remarks>
+    // Crea un nuevo cliente con auto-incremento automático de índices
     [HttpPost("create")]
     public async Task<ActionResult> CreateCustomer([FromBody] CustomerCreateRequest request)
     {
@@ -80,19 +69,7 @@ public class CustomerController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Actualiza un cliente existente con reemplazo completo de JSONs
-    /// </summary>
-    /// <remarks>
-    /// Comportamiento de actualización:
-    /// - Solo se actualizan los campos que no son null en el request
-    /// - Los JSONs se reemplazan completamente si se proporcionan
-    /// - Los índices se asignan automáticamente - transparente al usuario
-    /// - Settings: Reemplaza completamente las configuraciones del cliente
-    /// - Direction: Reemplaza completamente la información de dirección
-    /// - PaymentMethod: Reemplaza completamente el método de pago
-    /// - PaymentTerms: Reemplaza completamente los términos de pago
-    /// </remarks>
+    // Actualiza un cliente existente con reemplazo completo de JSONs
     [HttpPut("update")]
     public async Task<ActionResult> UpdateCustomer([FromBody] CustomerUpdateRequest request)
     {
@@ -129,6 +106,7 @@ public class CustomerController : ControllerBase
         }
     }
 
+    // Elimina un cliente por IdCustomer
     [HttpDelete("delete/{idCustomer}")]
     public async Task<ActionResult> DeleteCustomer(int idCustomer)
     {
@@ -142,6 +120,28 @@ public class CustomerController : ControllerBase
             }
             
             return Ok(new ApiResponse(true, "Customer deleted successfully"));
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
+
+    
+    // Búsqueda inteligente de clientes por nombre completo
+    [HttpGet("search")]
+    public async Task<ActionResult> SearchCustomers([FromQuery] string searchText)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                return BadRequest(new ApiResponse("Search text cannot be empty", 400));
+            }
+
+            var customers = await _customerService.SearchAsync(searchText);
+            
+            return Ok(new ApiResponse(customers, "Customer search completed successfully"));
         }
         catch (Exception)
         {

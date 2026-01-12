@@ -93,7 +93,7 @@ namespace AVASphere.Infrastructure.Common.Services
                 ExternalId = request.ExternalId,
                 Name = request.Name,
                 LastName = request.LastName,
-                PhoneNumber = request.PhoneNumber,
+                PhoneNumber = string.IsNullOrWhiteSpace(request.PhoneNumber) ? "+00" : request.PhoneNumber,
                 Email = request.Email,
                 TaxId = request.TaxId,
                 SettingsCustomerJson = settingsJson,
@@ -111,15 +111,15 @@ namespace AVASphere.Infrastructure.Common.Services
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            var existingList = await _repository.SelectAsync(request.IdCustomer, null, null);
-            var existing = existingList.FirstOrDefault();
+            // Obtener el cliente con tracking habilitado para poder actualizar
+            var existing = await _repository.GetByIdForUpdateAsync(request.IdCustomer);
             if (existing == null)
                 throw new KeyNotFoundException($"Customer with Id {request.IdCustomer} not found.");
 
             var anyFieldProvided = request.ExternalId.HasValue ||
                                    request.Name != null ||
                                    request.LastName != null ||
-                                   request.PhoneNumber.HasValue ||
+                                   request.PhoneNumber != null ||
                                    request.Email != null ||
                                    request.TaxId != null ||
                                    request.Settings != null ||
@@ -139,8 +139,8 @@ namespace AVASphere.Infrastructure.Common.Services
             if (request.LastName != null)
                 existing.LastName = request.LastName;
 
-            if (request.PhoneNumber.HasValue)
-                existing.PhoneNumber = request.PhoneNumber.Value;
+            if (request.PhoneNumber != null)
+                existing.PhoneNumber = request.PhoneNumber;
 
             if (request.Email != null)
                 existing.Email = request.Email;
@@ -171,6 +171,21 @@ namespace AVASphere.Infrastructure.Common.Services
                     Colony = request.Direction.Colony,
                     City = request.Direction.City,
                     Municipality = request.Direction.Municipality
+                };
+            }
+            else
+            {
+                // Si no se proporciona dirección en la actualización, establecer valor por defecto
+                existing.DirectionJson = new DirectionJson
+                {
+                    Index = await _repository.GetNextIndexForDirectionAsync(),
+                    InteriorNumber = "SIN DIRECCIÓN",
+                    ExteriorNumber = null,
+                    NeighboringStreet = null,
+                    NeighboringStreet2 = null,
+                    Colony = null,
+                    City = null,
+                    Municipality = null
                 };
             }
 
@@ -206,6 +221,15 @@ namespace AVASphere.Infrastructure.Common.Services
         public async Task<bool> DeleteAsync(int idCustomer)
         {
             return await _repository.DeleteAsync(idCustomer);
+        }
+
+        public async Task<IEnumerable<CustomerDto>> SearchAsync(string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return new List<CustomerDto>();
+
+            var customers = await _repository.SearchByFullNameAsync(searchText);
+            return customers.Select(MapToDto);
         }
 
         private static CustomerDto MapToDto(Customer c)

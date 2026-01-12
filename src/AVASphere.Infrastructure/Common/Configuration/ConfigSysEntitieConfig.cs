@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using AVASphere.ApplicationCore.Common.Entities.General;
 
@@ -42,6 +42,12 @@ namespace AVASphere.Infrastructure.Common.Configuration
               .HasForeignKey(u => u.IdConfigSys)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // 🔹 Relación 1-N (ConfigSys → Projects)
+            entity.HasMany(c => c.Projects)
+              .WithOne(p => p.ConfigSys)
+              .HasForeignKey(p => p.IdConfigSys)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // 🔹 Relación 1-N (ConfigSys → Quotations)
             entity.HasMany(c => c.Quotations)
               .WithOne(q => q.ConfigSys)
@@ -52,6 +58,12 @@ namespace AVASphere.Infrastructure.Common.Configuration
             entity.HasMany(c => c.Sales)
               .WithOne(s => s.ConfigSys)
               .HasForeignKey(s => s.IdConfigSys)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 🔹 Relación 1-N (ConfigSys → ProjectCategories)
+            entity.HasMany(c => c.ProjectCategories)
+              .WithOne(pc => pc.ConfigSys)
+              .HasForeignKey(pc => pc.IdConfigSys)
                 .OnDelete(DeleteBehavior.Restrict);
 
 

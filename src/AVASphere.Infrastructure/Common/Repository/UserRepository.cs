@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Interfaces;
@@ -37,8 +37,8 @@ public class UserRepository : IUserRepository
         if (!string.IsNullOrEmpty(user.Status))
             query = query.Where(u => u.Status == user.Status);
 
-        if (!string.IsNullOrEmpty(user.Verified))
-            query = query.Where(u => u.Verified == user.Verified);
+        if (user.Verified.HasValue)
+            query = query.Where(u => u.Verified == user.Verified.Value);
 
         if (user.IdRol > 0)
             query = query.Where(u => u.IdRol == user.IdRol);
@@ -87,8 +87,8 @@ public class UserRepository : IUserRepository
         if (string.IsNullOrEmpty(user.Status))
             user.Status = "Active";
 
-        if (string.IsNullOrEmpty(user.CreateAt))
-            user.CreateAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        if (user.CreateAt == null)
+            user.CreateAt = DateOnly.FromDateTime(DateTime.Now);
 
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
@@ -127,5 +127,13 @@ public class UserRepository : IUserRepository
 
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<User>> GetAllAsync()
+    {
+        return await _context.Users
+            .Include(u => u.Rol)
+            .Include(u => u.ConfigSys)
+            .ToListAsync();
     }
 }

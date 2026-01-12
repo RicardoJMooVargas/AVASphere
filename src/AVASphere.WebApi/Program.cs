@@ -152,10 +152,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         // Configurar múltiples endpoints de Swagger para cada área/módulo
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "General - API Status & Health");
-        c.SwaggerEndpoint("/swagger/common/swagger.json", "Common SystemModule - User & Authentication"); // <- AGREGAR ESTA LÍNEA
+        c.SwaggerEndpoint("/swagger/common/swagger.json", "Common SystemModule - User & Authentication");
         c.SwaggerEndpoint("/swagger/system/swagger.json", "System SystemModule - System Management");
         c.SwaggerEndpoint("/swagger/sales/swagger.json", "Sales SystemModule - Sales & Tracking");
+        c.SwaggerEndpoint("/swagger/projects/swagger.json", "Projects SystemModule - Project Management");
         
         c.RoutePrefix = "swagger";
         c.DefaultModelsExpandDepth(-1);

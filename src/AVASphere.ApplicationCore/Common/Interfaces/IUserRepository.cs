@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.Entities;
+﻿﻿using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.Common.Entities.General;
 
 namespace AVASphere.ApplicationCore.Common.Interfaces;
@@ -53,4 +53,10 @@ public interface IUserRepository
     /// <param name="user">Entidad <see cref="User"/> con los datos a actualizar. Debe contener el identificador del usuario.</param>
     /// <returns>Una tarea que representa la operación asíncrona.</returns>
     Task UpdateUsersAsync(User user);
+
+    /// <summary>
+    /// Obtiene todos los usuarios.
+    /// </summary>
+    /// <returns>Una tarea que resuelve en una colección de todas las entidades <see cref="User"/>.</returns>
+    Task<IEnumerable<User>> GetAllAsync();
 }

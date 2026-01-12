@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+﻿    using System.Linq.Expressions;
     using Microsoft.Extensions.Logging;
     using AVASphere.ApplicationCore.Common.Entities;
     using AVASphere.ApplicationCore.Common.Interfaces;
@@ -13,32 +13,39 @@
     {
         private readonly IUserRepository _userRepository;
         private readonly IEncryptionService _encryptionService;
-        private readonly IConfigSysService _configSysService; // ✅ NUEVA DEPENDENCIA
-        private readonly IRolRepository _rolRepository; // ✅ NUEVA DEPENDENCIA
+        private readonly IConfigSysService _configSysService; 
+        private readonly IRolRepository _rolRepository;
         private readonly ILogger<UserService> _logger;
 
         public UserService(
             IUserRepository userRepository, 
             IEncryptionService encryptionService,
-            IConfigSysService configSysService, // ✅ INYECTAR
-            IRolRepository rolRepository, // ✅ INYECTAR
+            IConfigSysService configSysService,
+            IRolRepository rolRepository,
             ILogger<UserService> logger)
         {
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _encryptionService = encryptionService ?? throw new ArgumentNullException(nameof(encryptionService));
             _configSysService = configSysService ?? throw new ArgumentNullException(nameof(configSysService)); // ✅ INICIALIZAR
-            _rolRepository = rolRepository ?? throw new ArgumentNullException(nameof(rolRepository)); // ✅ INICIALIZAR
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<UserResponse> SearchUsersAsync(int? idUsers = null, string? userName = null)
+        public async Task<IEnumerable<UserResponse>> SearchUsersAsync(int? idUsers = null, string? userName = null)
         {
             try
             {
-                if (idUsers == null && string.IsNullOrWhiteSpace(userName))
-                    throw new ArgumentException("Se requiere al menos un criterio de búsqueda: idUsers o userName");
+                if (idUsers.HasValue && !string.IsNullOrWhiteSpace(userName))
+                    throw new ArgumentException("Solo se puede buscar por ID o por UserName, no ambos");
 
                 _logger.LogInformation("Iniciando búsqueda de usuario (ID={IdUser}, UserName={UserName})", idUsers, userName);
+
+                if (!idUsers.HasValue && string.IsNullOrWhiteSpace(userName))
+                {
+                    // Obtener todos los usuarios
+                    var users = await _userRepository.GetAllAsync();
+                    _logger.LogInformation("Obtenidos {Count} usuarios", users.Count());
+                    return users.Select(u => u.ToResponse());
+                }
 
                 var userCriteria = new User();
 
@@ -61,7 +68,7 @@
                 }
 
                 _logger.LogInformation("Usuario encontrado correctamente (ID={IdUser}, UserName={UserName})", user.IdUser, user.UserName);
-                return user.ToResponse();
+                return new List<UserResponse> { user.ToResponse() };
             }
             catch (KeyNotFoundException)
             {
@@ -127,14 +134,11 @@
 
                 // Encriptar la contraseña
                 user.HashPassword = _encryptionService.HashPassword(request.Password);
-                
-                // Limpiar la contraseña en texto plano (no almacenarla)
-                user.Password = null;
 
                 // Establecer valores por defecto
                 user.Status = !string.IsNullOrWhiteSpace(user.Status) ? user.Status : "Active";
-                user.Verified = !string.IsNullOrWhiteSpace(user.Verified) ? user.Verified : "No";
-                user.CreateAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                user.Verified = false;
+                user.CreateAt = null;
 
                 await _userRepository.CreateUsersAsync(user);
                 _logger.LogInformation("Usuario creado exitosamente con ID: {IdUser}", user.IdUser);
@@ -204,7 +208,6 @@
                 if (!string.IsNullOrEmpty(request.Password))
                 {
                     user.HashPassword = _encryptionService.HashPassword(request.Password);
-                    user.Password = null;
                 }
                 else
                 {
@@ -384,8 +387,8 @@
                     HashPassword = _encryptionService.HashPassword(password),
                     Status = "Active",
                     Aux = "",
-                    CreateAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
-                    Verified = "true",
+                    CreateAt = null,// el repositorio lo pone si ingresas null
+                    Verified = true,
                     IdConfigSys = config.IdConfigSys,
                     IdRol = adminRol.IdRol
                 };
@@ -402,3 +405,4 @@
             }
         }
     }
+

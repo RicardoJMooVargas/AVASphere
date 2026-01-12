@@ -26,7 +26,7 @@ public class SaleRepository : ISaleRepository
     {
         return await _context.Set<Sale>()
            .AsNoTracking()
-           .FirstOrDefaultAsync(s => s.SaleId == id);
+           .FirstOrDefaultAsync(s => s.IdSale == id);
     }
 
     public async Task<Sale?> GetSaleByFolioAsync(string folio)
@@ -39,7 +39,7 @@ public class SaleRepository : ISaleRepository
     public async Task<IEnumerable<Sale>> GetSalesByCustomerIdAsync(int customerId)
     {
         return await _context.Set<Sale>()
-            .Where(s => s.CustomerId == customerId)
+            .Where(s => s.IdCustomer == customerId)
             .AsNoTracking()
             .ToListAsync();
     }
@@ -47,7 +47,7 @@ public class SaleRepository : ISaleRepository
     public async Task<IEnumerable<Sale>> GetSalesByDateRangeAsync(DateTime startDate, DateTime endDate)
     {
         return await _context.Set<Sale>()
-            .Where(s => s.Date >= startDate && s.Date <= endDate)
+            .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
             .AsNoTracking()
             .ToListAsync();
     }
@@ -72,7 +72,7 @@ public class SaleRepository : ISaleRepository
     {
         if (sale is null) throw new ArgumentNullException(nameof(sale));
 
-        var tracked = await _context.Set<Sale>().FindAsync(sale.SaleId);
+        var tracked = await _context.Set<Sale>().FindAsync(sale.IdSale);
         if (tracked == null)
         {
             _context.Set<Sale>().Update(sale);
@@ -81,7 +81,7 @@ public class SaleRepository : ISaleRepository
         {
             _context.Entry(tracked).CurrentValues.SetValues(sale);
             tracked.LinkedQuotations = sale.LinkedQuotations;
-            tracked.Products = sale.Products;
+            tracked.ProductsJson = sale.ProductsJson;
             tracked.AuxNoteDataJson = sale.AuxNoteDataJson;
         }
         await _context.SaveChangesAsync();
@@ -116,7 +116,23 @@ public class SaleRepository : ISaleRepository
     public async Task<decimal> GetTotalSalesAmountByDateRangeAsync(DateTime startDate, DateTime endDate)
     {
         return await _context.Set<Sale>()
-            .Where(s => s.Date >= startDate && s.Date <= endDate)
+            .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
             .SumAsync(s => s.TotalAmount);
+    }
+
+    // Métodos para importación optimizada
+    public async Task<IEnumerable<Sale>> GetSalesByFoliosAsync(IEnumerable<string> folios)
+    {
+        return await _context.Set<Sale>()
+            .Where(s => folios.Contains(s.Folio))
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<Sale> InsertAsync(Sale sale)
+    {
+        await _context.Set<Sale>().AddAsync(sale);
+        await _context.SaveChangesAsync();
+        return sale;
     }
 }

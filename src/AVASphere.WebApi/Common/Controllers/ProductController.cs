@@ -40,9 +40,46 @@ public class ProductController : ControllerBase
                 new { id = product.IdProduct },
                 new ApiResponse(product, "Producto creado exitosamente", 201));
         }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ApiResponse(ex.Message, 404));
+        }
         catch (Exception ex)
         {
-            return StatusCode(500, new ApiResponse("Error al crear el producto", 500));
+            return StatusCode(500, new ApiResponse($"Error al crear el producto: {ex.Message}", 500));
+        }
+    }
+
+    /// <summary>
+    /// Crea múltiples productos de una sola vez
+    /// </summary>
+    /// <param name="createProductDtos">Lista de productos a crear</param>
+    [HttpPost("CreateMultipleProducts")]
+    public async Task<ActionResult> CreateMultipleProducts([FromBody] List<CreateProductDto> createProductDtos)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ApiResponse("Datos de entrada inválidos", 400, ModelState));
+            }
+
+            if (createProductDtos == null || !createProductDtos.Any())
+            {
+                return BadRequest(new ApiResponse("Debe proporcionar al menos un producto", 400));
+            }
+
+            var products = await _productService.CreateMultipleProductsAsync(createProductDtos);
+
+            return Ok(new ApiResponse(products, $"{products.Count()} productos creados exitosamente", 201));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new ApiResponse(ex.Message, 404));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse($"Error al crear los productos: {ex.Message}", 500));
         }
     }
 

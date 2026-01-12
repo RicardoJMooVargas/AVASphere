@@ -5,6 +5,7 @@ namespace AVASphere.ApplicationCore.Common.Interfaces;
 public interface IProductService
 {
     Task<ProductResponseDto> CreateProductAsync(CreateProductDto createProductDto);
+    Task<IEnumerable<ProductResponseDto>> CreateMultipleProductsAsync(List<CreateProductDto> createProductDtos);
     Task<ProductResponseDto> UpdateProductAsync(int idProduct, UpdateProductDto updateProductDto);
     Task<bool> DeleteProductAsync(int idProduct);
     Task<ProductResponseDto?> GetProductByIdAsync(int idProduct);

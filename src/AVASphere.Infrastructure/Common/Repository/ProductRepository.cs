@@ -8,14 +8,23 @@ namespace AVASphere.Infrastructure.Common.Repository;
 public class ProductRepository : IProductRepository
 {
     private readonly MasterDbContext _context;
+    private readonly ISupplierRepository _supplierRepository;
 
-    public ProductRepository(MasterDbContext context)
+    public ProductRepository(MasterDbContext context, ISupplierRepository supplierRepository)
     {
         _context = context;
+        _supplierRepository = supplierRepository;
     }
 
     public async Task<Product> CreateProductsAsync(Product product)
     {
+        // Verificar si el proveedor existe usando el repositorio
+        var supplierExists = await _supplierRepository.ExistsAsync(product.IdSupplier);
+        if (!supplierExists)
+        {
+            throw new KeyNotFoundException($"El proveedor con ID {product.IdSupplier} no existe.");
+        }
+
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
         return product;
@@ -23,6 +32,13 @@ public class ProductRepository : IProductRepository
 
     public async Task<Product> UpdateProductsAsync(Product product)
     {
+        // Verificar si el proveedor existe usando el repositorio
+        var supplierExists = await _supplierRepository.ExistsAsync(product.IdSupplier);
+        if (!supplierExists)
+        {
+            throw new KeyNotFoundException($"El proveedor con ID {product.IdSupplier} no existe.");
+        }
+
         _context.Products.Update(product);
         await _context.SaveChangesAsync();
         return product;

@@ -35,6 +35,34 @@ public class ProductService : IProductService
         return MapToResponseDto(createdProduct);
     }
 
+    public async Task<IEnumerable<ProductResponseDto>> CreateMultipleProductsAsync(List<CreateProductDto> createProductDtos)
+    {
+        var createdProducts = new List<ProductResponseDto>();
+
+        foreach (var dto in createProductDtos)
+        {
+            var product = new Product
+            {
+                MainName = dto.MainName,
+                SupplierName = dto.SupplierName,
+                Unit = dto.Unit,
+                Description = dto.Description,
+                Quantity = dto.Quantity,
+                Taxes = dto.Taxes,
+                IdSupplier = dto.IdSupplier,
+                CodeJson = dto.CodeJson ?? new(),
+                CostsJson = dto.CostsJson ?? new(),
+                CategoriesJsons = dto.CategoriesJsons ?? new(),
+                SolutionsJsons = dto.SolutionsJsons ?? new()
+            };
+
+            var createdProduct = await _productRepository.CreateProductsAsync(product);
+            createdProducts.Add(MapToResponseDto(createdProduct));
+        }
+
+        return createdProducts;
+    }
+
     public async Task<ProductResponseDto> UpdateProductAsync(int id, UpdateProductDto dto)
     {
         var existingProduct = await _productRepository.GetByIdProductsAsync(id);

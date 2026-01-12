@@ -1,4 +1,4 @@
-﻿﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
+﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Common.Entities.Products;
 
 namespace AVASphere.ApplicationCore.Common.Entities.Catalogs;

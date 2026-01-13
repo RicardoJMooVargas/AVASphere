@@ -16,4 +16,11 @@
       <Compile Remove="Projects\Entities\Visits.cs" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Inventory\DTOs\" />
+      <Folder Include="Inventory\Entities\General\" />
+      <Folder Include="Inventory\Enums\" />
+      <Folder Include="Inventory\Interfaces\" />
+    </ItemGroup>
+
 </Project>

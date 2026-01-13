@@ -171,5 +171,9 @@ public static class DependencyInjection
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IProductService, ProductService>();
 
+        // ProductProperties Services
+        services.AddScoped<IProductPropertiesRepository, ProductPropertiesRepository>();
+        services.AddScoped<IProductPropertiesService, ProductPropertiesService>();
+
     }
 }

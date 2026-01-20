@@ -111,8 +111,8 @@ namespace AVASphere.Infrastructure.Common.Services
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
-            var existingList = await _repository.SelectAsync(request.IdCustomer, null, null);
-            var existing = existingList.FirstOrDefault();
+            // Obtener el cliente con tracking habilitado para poder actualizar
+            var existing = await _repository.GetByIdForUpdateAsync(request.IdCustomer);
             if (existing == null)
                 throw new KeyNotFoundException($"Customer with Id {request.IdCustomer} not found.");
 
@@ -173,6 +173,21 @@ namespace AVASphere.Infrastructure.Common.Services
                     Municipality = request.Direction.Municipality
                 };
             }
+            else
+            {
+                // Si no se proporciona dirección en la actualización, establecer valor por defecto
+                existing.DirectionJson = new DirectionJson
+                {
+                    Index = await _repository.GetNextIndexForDirectionAsync(),
+                    InteriorNumber = "SIN DIRECCIÓN",
+                    ExteriorNumber = null,
+                    NeighboringStreet = null,
+                    NeighboringStreet2 = null,
+                    Colony = null,
+                    City = null,
+                    Municipality = null
+                };
+            }
 
             if (request.PaymentMethod != null)
             {
@@ -206,6 +221,15 @@ namespace AVASphere.Infrastructure.Common.Services
         public async Task<bool> DeleteAsync(int idCustomer)
         {
             return await _repository.DeleteAsync(idCustomer);
+        }
+
+        public async Task<IEnumerable<CustomerDto>> SearchAsync(string searchText)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return new List<CustomerDto>();
+
+            var customers = await _repository.SearchByFullNameAsync(searchText);
+            return customers.Select(MapToDto);
         }
 
         private static CustomerDto MapToDto(Customer c)

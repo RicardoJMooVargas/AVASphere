@@ -30,14 +30,22 @@
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<UserResponse> SearchUsersAsync(int? idUsers = null, string? userName = null)
+        public async Task<IEnumerable<UserResponse>> SearchUsersAsync(int? idUsers = null, string? userName = null)
         {
             try
             {
-                if (idUsers == null && string.IsNullOrWhiteSpace(userName))
-                    throw new ArgumentException("Se requiere al menos un criterio de búsqueda: idUsers o userName");
+                if (idUsers.HasValue && !string.IsNullOrWhiteSpace(userName))
+                    throw new ArgumentException("Solo se puede buscar por ID o por UserName, no ambos");
 
                 _logger.LogInformation("Iniciando búsqueda de usuario (ID={IdUser}, UserName={UserName})", idUsers, userName);
+
+                if (!idUsers.HasValue && string.IsNullOrWhiteSpace(userName))
+                {
+                    // Obtener todos los usuarios
+                    var users = await _userRepository.GetAllAsync();
+                    _logger.LogInformation("Obtenidos {Count} usuarios", users.Count());
+                    return users.Select(u => u.ToResponse());
+                }
 
                 var userCriteria = new User();
 
@@ -60,7 +68,7 @@
                 }
 
                 _logger.LogInformation("Usuario encontrado correctamente (ID={IdUser}, UserName={UserName})", user.IdUser, user.UserName);
-                return user.ToResponse();
+                return new List<UserResponse> { user.ToResponse() };
             }
             catch (KeyNotFoundException)
             {
@@ -397,3 +405,4 @@
             }
         }
     }
+

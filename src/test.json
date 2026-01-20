@@ -1,0 +1,81 @@
+﻿[
+  {
+    "IdCustomer": 1,
+    "ExternalId": 321,
+    "Name": "Juan Carlos",
+    "LastName": "Lopez Portillo",
+    "Email": "juan.perez@example.com",
+    "PhoneNumber": "+54 999 0012 123",
+    "TaxId": "LOPJ850101ABC",
+    "SettingsCustomerJson": {
+      "Index": 1,
+      "Route": "Foraneo",
+      "Type": "Aluminiero",
+      "Discount": 5.0
+    },
+    "Projects": [
+      {
+        "IdProject": 101,
+        "CurrentHito": "Appointment",
+        "WrittenAddress": "Calle Ficticia 123, Col. Centro",
+        "ExactAddress": "Calle Ficticia 123, Col. Centro, CDMX, México",
+        "AppointmentJson": {
+          "Index": 1,
+          "Name": "Juan Carlos",
+          "LastName": "Lopez Portillo",
+          "PhoneNumber": "+54 999 0012 123",
+          "Datetime": "2024-01-15T10:00:00Z",
+          "Notes": "Cliente interesado en ventanas de aluminio",
+          "Direction": "Calle Ficticia 123",
+          "Reference": "Casa azul con portón blanco"
+        },
+        "VisitsJson": [
+          {
+            "Index": 1,
+            "DateVisite": "2024-01-15T10:30:00Z",
+            "Description": "Primera visita para toma de medidas",
+            "IdUser": 1,
+            "Type": "Medición",
+            "CreatedAt": "2024-01-15T09:00:00Z"
+          }
+        ],
+        "ProjectQuote": {
+          "IdProjectQuotes": 1001,
+          "GrandTotal": 15000.0,
+          "TotalTaxes": 2400.0
+        },
+        "ListOfCategories": [
+          {
+            "IdListOfCategories": 1,
+            "ProjectCategory": {
+              "IdProjectCategory": 1,
+              "Name": "Ventanas",
+              "NormalizedName": "VENTANAS"
+            }
+          }
+        ]
+      },
+      {
+        "IdProject": 102,
+        "CurrentHito": "Design",
+        "WrittenAddress": "Avenida Principal 456",
+        "ExactAddress": "Avenida Principal 456, Col. Jardines, CDMX, México",
+        "ProjectQuote": {
+          "IdProjectQuotes": 1002,
+          "GrandTotal": 25000.0,
+          "TotalTaxes": 4000.0
+        },
+        "ListOfCategories": [
+          {
+            "IdListOfCategories": 2,
+            "ProjectCategory": {
+              "IdProjectCategory": 2,
+              "Name": "Puertas",
+              "NormalizedName": "PUERTAS"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

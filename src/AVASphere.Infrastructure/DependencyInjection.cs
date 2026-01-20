@@ -21,7 +21,6 @@ using Npgsql; // ✅ AGREGAR ESTE USING
 using AVASphere.ApplicationCore.Sales.Interfaces;
 using AVASphere.Infrastructure.Sales.Repositories;
 using AVASphere.Infrastructure.Sales.Services;
-using VYAACentralInforApi.ApplicationCore.Sales.Services;
 
 namespace AVASphere.Infrastructure;
 
@@ -117,7 +116,7 @@ public static class DependencyInjection
 
     private static void AddSalesServices(IServiceCollection services)
     {
-        /// Registrar repositorios y servicios del módulo Sales
+        // Registrar repositorios y servicios del módulo Sales
         services.AddHttpClient();
         services.AddScoped<IQuotationRepository, QuotationRepository>();
         services.AddScoped<IQuotationService, QuotationService>();
@@ -130,6 +129,11 @@ public static class DependencyInjection
 
         services.AddScoped<IQuotationVersionRepository, QuotationVersionRepository>();
         services.AddScoped<IQuotationVersionService, QuotationVersionService>();
+
+        services.AddScoped<IExternalSalesRepository, ExternalSalesRepository>();
+        services.AddScoped<IExternalSalesService, ExternalSalesService>();
+
+        services.AddScoped<ISaleChartService, SaleChartService>();
     }
 
     private static void AddCommonServices(IServiceCollection services)
@@ -144,12 +148,28 @@ public static class DependencyInjection
         services.AddScoped<IRolService, RolService>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<IPropertyRepository, PropertyRepository>();
+        services.AddScoped<IPropertyService, PropertyService>();
+        services.AddScoped<IPropertyValueRepository, PropertyValueRepository>();
+        services.AddScoped<IPropertyValueService, PropertyValueService>();
+        services.AddScoped<ISupplierRepository, SupplierRepository>();
+        services.AddScoped<ISupplierService, SupplierService>();
+
         // Servicios de seguridad
         services.AddScoped<IEncryptionService, EncryptionService>();
-        
+
         // Project Category
         services.AddScoped<IProjectCategoryService, ProjectCategoryService>();
         services.AddScoped<IProjectCategoryRepository, ProjectCategoryRepository>();
-        
+
+        // Project
+        services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<ListOfCategoriesRepository>();
+
+        // Product Services
+        services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IProductService, ProductService>();
+
     }
 }

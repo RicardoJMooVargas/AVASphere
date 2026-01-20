@@ -3,6 +3,7 @@ using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Sales.DTOs;
 using AVASphere.ApplicationCore.Sales.Entities;
+using AVASphere.ApplicationCore.Sales.Interfaces;
 
 namespace AVASphere.ApplicationCore.Common.Extensions;
 
@@ -61,3 +62,4 @@ public static class SaleExternalDtoExtensions
         };
     }
 }
+

@@ -5,16 +5,18 @@ using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Projects.Entities.General;
 using AVASphere.ApplicationCore.Projects.Entities.jsons;
+using InventoryEntity = AVASphere.ApplicationCore.Inventory.Entities.General.Inventory;
+using PhysicalInventoryDetailEntity = AVASphere.ApplicationCore.Inventory.Entities.General.PhysicalInventoryDetail;
 
 namespace AVASphere.ApplicationCore.Common.Entities.Products;
 
 public class Product
 {
     public int IdProduct { get; set; }
-    public string MainName { get; set; }
-    public string SupplierName { get; set; }
-    public string Unit { get; set; }
-    public string Description { get; set; }
+    public string? MainName { get; set; }
+    public string? SupplierName { get; set; }
+    public string? Unit { get; set; }
+    public string? Description { get; set; }
     public double Quantity { get; set; }
     public double Taxes { get; set; }
     
@@ -25,6 +27,8 @@ public class Product
     // RELACIONES
     public ICollection<ProductProperties> ProductProperties { get; set; } = new List<ProductProperties>();
     public ICollection<ListOfProductsToQuot> ProductImages { get; set; } = new List<ListOfProductsToQuot>();
+    public ICollection<InventoryEntity> Inventories { get; set; } = new List<InventoryEntity>();
+    public ICollection<PhysicalInventoryDetailEntity> PhysicalInventoryDetails { get; set; } = new List<PhysicalInventoryDetailEntity>();
     
     //JSON
     public ICollection<CodeJson> CodeJson { get; set; } = new List<CodeJson>();
@@ -40,15 +44,15 @@ public class Product
 public class CodeJson
 {
     public int Index { get; set; }
-    public string Type { get; set; }
-    public string Code { get; set; }
+    public string? Type { get; set; }
+    public string? Code { get; set; }
 }
 
 public class CostsJson
 {
     public int Index { get; set; }
     public double Amount { get; set; }
-    public string Type { get; set; }
+    public string? Type { get; set; }
 }
 
 public class CategoriesJson

@@ -1,4 +1,4 @@
-﻿﻿using Microsoft.EntityFrameworkCore;
+﻿﻿﻿using Microsoft.EntityFrameworkCore;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
@@ -10,6 +10,7 @@ using AVASphere.ApplicationCore.Sales.Entities;
 using AVASphere.ApplicationCore.Common.Entities.Products;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Projects.Entities.jsons;
+using AVASphere.ApplicationCore.Inventory.Entities.General;
 
 
 namespace AVASphere.Infrastructure;
@@ -31,6 +32,7 @@ public class MasterDbContext : DbContext
     public DbSet<Supplier> Suppliers { get; set; } = null!;
     public DbSet<Product> Products { get; set; } = null!;
     public DbSet<ProductProperties> ProductProperties { get; set; } = null!;
+    public DbSet<StorageStructure> StorageStructures { get; set; } = null!;
     //public DbSet<BranchOffice> BranchOffices { get; set; } = null!;
 
     // MODULO DE SALES

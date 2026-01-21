@@ -1,4 +1,4 @@
-﻿﻿﻿using Microsoft.EntityFrameworkCore;
+﻿﻿﻿﻿using Microsoft.EntityFrameworkCore;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
@@ -6,6 +6,7 @@ using AVASphere.ApplicationCore.Projects.Entities.General;
 using AVASphere.Infrastructure.Common.Configuration;
 using AVASphere.Infrastructure.Projects.Configuration;
 using AVASphere.Infrastructure.Sales.Configuration;
+using AVASphere.Infrastructure.Inventory.Configuration;
 using AVASphere.ApplicationCore.Sales.Entities;
 using AVASphere.ApplicationCore.Common.Entities.Products;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
@@ -51,6 +52,13 @@ public class MasterDbContext : DbContext
     public DbSet<TechnicalDesign> TechnicalDesigns { get; set; } = null!;
     public DbSet<IndividualListingProperties> IndividualListingProperties { get; set; } = null!;
     public DbSet<ListOfProductsToQuot> ListOfProductsToQuot { get; set; } = null!;
+    
+    // MODULO DE INVENTORY
+    public DbSet<Warehouse> Warehouses { get; set; } = null!;
+    public DbSet<PhysicalInventory> PhysicalInventories { get; set; } = null!;
+    public DbSet<ApplicationCore.Inventory.Entities.General.Inventory> Inventories { get; set; } = null!;
+    public DbSet<PhysicalInventoryDetail> PhysicalInventoryDetails { get; set; } = null!;
+    public DbSet<LocationDetails> LocationDetails { get; set; } = null!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -113,5 +121,13 @@ public class MasterDbContext : DbContext
         modelBuilder.ApplyConfiguration(new TechnicalDesignEntitieConfig());
         modelBuilder.ApplyConfiguration(new IndividualListingPropertiesEntitieConfig());
         modelBuilder.ApplyConfiguration(new ListOfProductsToQuotEntitieConfig());
+        
+        // MODULO DE INVENTORY
+        modelBuilder.ApplyConfiguration(new StorageStructureEntitieConfig());
+        modelBuilder.ApplyConfiguration(new WarehouseEntitieConfig());
+        modelBuilder.ApplyConfiguration(new PhysicalInventoryEntitieConfig());
+        modelBuilder.ApplyConfiguration(new InventoryEntitieConfig());
+        modelBuilder.ApplyConfiguration(new PhysicalInventoryDetailEntitieConfig());
+        modelBuilder.ApplyConfiguration(new LocationDetailsEntitieConfig());
     }
 }

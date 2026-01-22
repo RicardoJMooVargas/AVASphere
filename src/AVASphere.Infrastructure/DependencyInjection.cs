@@ -22,6 +22,10 @@ using AVASphere.ApplicationCore.Sales.Interfaces;
 using AVASphere.Infrastructure.Sales.Repositories;
 using AVASphere.Infrastructure.Sales.Services;
 
+// Inventory module usings
+using AVASphere.ApplicationCore.Inventory.Interfaces;
+using AVASphere.Infrastructure.Inventory.Repository;
+
 namespace AVASphere.Infrastructure;
 
 public static class DependencyInjection
@@ -39,6 +43,7 @@ public static class DependencyInjection
         AddSystemServices(services);
         AddSalesServices(services);
         AddCommonServices(services);
+        AddInventoryServices(services);
 
         return services;
     }
@@ -171,5 +176,22 @@ public static class DependencyInjection
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IProductService, ProductService>();
 
+    }
+
+    private static void AddInventoryServices(IServiceCollection services)
+    {
+        // Warehouse
+        services.AddScoped<IWarehouseRepository, WarehouseRepository>();
+        
+        // Inventory
+        services.AddScoped<IInventoryRepository, InventoryRepository>();
+        
+        // Physical Inventory
+        services.AddScoped<IPhysicalInventoryRepository, PhysicalInventoryRepository>();
+        services.AddScoped<IPhysicalInventoryDetailRepository, PhysicalInventoryDetailRepository>();
+        
+        // Storage Structure
+        services.AddScoped<IStorageStructureRepository, StorageStructureRepository>();
+        services.AddScoped<ILocationDetailsRepository, LocationDetailsRepository>();
     }
 }

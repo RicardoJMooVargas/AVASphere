@@ -18,7 +18,6 @@
 
     <ItemGroup>
       <Folder Include="Inventory\DTOs\" />
-      <Folder Include="Inventory\Interfaces\" />
     </ItemGroup>
 
 </Project>

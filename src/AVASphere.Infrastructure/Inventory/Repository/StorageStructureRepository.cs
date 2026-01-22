@@ -1,0 +1,98 @@
+﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
+using AVASphere.ApplicationCore.Inventory.Interfaces;
+using Microsoft.EntityFrameworkCore;
+
+namespace AVASphere.Infrastructure.Inventory.Repository;
+
+public class StorageStructureRepository : IStorageStructureRepository
+{
+    private readonly MasterDbContext _context;
+
+    public StorageStructureRepository(MasterDbContext context)
+    {
+        _context = context;
+    }
+
+    // Create
+    public async Task<StorageStructure> CreateAsync(StorageStructure storageStructure)
+    {
+        if (storageStructure is null)
+            throw new ArgumentNullException(nameof(storageStructure));
+
+        _context.Set<StorageStructure>().Add(storageStructure);
+        await _context.SaveChangesAsync();
+        return storageStructure;
+    }
+
+    // Read
+    public async Task<StorageStructure?> GetByIdAsync(int idStorageStructure)
+    {
+        return await _context.Set<StorageStructure>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ss => ss.IdStorageStructure == idStorageStructure);
+    }
+
+    public async Task<StorageStructure?> GetByCodeAsync(string codeRack)
+    {
+        if (string.IsNullOrWhiteSpace(codeRack))
+            throw new ArgumentException("Code rack cannot be null or empty.", nameof(codeRack));
+
+        return await _context.Set<StorageStructure>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ss => ss.CodeRack == codeRack);
+    }
+
+    public async Task<IEnumerable<StorageStructure>> GetAllAsync()
+    {
+        return await _context.Set<StorageStructure>()
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<bool> ExistsAsync(int idStorageStructure)
+    {
+        return await _context.Set<StorageStructure>()
+            .AnyAsync(ss => ss.IdStorageStructure == idStorageStructure);
+    }
+
+    public async Task<bool> ExistsByCodeAsync(string codeRack)
+    {
+        if (string.IsNullOrWhiteSpace(codeRack))
+            return false;
+
+        return await _context.Set<StorageStructure>()
+            .AnyAsync(ss => ss.CodeRack == codeRack);
+    }
+
+    // Update
+    public async Task<StorageStructure> UpdateAsync(StorageStructure storageStructure)
+    {
+        if (storageStructure is null)
+            throw new ArgumentNullException(nameof(storageStructure));
+
+        var tracked = await _context.Set<StorageStructure>().FindAsync(storageStructure.IdStorageStructure);
+        if (tracked == null)
+        {
+            _context.Set<StorageStructure>().Update(storageStructure);
+        }
+        else
+        {
+            _context.Entry(tracked).CurrentValues.SetValues(storageStructure);
+        }
+
+        await _context.SaveChangesAsync();
+        return storageStructure;
+    }
+
+    // Delete
+    public async Task<bool> DeleteAsync(int idStorageStructure)
+    {
+        var entity = await _context.Set<StorageStructure>().FindAsync(idStorageStructure);
+        if (entity == null)
+            return false;
+
+        _context.Set<StorageStructure>().Remove(entity);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+}

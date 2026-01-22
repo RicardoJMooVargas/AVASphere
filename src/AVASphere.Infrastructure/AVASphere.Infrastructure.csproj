@@ -29,6 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Inventory\Services\" />
     <Folder Include="System\Migrations\" />
   </ItemGroup>
 

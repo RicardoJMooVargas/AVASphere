@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.Catalogs;
+﻿﻿using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -19,10 +19,10 @@ public class AreaEntitieConfig : IEntityTypeConfiguration<Area>
             .HasMaxLength(100)
             .IsRequired();
 
-        // SOLO UNA configuración de relación
+        // RELACIONES
         entity.HasMany(a => a.Rol)
             .WithOne(r => r.Area)
-            .HasForeignKey(r => r.IdArea) // Usar solo IdArea
+            .HasForeignKey(r => r.IdArea)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

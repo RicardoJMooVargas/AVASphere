@@ -1,4 +1,5 @@
 using AVASphere.ApplicationCore.Common.Entities.General;
+using AVASphere.ApplicationCore.Inventory.Entities.General;
 
 namespace AVASphere.ApplicationCore.Common.Entities.Catalogs;
 
@@ -11,5 +12,5 @@ public class Area
 
     // RELACIONES
     public ICollection<Rol> Rol { get; set; } = new List<Rol>();
-    
+    public ICollection<LocationDetails> LocationDetails { get; set; } = new List<LocationDetails>();
 }

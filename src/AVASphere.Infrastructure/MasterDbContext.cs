@@ -1,4 +1,4 @@
-﻿﻿﻿﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
@@ -129,5 +129,8 @@ public class MasterDbContext : DbContext
         modelBuilder.ApplyConfiguration(new InventoryEntitieConfig());
         modelBuilder.ApplyConfiguration(new PhysicalInventoryDetailEntitieConfig());
         modelBuilder.ApplyConfiguration(new LocationDetailsEntitieConfig());
+        modelBuilder.ApplyConfiguration(new WarehouseTransferDetailEntitieConfig());
+        modelBuilder.ApplyConfiguration(new WarehouseTransferEntitieConfig());
+        modelBuilder.ApplyConfiguration(new StockMovementEntitieConfig());
     }
 }

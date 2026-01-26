@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.Products;
+﻿﻿using AVASphere.ApplicationCore.Common.Entities.Products;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -49,6 +49,18 @@ public class ProductEntitieConfig : IEntityTypeConfiguration<Product>
             .WithOne(lptq => lptq.Product)
             .HasForeignKey(lptq => lptq.IdProduct)
             .OnDelete(DeleteBehavior.Cascade);
+        
+        // Relación 1-N con Inventory
+        entity.HasMany(p => p.Inventories)
+            .WithOne(i => i.Product)
+            .HasForeignKey(i => i.IdProduct)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        // Relación 1-N con PhysicalInventoryDetail
+        entity.HasMany(p => p.PhysicalInventoryDetails)
+            .WithOne(pid => pid.Product)
+            .HasForeignKey(pid => pid.IdProduct)
+            .OnDelete(DeleteBehavior.Restrict);
         
         // Json Relacionado con Modelo
         entity.Property(e => e.CodeJson)

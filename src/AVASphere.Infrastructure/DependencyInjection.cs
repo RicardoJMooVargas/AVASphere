@@ -193,5 +193,12 @@ public static class DependencyInjection
         // Storage Structure
         services.AddScoped<IStorageStructureRepository, StorageStructureRepository>();
         services.AddScoped<ILocationDetailsRepository, LocationDetailsRepository>();
+        
+        // Stock Movement
+        services.AddScoped<IStockMovementRepository, StockMovementRepository>();
+        
+        // Warehouse Transfer
+        services.AddScoped<IWarehouseTransferRepository, WarehouseTransferRepository>();
+        services.AddScoped<IWarehouseTransferDetailRepository, WarehouseTransferDetailRepository>();
     }
 }

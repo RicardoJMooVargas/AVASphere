@@ -7,6 +7,8 @@ using AVASphere.ApplicationCore.Projects.Entities.General;
 using AVASphere.ApplicationCore.Projects.Entities.jsons;
 using InventoryEntity = AVASphere.ApplicationCore.Inventory.Entities.General.Inventory;
 using PhysicalInventoryDetailEntity = AVASphere.ApplicationCore.Inventory.Entities.General.PhysicalInventoryDetail;
+using StockMovementEntity = AVASphere.ApplicationCore.Inventory.Entities.General.StockMovement;
+using WarehouseTransferDetailEntity = AVASphere.ApplicationCore.Inventory.Entities.General.WarehouseTransferDetail;
 
 namespace AVASphere.ApplicationCore.Common.Entities.Products;
 
@@ -29,6 +31,8 @@ public class Product
     public ICollection<ListOfProductsToQuot> ProductImages { get; set; } = new List<ListOfProductsToQuot>();
     public ICollection<InventoryEntity> Inventories { get; set; } = new List<InventoryEntity>();
     public ICollection<PhysicalInventoryDetailEntity> PhysicalInventoryDetails { get; set; } = new List<PhysicalInventoryDetailEntity>();
+    public ICollection<StockMovementEntity> StockMovements { get; set; } = new List<StockMovementEntity>();
+    public ICollection<WarehouseTransferDetailEntity> WarehouseTransferDetails { get; set; } = new List<WarehouseTransferDetailEntity>();
     
     //JSON
     public ICollection<CodeJson> CodeJson { get; set; } = new List<CodeJson>();

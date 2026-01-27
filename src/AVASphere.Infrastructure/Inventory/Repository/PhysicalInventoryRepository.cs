@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿    using AVASphere.ApplicationCore.Inventory.Entities.General;
 using AVASphere.ApplicationCore.Inventory.Interfaces;
 using Microsoft.EntityFrameworkCore;
 

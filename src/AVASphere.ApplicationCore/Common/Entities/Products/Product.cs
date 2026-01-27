@@ -1,5 +1,4 @@
-﻿// REVISED
-
+﻿// //ACTUALIZADO A LA VERSION 0.2 DE LA DB
 using System.ComponentModel.DataAnnotations.Schema;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
@@ -16,7 +15,6 @@ public class Product
 {
     public int IdProduct { get; set; }
     public string? MainName { get; set; }
-    public string? SupplierName { get; set; }
     public string? Unit { get; set; }
     public string? Description { get; set; }
     public double Quantity { get; set; }

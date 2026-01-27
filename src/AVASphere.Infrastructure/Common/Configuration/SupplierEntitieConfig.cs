@@ -1,4 +1,5 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.Catalogs;
+﻿//ACTUALIZADO A LA VERSION 0.2 DE LA DB
+using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

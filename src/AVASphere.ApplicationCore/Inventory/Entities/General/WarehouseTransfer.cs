@@ -1,3 +1,4 @@
+//ACTUALIZADO A LA VERSION 0.2 DE LA DB
 namespace AVASphere.ApplicationCore.Inventory.Entities.General;
 
 public class WarehouseTransfer

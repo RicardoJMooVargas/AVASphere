@@ -1,4 +1,5 @@
-﻿﻿using AVASphere.ApplicationCore.Common.Entities.Products;
+﻿//ACTUALIZADO A LA VERSION 0.2 DE LA DB
+﻿using AVASphere.ApplicationCore.Common.Entities.Products;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -12,10 +13,6 @@ public class ProductEntitieConfig : IEntityTypeConfiguration<Product>
         entity.HasKey(e => e.IdProduct);
         
         entity.Property(e => e.MainName)
-            .IsRequired()
-            .HasMaxLength(255);
-        
-        entity.Property(e => e.SupplierName)
             .IsRequired()
             .HasMaxLength(255);
         

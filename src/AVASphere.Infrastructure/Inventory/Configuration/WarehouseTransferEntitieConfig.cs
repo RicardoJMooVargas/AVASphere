@@ -1,3 +1,4 @@
+//ACTUALIZADO A LA VERSION 0.2 DE LA DB
 using AVASphere.ApplicationCore.Inventory.Entities.General;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

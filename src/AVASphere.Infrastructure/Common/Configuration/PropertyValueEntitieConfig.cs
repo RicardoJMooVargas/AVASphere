@@ -1,4 +1,5 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.Catalogs;
+﻿//ACTUALIZADO A LA VERSION 0.2 DE LA DB
+using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -12,6 +13,12 @@ public class PropertyValueEntitieConfig : IEntityTypeConfiguration<PropertyValue
         entity.HasKey(e => e.IdPropertyValue);
 
         entity.Property(e => e.Value)
+            .HasMaxLength(200);
+        
+        entity.ToTable("PropertyValue");
+        entity.HasKey(e => e.FatherValue);
+        
+        entity.Property(e => e.Type)
             .HasMaxLength(200);
 
         entity.Property(e => e.IdProperty)

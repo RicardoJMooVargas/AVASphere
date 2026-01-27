@@ -1,4 +1,5 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.Products;
+﻿//ACTUALIZADO A LA VERSION 0.2 DE LA DB
+using AVASphere.ApplicationCore.Common.Entities.Products;
 using AVASphere.ApplicationCore.Projects.Entities.General;
 namespace AVASphere.ApplicationCore.Common.Entities.Catalogs;
 
@@ -6,6 +7,8 @@ public class PropertyValue
 {
     public int IdPropertyValue { get; set; }
     public string? Value { get; set; }
+    public int FatherValue { get; set; }
+    public string? Type { get; set; }
     
     // FK
     public int IdProperty { get; set; }

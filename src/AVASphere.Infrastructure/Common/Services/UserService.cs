@@ -26,7 +26,8 @@
         {
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _encryptionService = encryptionService ?? throw new ArgumentNullException(nameof(encryptionService));
-            _configSysService = configSysService ?? throw new ArgumentNullException(nameof(configSysService)); // ✅ INICIALIZAR
+            _configSysService = configSysService ?? throw new ArgumentNullException(nameof(configSysService));
+            _rolRepository = rolRepository ?? throw new ArgumentNullException(nameof(rolRepository));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -256,14 +257,24 @@
                     return LoginResponse.FailureResponse("Credenciales inválidas");
                 }
 
-                if (user.Status != "Active")
+                _logger.LogDebug("Usuario encontrado: ID={IdUser}, UserName={UserName}, Status={Status}, HashLength={HashLength}", 
+                    user.IdUser, user.UserName, user.Status, user.HashPassword?.Length ?? 0);
+
+                if (!string.Equals(user.Status, "Active", StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogWarning("Intento de login con usuario inactivo: {UserName}", loginDtOs.UserName);
+                    _logger.LogWarning("Intento de login con usuario inactivo: {UserName}, Status={Status}", 
+                        loginDtOs.UserName, user.Status);
                     return LoginResponse.FailureResponse("La cuenta de usuario está deshabilitada");
                 }
 
-                if (string.IsNullOrEmpty(user.HashPassword) || 
-                    !_encryptionService.VerifyPassword(loginDtOs.Password, user.HashPassword))
+                if (string.IsNullOrEmpty(user.HashPassword))
+                {
+                    _logger.LogError("Usuario {UserName} no tiene contraseña configurada", loginDtOs.UserName);
+                    return LoginResponse.FailureResponse("Credenciales inválidas");
+                }
+
+                bool passwordValid = _encryptionService.VerifyPassword(loginDtOs.Password, user.HashPassword);
+                if (!passwordValid)
                 {
                     _logger.LogWarning("Contraseña incorrecta para usuario: {UserName}", loginDtOs.UserName);
                     return LoginResponse.FailureResponse("Credenciales inválidas");
@@ -273,63 +284,105 @@
                 
                 // ✅ OBTENER CONFIG SYS DEL USUARIO
                 ConfigSysResponseDto? configSysResponse = null;
-                if (user.ConfigSys != null)
+                
+                try
                 {
-                    configSysResponse = new ConfigSysResponseDto
+                    if (user.ConfigSys != null)
                     {
-                        IdConfigSys = user.ConfigSys.IdConfigSys,
-                        CompanyName = user.ConfigSys.CompanyName,
-                        BranchName = user.ConfigSys.BranchName,
-                        LogoUrl = user.ConfigSys.LogoUrl,
-                        Colors = user.ConfigSys.Colors.Select(c => new ColorResponseDto
-                        {
-                            Index = c.Index,
-                            NameColor = c.NameColor,
-                            ColorCode = c.ColorCode,
-                            ColorRgb = c.ColorRgb
-                        }).ToList(),
-                        NotUseModules = user.ConfigSys.NotUseModules.Select(m => new NotUseModuleResponseDto
-                        {
-                            Index = m.Index,
-                            NameModule = m.NameModule
-                        }).ToList(),
-                        CreatedAt = user.ConfigSys.CreatedAt
-                    };
-                }
-                else
-                {
-                    _logger.LogWarning("Usuario {UserName} no tiene configuración del sistema asociada", user.UserName);
-                    
-                    // ✅ OBTENER CONFIGURACIÓN POR DEFECTO SI EL USUARIO NO TIENE
-                    var defaultConfig = await _configSysService.GetConfigAsync();
-                    if (defaultConfig != null)
-                    {
+                        _logger.LogDebug("Procesando ConfigSys del usuario. IdConfigSys={IdConfigSys}", user.ConfigSys.IdConfigSys);
+                        
                         configSysResponse = new ConfigSysResponseDto
                         {
-                            IdConfigSys = defaultConfig.IdConfigSys,
-                            CompanyName = defaultConfig.CompanyName,
-                            BranchName = defaultConfig.BranchName,
-                            LogoUrl = defaultConfig.LogoUrl,
-                            Colors = defaultConfig.Colors.Select(c => new ColorResponseDto
+                            IdConfigSys = user.ConfigSys.IdConfigSys,
+                            CompanyName = user.ConfigSys.CompanyName ?? "",
+                            BranchName = user.ConfigSys.BranchName ?? "",
+                            LogoUrl = user.ConfigSys.LogoUrl ?? "",
+                            Colors = user.ConfigSys.Colors?.Select(c => new ColorResponseDto
                             {
                                 Index = c.Index,
-                                NameColor = c.NameColor,
-                                ColorCode = c.ColorCode,
-                                ColorRgb = c.ColorRgb
-                            }).ToList(),
-                            NotUseModules = defaultConfig.NotUseModules.Select(m => new NotUseModuleResponseDto
+                                NameColor = c.NameColor ?? "",
+                                ColorCode = c.ColorCode ?? "",
+                                ColorRgb = c.ColorRgb ?? ""
+                            }).ToList() ?? new List<ColorResponseDto>(),
+                            NotUseModules = user.ConfigSys.NotUseModules?.Select(m => new NotUseModuleResponseDto
                             {
                                 Index = m.Index,
-                                NameModule = m.NameModule
-                            }).ToList(),
-                            CreatedAt = defaultConfig.CreatedAt
+                                NameModule = m.NameModule ?? ""
+                            }).ToList() ?? new List<NotUseModuleResponseDto>(),
+                            CreatedAt = user.ConfigSys.CreatedAt
                         };
+                        
+                        _logger.LogDebug("ConfigSys procesado correctamente");
                     }
+                    else
+                    {
+                        _logger.LogWarning("Usuario {UserName} no tiene configuración del sistema asociada. Buscando configuración por defecto...", user.UserName);
+                        
+                        // ✅ OBTENER CONFIGURACIÓN POR DEFECTO SI EL USUARIO NO TIENE
+                        var defaultConfig = await _configSysService.GetConfigAsync();
+                        if (defaultConfig != null)
+                        {
+                            _logger.LogDebug("Configuración por defecto encontrada. IdConfigSys={IdConfigSys}", defaultConfig.IdConfigSys);
+                            
+                            configSysResponse = new ConfigSysResponseDto
+                            {
+                                IdConfigSys = defaultConfig.IdConfigSys,
+                                CompanyName = defaultConfig.CompanyName ?? "",
+                                BranchName = defaultConfig.BranchName ?? "",
+                                LogoUrl = defaultConfig.LogoUrl ?? "",
+                                Colors = defaultConfig.Colors?.Select(c => new ColorResponseDto
+                                {
+                                    Index = c.Index,
+                                    NameColor = c.NameColor ?? "",
+                                    ColorCode = c.ColorCode ?? "",
+                                    ColorRgb = c.ColorRgb ?? ""
+                                }).ToList() ?? new List<ColorResponseDto>(),
+                                NotUseModules = defaultConfig.NotUseModules?.Select(m => new NotUseModuleResponseDto
+                                {
+                                    Index = m.Index,
+                                    NameModule = m.NameModule ?? ""
+                                }).ToList() ?? new List<NotUseModuleResponseDto>(),
+                                CreatedAt = defaultConfig.CreatedAt
+                            };
+                        }
+                        else
+                        {
+                            _logger.LogWarning("No se encontró configuración por defecto. Usando configuración vacía.");
+                            
+                            // Crear configuración vacía para evitar null
+                            configSysResponse = new ConfigSysResponseDto
+                            {
+                                IdConfigSys = 0,
+                                CompanyName = "Sin configuración",
+                                BranchName = "Sin configuración",
+                                LogoUrl = "",
+                                Colors = new List<ColorResponseDto>(),
+                                NotUseModules = new List<NotUseModuleResponseDto>(),
+                                CreatedAt = DateTime.UtcNow
+                            };
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error al procesar ConfigSys para usuario: {UserName}", loginDtOs.UserName);
+                    
+                    // Crear configuración vacía en caso de error
+                    configSysResponse = new ConfigSysResponseDto
+                    {
+                        IdConfigSys = 0,
+                        CompanyName = "Error al cargar configuración",
+                        BranchName = "Error al cargar configuración",
+                        LogoUrl = "",
+                        Colors = new List<ColorResponseDto>(),
+                        NotUseModules = new List<NotUseModuleResponseDto>(),
+                        CreatedAt = DateTime.UtcNow
+                    };
                 }
                 
                 _logger.LogInformation("Autenticación exitosa para usuario: {UserName}", loginDtOs.UserName);
                 
-                return LoginResponse.SuccessResponse(token, user.ToResponse(), configSysResponse!);
+                return LoginResponse.SuccessResponse(token, user.ToResponse(), configSysResponse);
             }
             catch (Exception ex)
             {

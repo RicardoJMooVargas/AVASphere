@@ -1,4 +1,5 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
+﻿//ACTUALIZADO A LA VERSION 0.2 DE LA DB
+using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Common.Entities.Products;
 
 namespace AVASphere.ApplicationCore.Common.Entities.Catalogs;
@@ -6,7 +7,7 @@ namespace AVASphere.ApplicationCore.Common.Entities.Catalogs;
 public class Supplier
 {
     public int IdSupplier { get; set; }
-    public string Name { get; set; } // OBLIGATORIO
+    public string? Name { get; set; } // OBLIGATORIO
     public string? CompanyName { get; set; }
     public string? TaxId { get; set; } // RFC O EQUIVALENTE
     public string? PersonType { get; set;}

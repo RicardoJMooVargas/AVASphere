@@ -19,7 +19,6 @@ public class ProductService : IProductService
         var product = new Product
         {
             MainName = dto.MainName,
-            SupplierName = dto.SupplierName,
             Unit = dto.Unit,
             Description = dto.Description,
             Quantity = dto.Quantity,
@@ -44,7 +43,6 @@ public class ProductService : IProductService
             var product = new Product
             {
                 MainName = dto.MainName,
-                SupplierName = dto.SupplierName,
                 Unit = dto.Unit,
                 Description = dto.Description,
                 Quantity = dto.Quantity,
@@ -72,7 +70,6 @@ public class ProductService : IProductService
         }
 
         existingProduct.MainName = dto.MainName;
-        existingProduct.SupplierName = dto.SupplierName;
         existingProduct.Unit = dto.Unit;
         existingProduct.Description = dto.Description;
         existingProduct.Quantity = dto.Quantity;
@@ -116,7 +113,6 @@ public class ProductService : IProductService
         {
             IdProduct = product.IdProduct,
             MainName = product.MainName,
-            SupplierName = product.SupplierName,
             Unit = product.Unit,
             Description = product.Description,
             Quantity = product.Quantity,

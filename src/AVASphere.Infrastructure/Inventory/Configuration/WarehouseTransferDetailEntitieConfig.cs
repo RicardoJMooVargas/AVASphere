@@ -2,6 +2,7 @@ using AVASphere.ApplicationCore.Inventory.Entities.General;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
+//ACTUALIZADO A LA VERSION 0.2 DE LA DB
 namespace AVASphere.Infrastructure.Inventory.Configuration;
 
 public class WarehouseTransferDetailEntitieConfig : IEntityTypeConfiguration<WarehouseTransferDetail>

@@ -1,4 +1,5 @@
-﻿namespace AVASphere.ApplicationCore.Common.Entities.Catalogs;
+﻿//ACTUALIZADO A LA VERSION 0.2 DE LA DB
+namespace AVASphere.ApplicationCore.Common.Entities.Catalogs;
 
 public class Property
 {

@@ -1,3 +1,4 @@
+//ACTUALIZADO A LA VERSION 0.2 DE LA DB
 using AVASphere.ApplicationCore.Common.Entities.Products;
 
 namespace AVASphere.ApplicationCore.Inventory.Entities.General;

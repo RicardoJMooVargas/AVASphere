@@ -97,7 +97,6 @@ public static class ProductExtensions
         {
             IdProduct = product.IdProduct,
             MainName = product.MainName,
-            SupplierName = product.SupplierName,
             Unit = product.Unit,
             Price = (decimal)(product.CostsJson?.FirstOrDefault()?.Amount ?? 0)
         };

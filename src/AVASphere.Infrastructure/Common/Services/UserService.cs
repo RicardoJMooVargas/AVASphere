@@ -249,7 +249,7 @@
                 if (string.IsNullOrWhiteSpace(loginDtOs.Password))
                     throw new ArgumentException("La contraseña es requerida");
 
-                var user = await _userRepository.SelectUserAsync(new User { UserName = loginDtOs.UserName });
+                var user = await _userRepository.SelectUserAsync(new User { UserName = loginDtOs.UserName , Verified = true, Status =  "active" });
                 
                 if (user == null)
                 {

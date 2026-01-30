@@ -1,4 +1,5 @@
-﻿﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Interfaces;
@@ -9,10 +10,12 @@ namespace AVASphere.Infrastructure.Common.Data.Repositories;
 public class UserRepository : IUserRepository
 {
     private readonly MasterDbContext _context;
+    private readonly ILogger<UserRepository> _logger; 
 
-    public UserRepository(MasterDbContext context)
+    public UserRepository(MasterDbContext context, ILogger<UserRepository> logger) // Modifica el constructor
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger)); // Asigna el logger
     }
 
     public async Task<User> SelectUserAsync(User user) 
@@ -37,8 +40,10 @@ public class UserRepository : IUserRepository
         if (!string.IsNullOrEmpty(user.Status))
             query = query.Where(u => u.Status == user.Status);
 
-        if (user.Verified.HasValue)
-            query = query.Where(u => u.Verified == user.Verified.Value);
+        if (user.Verified != null)
+        {
+            query = query.Where(u => u.Verified == user.Verified);
+        }
 
         if (user.IdRol > 0)
             query = query.Where(u => u.IdRol == user.IdRol);
@@ -49,10 +54,14 @@ public class UserRepository : IUserRepository
 
         // Incluir relaciones
         query = query.Include(u => u.Rol)
-                     .Include(u => u.ConfigSys)
-                        .ThenInclude(c => c.Colors)
-                     .Include(u => u.ConfigSys)
-                        .ThenInclude(c => c.NotUseModules);
+                     .Include(u => u.ConfigSys);
+    
+        _logger.LogWarning(
+            "FILTROS => UserName={UserName}, Status={Status}, Verified={Verified}",
+            user.UserName,
+            user.Status,
+            user.Verified
+        );
 
         return await query.FirstOrDefaultAsync();
     }
@@ -65,9 +74,6 @@ public class UserRepository : IUserRepository
         return await _context.Users
             .Include(u => u.Rol)
             .Include(u => u.ConfigSys)
-                .ThenInclude(c => c.Colors)
-            .Include(u => u.ConfigSys)
-                .ThenInclude(c => c.NotUseModules)
             .FirstOrDefaultAsync(u => u.IdUser == idUsers);
     }
 
@@ -140,9 +146,6 @@ public class UserRepository : IUserRepository
         return await _context.Users
             .Include(u => u.Rol)
             .Include(u => u.ConfigSys)
-                .ThenInclude(c => c.Colors)
-            .Include(u => u.ConfigSys)
-                .ThenInclude(c => c.NotUseModules)
             .ToListAsync();
     }
 }

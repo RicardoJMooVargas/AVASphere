@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Projects.Entities.General;
+﻿﻿using AVASphere.ApplicationCore.Projects.Entities.General;
 using AVASphere.ApplicationCore.Projects.Enum;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

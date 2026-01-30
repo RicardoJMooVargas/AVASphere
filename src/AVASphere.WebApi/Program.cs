@@ -8,6 +8,12 @@ LoadEnvironmentVariables();
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure Kestrel to use a specific port
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenLocalhost(5001); // Solo HTTP en puerto 5001
+});
+
 // Add services to the container.
 builder.Services.AddControllers(options =>
 {
@@ -24,9 +30,14 @@ builder.Services.AddCors(options =>
         corsBuilder
             .SetIsOriginAllowed(origin =>
             {
-                // Permitir cualquier localhost/127.0.0.1 con cualquier puerto
+                // Permitir localhost, 127.0.0.1, ::1 y direcciones IP locales comunes
                 var uri = new Uri(origin);
-                return uri.Host == "localhost" || uri.Host == "127.0.0.1" || uri.Host == "::1";
+                return uri.Host == "localhost" || 
+                       uri.Host == "127.0.0.1" || 
+                       uri.Host == "::1" ||
+                       uri.Host.StartsWith("192.168.") ||
+                       uri.Host.StartsWith("10.") ||
+                       uri.Host.StartsWith("172.");
             })
             .AllowAnyMethod()
             .AllowAnyHeader()
@@ -230,4 +241,3 @@ static void LoadEnvironmentVariables()
         }
     }
 }
-

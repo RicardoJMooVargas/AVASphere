@@ -51,6 +51,14 @@ dotnet ef migrations add Initial `
   --output-dir System/Migrations
 ```
 
+```bash
+dotnet ef migrations add Initial \
+  --project src/AVASphere.Infrastructure \
+  --startup-project src/AVASphere.Infrastructure \
+  --context MasterDbContext \
+  --output-dir System/Migrations
+```
+
 3. Aplica la migración:
 ```bash
 dotnet ef database update `

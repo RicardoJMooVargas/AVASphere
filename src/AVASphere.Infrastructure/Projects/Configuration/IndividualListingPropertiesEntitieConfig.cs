@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Projects.Entities.General;
+﻿﻿using AVASphere.ApplicationCore.Projects.Entities.General;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -17,10 +17,10 @@ public class IndividualListingPropertiesEntitieConfig : IEntityTypeConfiguration
             .HasForeignKey(ilp => ilp.IdIndividualProjectQuote)
             .OnDelete(DeleteBehavior.Cascade);
         
-        // FK a PropertyValue (requerida)
-        entity.HasOne(ilp => ilp.ProductValue)
-            .WithMany()
-            .HasForeignKey(ilp => ilp.IdPropertyValue)
+        // FK a ProductProperties (requerida)
+        entity.HasOne(ilp => ilp.ProductProperties)
+            .WithMany(pp => pp.IndividualListingProperties)
+            .HasForeignKey(ilp => ilp.IdProductProperties)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

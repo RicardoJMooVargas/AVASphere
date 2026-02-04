@@ -1,13 +1,12 @@
-﻿//ACTUALIZADO A LA VERSION 0.2 DE LA DB
+﻿﻿//ACTUALIZADO A LA VERSION 0.2 DE LA DB
 using AVASphere.ApplicationCore.Common.Entities.Products;
-using AVASphere.ApplicationCore.Projects.Entities.General;
 namespace AVASphere.ApplicationCore.Common.Entities.Catalogs;
 
 public class PropertyValue
 {
     public int IdPropertyValue { get; set; }
     public string? Value { get; set; }
-    public int FatherValue { get; set; }
+    public int? FatherValue { get; set; } // Nullable para indicar que puede no tener padre
     public string? Type { get; set; }
     
     // FK
@@ -16,5 +15,4 @@ public class PropertyValue
     
     // RELACIONES
     public ICollection<ProductProperties> ProductProperties { get; set; } = new List<ProductProperties>();
-    public ICollection<IndividualListingProperties> IndividualListingProperties { get; set; } = new List<IndividualListingProperties>();
 }

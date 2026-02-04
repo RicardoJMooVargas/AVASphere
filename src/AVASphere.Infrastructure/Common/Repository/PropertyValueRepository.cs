@@ -1,4 +1,4 @@
-﻿﻿using AVASphere.ApplicationCore.Common.Entities.Catalogs;
+﻿﻿﻿using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.Products;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Projects.Entities.General;
@@ -89,8 +89,12 @@ public class PropertyValueRepository : IPropertyValueRepository
 
     public async Task<IEnumerable<IndividualListingProperties>> GetIndividualListingPropertiesByPropertyValueAsync(int propertyValueId)
     {
-        return await _context.IndividualListingProperties
-            .Where(ilp => ilp.IdPropertyValue == propertyValueId)
-            .ToListAsync();
+        // TODO: Esta funcionalidad necesita ser reimplementada con la nueva relación
+        // PropertyValue -> ProductProperties -> IndividualListingProperties
+        return await Task.FromResult(new List<IndividualListingProperties>());
+        
+        // return await _context.IndividualListingProperties
+        //     .Where(ilp => ilp.ProductProperties.IdPropertyValue == propertyValueId)
+        //     .ToListAsync();
     }
 }

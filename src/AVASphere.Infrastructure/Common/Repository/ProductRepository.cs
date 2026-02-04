@@ -70,4 +70,9 @@ public class ProductRepository : IProductRepository
             .Include(p => p.Supplier)
             .ToListAsync();
     }
+
+    public async Task<bool> ExistsAsync(int id)
+    {
+        return await _context.Products.AnyAsync(p => p.IdProduct == id);
+    }
 }

@@ -23,7 +23,7 @@ public class ProductController : ControllerBase
     /// Crea un nuevo producto
     /// </summary>
     /// <param name="createProductDto">Datos del producto a crear</param>
-    [HttpPost("CreateProducts")]
+    [HttpPost("create-products")]
     public async Task<ActionResult> CreateProducts(CreateProductDto createProductDto)
     {
         try
@@ -54,7 +54,7 @@ public class ProductController : ControllerBase
     /// Crea múltiples productos de una sola vez
     /// </summary>
     /// <param name="createProductDtos">Lista de productos a crear</param>
-    [HttpPost("CreateMultipleProducts")]
+    [HttpPost("create-multiple-products")]
     public async Task<ActionResult> CreateMultipleProducts([FromBody] List<CreateProductDto> createProductDtos)
     {
         try
@@ -87,7 +87,7 @@ public class ProductController : ControllerBase
     /// Obtiene un producto por su ID o todos los productos si no se especifica ID
     /// </summary>
     /// <param name="id">ID del producto (opcional). Si no se proporciona, devuelve todos los productos</param>
-    [HttpGet]
+    [HttpGet("get-product-by-id")]
     public async Task<ActionResult> GetProductById([FromQuery] int? id = null)
     {
         try
@@ -123,7 +123,7 @@ public class ProductController : ControllerBase
     /// </summary>
     /// <param name="id">ID del producto a actualizar</param>
     /// <param name="updateProductDto">Datos actualizados del producto</param>
-    [HttpPut("UpdateProduct/{id}")]
+    [HttpPut("update-product/{id}")]
     public async Task<ActionResult> UpdateProduct(int id, UpdateProductDto updateProductDto)
     {
         try
@@ -151,7 +151,7 @@ public class ProductController : ControllerBase
     /// Elimina un producto
     /// </summary>
     /// <param name="id">ID del producto a eliminar</param>
-    [HttpDelete("DeleteProduct/{id}")]
+    [HttpDelete("delete-product/{id}")]
     public async Task<ActionResult> DeleteProduct(int id)
     {
         try

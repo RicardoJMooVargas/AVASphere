@@ -54,10 +54,7 @@ public class UserRepository : IUserRepository
 
         // Incluir relaciones
         query = query.Include(u => u.Rol)
-                     .Include(u => u.ConfigSys)
-                        .ThenInclude(c => c.Colors)
-                     .Include(u => u.ConfigSys)
-                        .ThenInclude(c => c.NotUseModules);
+                     .Include(u => u.ConfigSys);
     
         _logger.LogWarning(
             "FILTROS => UserName={UserName}, Status={Status}, Verified={Verified}",
@@ -77,9 +74,6 @@ public class UserRepository : IUserRepository
         return await _context.Users
             .Include(u => u.Rol)
             .Include(u => u.ConfigSys)
-                .ThenInclude(c => c.Colors)
-            .Include(u => u.ConfigSys)
-                .ThenInclude(c => c.NotUseModules)
             .FirstOrDefaultAsync(u => u.IdUser == idUsers);
     }
 

@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.DTOs;
+﻿﻿using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -320,7 +320,8 @@ public class PropertyValueService : IPropertyValueService
             var individualListingProperties = await _propertyValueRepository.GetIndividualListingPropertiesByPropertyValueAsync(id);
             foreach (var ilp in individualListingProperties)
             {
-                ilp.IdPropertyValue = genericValue.IdPropertyValue;
+                // Esta línea necesita ser actualizada según la nueva relación
+                // ilp.IdProductProperties = ?; // Necesita lógica adicional
             }
 
             // Ahora eliminar el PropertyValue original

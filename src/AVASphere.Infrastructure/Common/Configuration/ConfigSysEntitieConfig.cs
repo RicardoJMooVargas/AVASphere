@@ -1,4 +1,4 @@
-﻿﻿using Microsoft.EntityFrameworkCore;
+﻿﻿﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using AVASphere.ApplicationCore.Common.Entities.General;
 
@@ -22,7 +22,7 @@ namespace AVASphere.Infrastructure.Common.Configuration
             entity.Property(e => e.LogoUrl)
                 .HasMaxLength(500);
 
-            // Campos JSONB
+            // Campos JSONB - Se almacenan como JSON en la base de datos
             entity.Property(e => e.Colors)
                 .HasColumnType("jsonb")
                 .HasDefaultValueSql("'[]'::jsonb")

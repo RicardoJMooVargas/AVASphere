@@ -8,11 +8,17 @@ LoadEnvironmentVariables();
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Kestrel to use a specific port
-builder.WebHost.ConfigureKestrel(options =>
+// Configure Kestrel to use a specific port - Solo en Development
+if (builder.Environment.IsDevelopment())
 {
-    options.ListenLocalhost(5001); // Solo HTTP en puerto 5001
-});
+    // Limpiar cualquier URL predefinida para evitar conflictos
+    builder.WebHost.UseUrls();
+    
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.ListenLocalhost(5001); // Solo HTTP en puerto 5001
+    });
+}
 
 // Add services to the container.
 builder.Services.AddControllers(options =>
@@ -135,6 +141,9 @@ builder.Services.AddSwaggerGen(c =>
     {
         c.IncludeXmlComments(xmlPath);
     }
+    
+    // Soporte para file uploads
+    c.OperationFilter<FileUploadOperationFilter>();
 });
 
 // Función auxiliar para descripciones de módulos
@@ -175,7 +184,11 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// Solo usar HTTPS redirection en producción
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Enable CORS - debe estar antes de Authentication y Authorization
 app.UseCors(app.Environment.IsDevelopment() ? "DevelopmentCorsPolicy" : "ProductionCorsPolicy");

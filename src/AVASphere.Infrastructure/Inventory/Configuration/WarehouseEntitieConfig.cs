@@ -1,4 +1,4 @@
-﻿﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿﻿﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -27,6 +27,12 @@ public class WarehouseEntitieConfig : IEntityTypeConfiguration<Warehouse>
         
         entity.Property(e => e.Active)
             .IsRequired();
+        
+        // Relación 1-N con StorageStructures
+        entity.HasMany(w => w.StorageStructures)
+            .WithOne(ss => ss.Warehouse)
+            .HasForeignKey(ss => ss.IdWarehouse)
+            .OnDelete(DeleteBehavior.Restrict);
         
         // Relación 1-N con PhysicalInventory
         entity.HasMany(w => w.PhysicalInventories)

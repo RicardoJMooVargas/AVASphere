@@ -117,6 +117,7 @@ public static class DependencyInjection
     {
         services.AddScoped<DbToolsServices>();
         services.AddScoped<DatabaseMigrationService>();
+        services.AddScoped<BackupService>(); // Agregado para ConfigController
     }
 
     private static void AddSalesServices(IServiceCollection services)

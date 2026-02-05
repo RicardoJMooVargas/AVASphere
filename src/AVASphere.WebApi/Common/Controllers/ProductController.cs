@@ -87,23 +87,58 @@ public class ProductController : ControllerBase
     /// Obtiene un producto por su ID o todos los productos si no se especifica ID
     /// </summary>
     /// <param name="id">ID del producto (opcional). Si no se proporciona, devuelve todos los productos</param>
-    [HttpGet]
-    public async Task<ActionResult> GetProductById([FromQuery] int? id = null)
+    /// <param name="mainName">Filtro por nombre del producto (opcional)</param>
+    /// <param name="idSupplier">Filtro por ID del proveedor (opcional)</param>
+    /// <param name="supplierName">Filtro por nombre del proveedor (opcional)</param>
+    /// <param name="idProperty">Filtro por ID de propiedad: 1=Familia, 2=Clase, 3=Línea (opcional)</param>
+    /// <param name="propertyName">Filtro por nombre de propiedad: Familia, Clase, Línea (opcional)</param>
+    /// <param name="idPropertyValue">Filtro por ID de valor de propiedad (opcional)</param>
+    /// <param name="propertyValue">Filtro por valor de propiedad: ACRILICOS, CORTE, etc (opcional)</param>
+    [HttpGet("GetProduct")]
+    public async Task<ActionResult> GetProductById(
+        [FromQuery] int? id = null,
+        [FromQuery] string? mainName = null,
+        [FromQuery] int? idSupplier = null,
+        [FromQuery] string? supplierName = null,
+        [FromQuery] int? idProperty = null,
+        [FromQuery] string? propertyName = null,
+        [FromQuery] int? idPropertyValue = null,
+        [FromQuery] string? propertyValue = null)
     {
         try
         {
-            // Si no se proporciona ID o es 0, devolver todos los productos
+            // Crear filtros opcionales
+            ProductFilterDto? filters = null;
+            if (!string.IsNullOrEmpty(mainName) || idSupplier.HasValue ||
+                !string.IsNullOrEmpty(supplierName) || idProperty.HasValue ||
+                !string.IsNullOrEmpty(propertyName) || idPropertyValue.HasValue ||
+                !string.IsNullOrEmpty(propertyValue))
+            {
+                filters = new ProductFilterDto
+                {
+                    MainName = mainName,
+                    IdSupplier = idSupplier,
+                    SupplierName = supplierName,
+                    IdProperty = idProperty,
+                    PropertyName = propertyName,
+                    IdPropertyValue = idPropertyValue,
+                    PropertyValue = propertyValue
+                };
+            }
+
+            // Si no se proporciona ID, devolver todos los productos (con filtros opcionales)
             if (!id.HasValue || id.Value == 0)
             {
-                var products = await _productService.GetAllProductsAsync();
+                var products = await _productService.GetAllProductsAsync(filters);
                 return Ok(new ApiResponse(products, "Productos obtenidos exitosamente", 200));
             }
 
-            // Si se proporciona un ID, devolver ese producto específico
-            var product = await _productService.GetProductByIdAsync(id.Value);
+            // Buscar producto por ID con filtros opcionales
+            var product = await _productService.GetProductByIdAsync(id.Value, filters);
+
             if (product == null)
             {
-                return NotFound(new ApiResponse($"Producto con ID {id} no encontrado", 404));
+                return NotFound(new ApiResponse($"Producto con ID {id} no encontrado o no cumple con los filtros", 404));
             }
 
             return Ok(new ApiResponse(product, "Producto obtenido exitosamente", 200));
@@ -165,9 +200,35 @@ public class ProductController : ControllerBase
 
             return Ok(new ApiResponse(null, $"Producto con ID {id} eliminado exitosamente", 200));
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return StatusCode(500, new ApiResponse("Error al eliminar el producto", 500));
+        }
+    }
+
+    /// <summary>
+    /// Importa productos desde un archivo Excel
+    /// </summary>
+    /// <param name="file">Archivo Excel que contiene los productos a importar</param>
+    [HttpPost("import")]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<ImportProductResultDto>> ImportProducts(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("No se proporcionó ningún archivo");
+
+        if (!file.FileName.EndsWith(".xlsx") && !file.FileName.EndsWith(".xls"))
+            return BadRequest("El archivo debe ser un Excel (.xlsx o .xls)");
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var result = await _productService.ImportProductsFromExcelAsync(stream);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error al importar: {ex.Message}");
         }
     }
 }

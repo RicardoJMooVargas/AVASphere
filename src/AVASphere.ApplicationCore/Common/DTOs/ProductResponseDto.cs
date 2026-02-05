@@ -17,4 +17,5 @@ public class ProductResponseDto
     public List<CostsJson> CostsJson { get; set; } = new();
     public List<CategoriesJson> CategoriesJsons { get; set; } = new();
     public List<SolutionsJson> SolutionsJsons { get; set; } = new();
+    public List<ProductPropertyDto> ProductProperties { get; set; } = new();
 }

@@ -7,13 +7,13 @@ public class PropertyValue
 {
     public int IdPropertyValue { get; set; }
     public string? Value { get; set; }
-    public int FatherValue { get; set; }
+    public int? FatherValue { get; set; }
     public string? Type { get; set; }
-    
+
     // FK
     public int IdProperty { get; set; }
     public Property Property { get; set; } = null!;
-    
+
     // RELACIONES
     public ICollection<ProductProperties> ProductProperties { get; set; } = new List<ProductProperties>();
     public ICollection<IndividualListingProperties> IndividualListingProperties { get; set; } = new List<IndividualListingProperties>();

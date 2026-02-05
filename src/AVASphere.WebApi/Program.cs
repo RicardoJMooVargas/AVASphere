@@ -32,8 +32,8 @@ builder.Services.AddCors(options =>
             {
                 // Permitir localhost, 127.0.0.1, ::1 y direcciones IP locales comunes
                 var uri = new Uri(origin);
-                return uri.Host == "localhost" || 
-                       uri.Host == "127.0.0.1" || 
+                return uri.Host == "localhost" ||
+                       uri.Host == "127.0.0.1" ||
                        uri.Host == "::1" ||
                        uri.Host.StartsWith("192.168.") ||
                        uri.Host.StartsWith("10.") ||
@@ -43,7 +43,7 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowCredentials();
     });
-    
+
     options.AddPolicy("ProductionCorsPolicy", corsBuilder =>
     {
         corsBuilder
@@ -167,7 +167,7 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/swagger/system/swagger.json", "System SystemModule - System Management");
         c.SwaggerEndpoint("/swagger/sales/swagger.json", "Sales SystemModule - Sales & Tracking");
         c.SwaggerEndpoint("/swagger/projects/swagger.json", "Projects SystemModule - Project Management");
-        
+
         c.RoutePrefix = "swagger";
         c.DefaultModelsExpandDepth(-1);
         c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);

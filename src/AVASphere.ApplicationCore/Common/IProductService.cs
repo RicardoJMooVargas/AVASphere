@@ -8,6 +8,7 @@ public interface IProductService
     Task<IEnumerable<ProductResponseDto>> CreateMultipleProductsAsync(List<CreateProductDto> createProductDtos);
     Task<ProductResponseDto> UpdateProductAsync(int idProduct, UpdateProductDto updateProductDto);
     Task<bool> DeleteProductAsync(int idProduct);
-    Task<ProductResponseDto?> GetProductByIdAsync(int idProduct);
-    Task<IEnumerable<ProductResponseDto>> GetAllProductsAsync();
+    Task<ProductResponseDto?> GetProductByIdAsync(int idProduct, ProductFilterDto? filters = null);
+    Task<IEnumerable<ProductResponseDto>> GetAllProductsAsync(ProductFilterDto? filters = null);
+    Task<ImportProductResultDto> ImportProductsFromExcelAsync(Stream excelStream);
 }

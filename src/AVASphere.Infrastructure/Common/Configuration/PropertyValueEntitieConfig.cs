@@ -14,10 +14,9 @@ public class PropertyValueEntitieConfig : IEntityTypeConfiguration<PropertyValue
 
         entity.Property(e => e.Value)
             .HasMaxLength(200);
-        
-        entity.ToTable("PropertyValue");
-        entity.HasKey(e => e.FatherValue);
-        
+
+        entity.Property(e => e.FatherValue);
+
         entity.Property(e => e.Type)
             .HasMaxLength(200);
 
@@ -34,5 +33,11 @@ public class PropertyValueEntitieConfig : IEntityTypeConfiguration<PropertyValue
             .WithOne(ilp => ilp.ProductValue)
             .HasForeignKey(ilp => ilp.IdPropertyValue)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Configuración de relación con Property
+        entity.HasOne(pv => pv.Property)
+            .WithMany(p => p.CatalogValue)
+            .HasForeignKey(pv => pv.IdProperty)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

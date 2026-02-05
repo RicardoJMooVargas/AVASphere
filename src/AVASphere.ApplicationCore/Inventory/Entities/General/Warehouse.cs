@@ -1,4 +1,4 @@
-﻿﻿namespace AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿namespace AVASphere.ApplicationCore.Inventory.Entities.General;
 
 public class Warehouse
 {
@@ -10,6 +10,7 @@ public class Warehouse
     public double Active { get; set; }
     
     // RELACIONES
+    public ICollection<StorageStructure> StorageStructures { get; set; } = new List<StorageStructure>();
     public ICollection<PhysicalInventory> PhysicalInventories { get; set; } = new List<PhysicalInventory>();
     public ICollection<Inventory> Inventories { get; set; } = new List<Inventory>();
     public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();

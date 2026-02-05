@@ -12,5 +12,5 @@ public class Area
 
     // RELACIONES
     public ICollection<Rol> Rol { get; set; } = new List<Rol>();
-    public ICollection<LocationDetails> LocationDetails { get; set; } = new List<LocationDetails>();
+    public ICollection<StorageStructure> StorageStructures { get; set; } = new List<StorageStructure>();
 }

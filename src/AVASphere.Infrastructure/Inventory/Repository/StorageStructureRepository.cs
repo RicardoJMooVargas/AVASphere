@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
 using AVASphere.ApplicationCore.Inventory.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,6 +46,23 @@ public class StorageStructureRepository : IStorageStructureRepository
     {
         return await _context.Set<StorageStructure>()
             .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<StorageStructure>> GetByWarehouseAsync(int idWarehouse)
+    {
+        return await _context.Set<StorageStructure>()
+            .AsNoTracking()
+            .Where(ss => ss.IdWarehouse == idWarehouse)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<StorageStructure>> GetByWarehouseAndAreaAsync(int idWarehouse, int idArea)
+    {
+        return await _context.Set<StorageStructure>()
+            .AsNoTracking()
+            .Where(ss => ss.IdWarehouse == idWarehouse)
+            .Where(ss => ss.LocationDetails.Any(ld => ld.IdArea == idArea))
             .ToListAsync();
     }
 

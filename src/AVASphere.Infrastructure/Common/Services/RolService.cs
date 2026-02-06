@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.DTOs;
+﻿﻿using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Interfaces;
@@ -41,7 +41,10 @@ public class RolService : IRolService
             {
                 Name = rolRequest.Name,
                 NormalizedName = rolRequest.NormalizedName ?? rolRequest.Name.ToUpper(),
-                IdArea = rolRequest.IdArea
+                IdArea = rolRequest.IdArea,
+                // ✅ ASIGNAR: Permissions y Modules del request
+                Permissions = rolRequest.Permissions ?? new List<Permission>(),
+                Modules = rolRequest.Modules ?? new List<Module>()
             };
 
             var createdRol = await _rolRepository.CreateAsync(rol);
@@ -53,7 +56,10 @@ public class RolService : IRolService
                 NormalizedName = createdRol.NormalizedName,
                 IdArea = createdRol.IdArea,
                 AreaName = area.Name,
-                UserCount = 0
+                UserCount = 0,
+                // ✅ INCLUIR: Permissions y Modules en la respuesta
+                Permissions = createdRol.Permissions,
+                Modules = createdRol.Modules
             };
         }
         catch (Exception ex)
@@ -77,7 +83,10 @@ public class RolService : IRolService
                 NormalizedName = rol.NormalizedName,
                 IdArea = rol.IdArea,
                 AreaName = rol.Area?.Name ?? "N/A",
-                UserCount = rol.Users?.Count ?? 0
+                UserCount = rol.Users?.Count ?? 0,
+                // ✅ INCLUIR: Permissions y Modules en la respuesta
+                Permissions = rol.Permissions,
+                Modules = rol.Modules
             };
         }
         catch (Exception ex)
@@ -101,7 +110,10 @@ public class RolService : IRolService
                 NormalizedName = rol.NormalizedName,
                 IdArea = rol.IdArea,
                 AreaName = rol.Area?.Name ?? "N/A",
-                UserCount = rol.Users?.Count ?? 0
+                UserCount = rol.Users?.Count ?? 0,
+                // ✅ INCLUIR: Permissions y Modules en la respuesta
+                Permissions = rol.Permissions,
+                Modules = rol.Modules
             };
         }
         catch (Exception ex)
@@ -124,7 +136,10 @@ public class RolService : IRolService
                 NormalizedName = rol.NormalizedName,
                 IdArea = rol.IdArea,
                 AreaName = rol.Area?.Name ?? "N/A",
-                UserCount = rol.Users?.Count ?? 0
+                UserCount = rol.Users?.Count ?? 0,
+                // ✅ INCLUIR: Permissions y Modules en la respuesta
+                Permissions = rol.Permissions,
+                Modules = rol.Modules
             });
         }
         catch (Exception ex)
@@ -161,6 +176,9 @@ public class RolService : IRolService
             existingRol.Name = rolRequest.Name;
             existingRol.NormalizedName = rolRequest.NormalizedName ?? rolRequest.Name.ToUpper();
             existingRol.IdArea = rolRequest.IdArea;
+            // ✅ ACTUALIZAR: Permissions y Modules
+            existingRol.Permissions = rolRequest.Permissions ?? existingRol.Permissions;
+            existingRol.Modules = rolRequest.Modules ?? existingRol.Modules;
 
             var updatedRol = await _rolRepository.UpdateAsync(existingRol);
             
@@ -171,7 +189,10 @@ public class RolService : IRolService
                 NormalizedName = updatedRol.NormalizedName,
                 IdArea = updatedRol.IdArea,
                 AreaName = area.Name,
-                UserCount = updatedRol.Users?.Count ?? 0
+                UserCount = updatedRol.Users?.Count ?? 0,
+                // ✅ INCLUIR: Permissions y Modules en la respuesta
+                Permissions = updatedRol.Permissions,
+                Modules = updatedRol.Modules
             };
         }
         catch (Exception ex)

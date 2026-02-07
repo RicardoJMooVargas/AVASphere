@@ -69,17 +69,36 @@ public class ProductService : IProductService
             throw new KeyNotFoundException($"Product con ID {id} no encontrado.");
         }
 
-        existingProduct.MainName = dto.MainName;
-        existingProduct.Unit = dto.Unit;
-        existingProduct.Description = dto.Description;
-        existingProduct.Quantity = dto.Quantity;
-        existingProduct.Taxes = dto.Taxes;
-        existingProduct.IdSupplier = dto.IdSupplier;
-        existingProduct.CodeJson = dto.CodeJson ?? new();
-        existingProduct.CostsJson = dto.CostsJson ?? new();
-        existingProduct.CategoriesJsons = dto.CategoriesJsons ?? new();
-        existingProduct.SolutionsJsons = dto.SolutionsJsons ?? new();
+        // Solo actualizar los campos que se envían (no nulos)
+        if (dto.MainName != null)
+            existingProduct.MainName = dto.MainName;
 
+        if (dto.Unit != null)
+            existingProduct.Unit = dto.Unit;
+
+        if (dto.Description != null)
+            existingProduct.Description = dto.Description;
+
+        if (dto.Quantity.HasValue)
+            existingProduct.Quantity = dto.Quantity.Value;
+
+        if (dto.Taxes.HasValue)
+            existingProduct.Taxes = dto.Taxes.Value;
+
+        if (dto.IdSupplier.HasValue)
+            existingProduct.IdSupplier = dto.IdSupplier.Value;
+
+        if (dto.CodeJson != null)
+            existingProduct.CodeJson = dto.CodeJson;
+
+        if (dto.CostsJson != null)
+            existingProduct.CostsJson = dto.CostsJson;
+
+        if (dto.CategoriesJsons != null)
+            existingProduct.CategoriesJsons = dto.CategoriesJsons;
+
+        if (dto.SolutionsJsons != null)
+            existingProduct.SolutionsJsons = dto.SolutionsJsons;
 
         var updatedProduct = await _productRepository.UpdateProductsAsync(existingProduct);
         return MapToResponseDto(updatedProduct);
@@ -97,9 +116,9 @@ public class ProductService : IProductService
 
         return MapToResponseDto(product);
     }
-    public async Task<IEnumerable<ProductResponseDto>> GetAllProductsAsync(ProductFilterDto? filters = null)
+    public async Task<IEnumerable<ProductResponseDto>> GetAllProductsAsync(ProductFilterDto? filters = null, PaginationDto? pagination = null)
     {
-        var products = await _productRepository.GetAllProductsAsync(filters);
+        var products = await _productRepository.GetAllProductsAsync(filters, pagination);
         return products.Select(MapToResponseDto);
     }
     private ProductResponseDto MapToResponseDto(Product product)

@@ -9,6 +9,6 @@ public interface IProductService
     Task<ProductResponseDto> UpdateProductAsync(int idProduct, UpdateProductDto updateProductDto);
     Task<bool> DeleteProductAsync(int idProduct);
     Task<ProductResponseDto?> GetProductByIdAsync(int idProduct, ProductFilterDto? filters = null);
-    Task<IEnumerable<ProductResponseDto>> GetAllProductsAsync(ProductFilterDto? filters = null);
+    Task<IEnumerable<ProductResponseDto>> GetAllProductsAsync(ProductFilterDto? filters = null, PaginationDto? pagination = null);
     Task<ImportProductResultDto> ImportProductsFromExcelAsync(Stream excelStream);
 }

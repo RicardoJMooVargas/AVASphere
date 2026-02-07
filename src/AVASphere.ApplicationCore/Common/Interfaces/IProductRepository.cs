@@ -10,7 +10,7 @@ public interface IProductRepository
     Task<Product> UpdateProductsAsync(Product product);
     Task<bool> DeleteProductsAsync(int id);
     Task<Product?> GetByIdProductsAsync(int idProduct, ProductFilterDto? filters = null);
-    Task<IEnumerable<Product>> GetAllProductsAsync(ProductFilterDto? filters = null);
+    Task<IEnumerable<Product>> GetAllProductsAsync(ProductFilterDto? filters = null, PaginationDto? pagination = null);
     Task<Supplier?> GetSupplierByNameAsync(string name);
     Task<int?> FindPropertyValueIdAsync(string propertyName, string propertyValue);
     Task CreateProductPropertyAsync(int idProduct, int idPropertyValue);

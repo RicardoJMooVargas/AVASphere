@@ -118,7 +118,7 @@ public class ProductRepository : IProductRepository
         return await query.FirstOrDefaultAsync();
     }
 
-    public async Task<IEnumerable<Product>> GetAllProductsAsync(ProductFilterDto? filters = null)
+    public async Task<IEnumerable<Product>> GetAllProductsAsync(ProductFilterDto? filters = null, PaginationDto? pagination = null)
     {
         var query = _context.Products
             .Include(p => p.Supplier)
@@ -174,6 +174,11 @@ public class ProductRepository : IProductRepository
             }
         }
 
+        if (pagination != null && pagination.PageSize > 0)
+        {
+            var skip = (pagination.PageNumber - 1) * pagination.PageSize;
+            query = query.Skip(skip).Take(pagination.PageSize);
+        }
         return await query.ToListAsync();
     }
 

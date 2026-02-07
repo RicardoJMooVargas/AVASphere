@@ -103,7 +103,9 @@ public class ProductController : ControllerBase
         [FromQuery] int? idProperty = null,
         [FromQuery] string? propertyName = null,
         [FromQuery] int? idPropertyValue = null,
-        [FromQuery] string? propertyValue = null)
+        [FromQuery] string? propertyValue = null,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
     {
         try
         {
@@ -129,7 +131,12 @@ public class ProductController : ControllerBase
             // Si no se proporciona ID, devolver todos los productos (con filtros opcionales)
             if (!id.HasValue || id.Value == 0)
             {
-                var products = await _productService.GetAllProductsAsync(filters);
+                var pagination = new PaginationDto
+                {
+                    PageNumber = pageNumber > 0 ? pageNumber : 1,
+                    PageSize = pageSize > 0 ? pageSize : 10
+                };
+                var products = await _productService.GetAllProductsAsync(filters, pagination);
                 return Ok(new ApiResponse(products, "Productos obtenidos exitosamente", 200));
             }
 

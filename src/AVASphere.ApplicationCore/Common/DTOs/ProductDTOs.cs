@@ -83,3 +83,9 @@ public class ProductPropertyDto
     public string PropertyValueName { get; set; } = string.Empty;
     public string PropertyName { get; set; } = string.Empty;
 }
+
+public class PaginationDto
+{
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+}

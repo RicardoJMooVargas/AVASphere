@@ -25,6 +25,7 @@ using AVASphere.Infrastructure.Sales.Services;
 // Inventory module usings
 using AVASphere.ApplicationCore.Inventory.Interfaces;
 using AVASphere.Infrastructure.Inventory.Repository;
+using AVASphere.Infrastructure.Inventory.Services;
 
 namespace AVASphere.Infrastructure;
 
@@ -193,6 +194,7 @@ public static class DependencyInjection
         
         // Storage Structure
         services.AddScoped<IStorageStructureRepository, StorageStructureRepository>();
+        services.AddScoped<IStorageStructureService, StorageStructureService>();
         services.AddScoped<ILocationDetailsRepository, LocationDetailsRepository>();
         
         // Stock Movement

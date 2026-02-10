@@ -30,14 +30,11 @@ public class LocationDetailsEntitieConfig : IEntityTypeConfiguration<LocationDet
         
         // Relación con StorageStructure
         entity.HasOne(ld => ld.StorageStructure)
-            .WithMany()
+            .WithMany(ss => ss.LocationDetails)
             .HasForeignKey(ld => ld.IdStorageStructure)
             .OnDelete(DeleteBehavior.Restrict);
         
-        // Relación 1-N con PhysicalInventoryDetail
-        entity.HasMany(ld => ld.PhysicalInventoryDetails)
-            .WithOne(pid => pid.LocationDetails)
-            .HasForeignKey(pid => pid.IdLocationDetails)
-            .OnDelete(DeleteBehavior.SetNull);
+        // Relación 1-N con PhysicalInventoryDetail (ya configurada desde PhysicalInventoryDetailEntitieConfig)
     }
 }
+

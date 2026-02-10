@@ -16,6 +16,18 @@ public interface IStockMovementRepository
     Task<IEnumerable<StockMovement>> GetByMovementTypeAsync(int movementType);
     Task<IEnumerable<StockMovement>> GetByDateRangeAsync(DateTime startDate, DateTime endDate);
     Task<IEnumerable<StockMovement>> GetByProductAndWarehouseAsync(int idProduct, int idWarehouse);
+    Task<IEnumerable<StockMovement>> GetFilteredAsync(
+        int? idStockMovement = null,
+        int? movementType = null,
+        double? minQuantity = null,
+        double? maxQuantity = null,
+        double? referenceType = null,
+        string? description = null,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        int? byUser = null,
+        int? idProduct = null,
+        int? idWarehouse = null);
     Task<bool> ExistsAsync(int idStockMovement);
     
     // Update

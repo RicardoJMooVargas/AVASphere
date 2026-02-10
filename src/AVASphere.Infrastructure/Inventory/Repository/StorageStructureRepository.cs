@@ -1,4 +1,4 @@
-﻿﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿﻿﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
 using AVASphere.ApplicationCore.Inventory.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -63,6 +63,47 @@ public class StorageStructureRepository : IStorageStructureRepository
             .AsNoTracking()
             .Where(ss => ss.IdWarehouse == idWarehouse)
             .Where(ss => ss.LocationDetails.Any(ld => ld.IdArea == idArea))
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<StorageStructure>> GetFilteredAsync(
+        int? idStorageStructure = null,
+        string? codeRack = null,
+        bool? oneSection = null,
+        bool? hasLevel = null,
+        bool? hasSubLevel = null,
+        int? idWarehouse = null,
+        int? idArea = null)
+    {
+        var query = _context.Set<StorageStructure>()
+            .Include(ss => ss.Warehouse)
+            .Include(ss => ss.Area)
+            .Include(ss => ss.LocationDetails)
+            .AsQueryable();
+
+        if (idStorageStructure.HasValue)
+            query = query.Where(ss => ss.IdStorageStructure == idStorageStructure.Value);
+
+        if (!string.IsNullOrEmpty(codeRack))
+            query = query.Where(ss => ss.CodeRack.Contains(codeRack));
+
+        if (oneSection.HasValue)
+            query = query.Where(ss => ss.OneSection == oneSection.Value);
+
+        if (hasLevel.HasValue)
+            query = query.Where(ss => ss.HasLevel == hasLevel.Value);
+
+        if (hasSubLevel.HasValue)
+            query = query.Where(ss => ss.HasSubLevel == hasSubLevel.Value);
+
+        if (idWarehouse.HasValue)
+            query = query.Where(ss => ss.IdWarehouse == idWarehouse.Value);
+
+        if (idArea.HasValue)
+            query = query.Where(ss => ss.IdArea == idArea.Value);
+
+        return await query
+            .AsNoTracking()
             .ToListAsync();
     }
 

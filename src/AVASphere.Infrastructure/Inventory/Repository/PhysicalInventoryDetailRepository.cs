@@ -84,6 +84,68 @@ public class PhysicalInventoryDetailRepository : IPhysicalInventoryDetailReposit
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<PhysicalInventoryDetail>> GetFilteredAsync(
+        int? idPhysicalInventoryDetail = null,
+        double? minSystemQuantity = null,
+        double? maxSystemQuantity = null,
+        double? minPhysicalQuantity = null,
+        double? maxPhysicalQuantity = null,
+        double? minDifference = null,
+        double? maxDifference = null,
+        int? idPhysicalInventory = null,
+        int? idProduct = null,
+        int? idLocationDetails = null,
+        bool? hasDifferences = null)
+    {
+        var query = _context.Set<PhysicalInventoryDetail>()
+            .Include(pid => pid.PhysicalInventory)
+            .Include(pid => pid.Product)
+            .Include(pid => pid.LocationDetails)
+            .AsQueryable();
+
+        if (idPhysicalInventoryDetail.HasValue)
+            query = query.Where(pid => pid.IdPhysicalInventoryDetail == idPhysicalInventoryDetail.Value);
+
+        if (minSystemQuantity.HasValue)
+            query = query.Where(pid => pid.SystemQuantity >= minSystemQuantity.Value);
+
+        if (maxSystemQuantity.HasValue)
+            query = query.Where(pid => pid.SystemQuantity <= maxSystemQuantity.Value);
+
+        if (minPhysicalQuantity.HasValue)
+            query = query.Where(pid => pid.PhysicalQuantity >= minPhysicalQuantity.Value);
+
+        if (maxPhysicalQuantity.HasValue)
+            query = query.Where(pid => pid.PhysicalQuantity <= maxPhysicalQuantity.Value);
+
+        if (minDifference.HasValue)
+            query = query.Where(pid => pid.Difference >= minDifference.Value);
+
+        if (maxDifference.HasValue)
+            query = query.Where(pid => pid.Difference <= maxDifference.Value);
+
+        if (idPhysicalInventory.HasValue)
+            query = query.Where(pid => pid.IdPhysicalInventory == idPhysicalInventory.Value);
+
+        if (idProduct.HasValue)
+            query = query.Where(pid => pid.IdProduct == idProduct.Value);
+
+        if (idLocationDetails.HasValue)
+            query = query.Where(pid => pid.IdLocationDetails == idLocationDetails.Value);
+
+        if (hasDifferences.HasValue)
+        {
+            if (hasDifferences.Value)
+                query = query.Where(pid => pid.Difference != 0);
+            else
+                query = query.Where(pid => pid.Difference == 0);
+        }
+
+        return await query
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
     public async Task<bool> ExistsAsync(int idPhysicalInventoryDetail)
     {
         return await _context.Set<PhysicalInventoryDetail>()

@@ -21,17 +21,18 @@ public class InventoryEntitieConfig : IEntityTypeConfiguration<InventoryEntity>
             .IsRequired();
         
         entity.Property(e => e.LocationDetail)
-            .IsRequired();
+            .IsRequired(false); // Opcional
         
-        // Relación con PhysicalInventory
+        // Relación con PhysicalInventory (opcional)
         entity.HasOne(i => i.PhysicalInventory)
             .WithMany(pi => pi.Inventories)
             .HasForeignKey(i => i.IdPhysicalInventory)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false); // Relación opcional
         
         // Relación con Product
         entity.HasOne(i => i.Product)
-            .WithMany()
+            .WithMany() // No especificamos la propiedad de navegación inversa para evitar duplicados
             .HasForeignKey(i => i.IdProduct)
             .OnDelete(DeleteBehavior.Restrict);
         

@@ -34,8 +34,10 @@ public class PhysicalInventoryDetailEntitieConfig : IEntityTypeConfiguration<Phy
         
         // Relación con LocationDetails (opcional)
         entity.HasOne(pid => pid.LocationDetails)
-            .WithMany()
+            .WithMany(ld => ld.PhysicalInventoryDetails)
             .HasForeignKey(pid => pid.IdLocationDetails)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
     }
 }
+

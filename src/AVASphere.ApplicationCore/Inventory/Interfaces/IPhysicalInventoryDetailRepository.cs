@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
 
 namespace AVASphere.ApplicationCore.Inventory.Interfaces;
 
@@ -14,6 +14,18 @@ public interface IPhysicalInventoryDetailRepository
     Task<IEnumerable<PhysicalInventoryDetail>> GetByPhysicalInventoryIdAsync(int idPhysicalInventory);
     Task<IEnumerable<PhysicalInventoryDetail>> GetByProductIdAsync(int idProduct);
     Task<IEnumerable<PhysicalInventoryDetail>> GetDiscrepanciesAsync(int idPhysicalInventory);
+    Task<IEnumerable<PhysicalInventoryDetail>> GetFilteredAsync(
+        int? idPhysicalInventoryDetail = null,
+        double? minSystemQuantity = null,
+        double? maxSystemQuantity = null,
+        double? minPhysicalQuantity = null,
+        double? maxPhysicalQuantity = null,
+        double? minDifference = null,
+        double? maxDifference = null,
+        int? idPhysicalInventory = null,
+        int? idProduct = null,
+        int? idLocationDetails = null,
+        bool? hasDifferences = null);
     Task<bool> ExistsAsync(int idPhysicalInventoryDetail);
     
     // Update

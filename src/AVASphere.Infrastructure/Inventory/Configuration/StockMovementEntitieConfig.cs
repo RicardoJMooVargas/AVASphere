@@ -30,16 +30,21 @@ public class StockMovementEntitieConfig : IEntityTypeConfiguration<StockMovement
         entity.Property(e => e.ByUser)
             .IsRequired();
         
-        // Relación con Product
-        entity.HasOne(sm => sm.Product)
+        entity.Property(e => e.IdProduct)
+            .IsRequired();
+            
+        entity.Property(e => e.IdWarehouse)
+            .IsRequired();
+            
+        // Configurar relaciones explícitamente para evitar duplicados
+        entity.HasOne(e => e.Product)
             .WithMany()
-            .HasForeignKey(sm => sm.IdProduct)
+            .HasForeignKey(e => e.IdProduct)
             .OnDelete(DeleteBehavior.Restrict);
-        
-        // Relación con Warehouse
-        entity.HasOne(sm => sm.Warehouse)
+            
+        entity.HasOne(e => e.Warehouse)
             .WithMany()
-            .HasForeignKey(sm => sm.IdWarehouse)
+            .HasForeignKey(e => e.IdWarehouse)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

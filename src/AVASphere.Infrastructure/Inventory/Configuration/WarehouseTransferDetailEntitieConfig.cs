@@ -18,7 +18,7 @@ public class WarehouseTransferDetailEntitieConfig : IEntityTypeConfiguration<War
         entity.Property(e => e.Quantity)
             .IsRequired();
         
-        // Relación con Product
+        // Relación con Product - configurar explícitamente para evitar ProductIdProduct
         entity.HasOne(wtd => wtd.Product)
             .WithMany()
             .HasForeignKey(wtd => wtd.IdProduct)

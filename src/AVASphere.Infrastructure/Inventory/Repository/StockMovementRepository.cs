@@ -113,6 +113,63 @@ public class StockMovementRepository : IStockMovementRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<StockMovement>> GetFilteredAsync(
+        int? idStockMovement = null,
+        int? movementType = null,
+        double? minQuantity = null,
+        double? maxQuantity = null,
+        double? referenceType = null,
+        string? description = null,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        int? byUser = null,
+        int? idProduct = null,
+        int? idWarehouse = null)
+    {
+        var query = _context.Set<StockMovement>()
+            .Include(sm => sm.Product)
+            .Include(sm => sm.Warehouse)
+            .AsQueryable();
+
+        if (idStockMovement.HasValue)
+            query = query.Where(sm => sm.IdStockMovement == idStockMovement.Value);
+
+        if (movementType.HasValue)
+            query = query.Where(sm => sm.MovementType == movementType.Value);
+
+        if (minQuantity.HasValue)
+            query = query.Where(sm => sm.Quantity >= minQuantity.Value);
+
+        if (maxQuantity.HasValue)
+            query = query.Where(sm => sm.Quantity <= maxQuantity.Value);
+
+        if (referenceType.HasValue)
+            query = query.Where(sm => sm.ReferenceType == referenceType.Value);
+
+        if (!string.IsNullOrEmpty(description))
+            query = query.Where(sm => sm.Description != null && sm.Description.Contains(description));
+
+        if (startDate.HasValue)
+            query = query.Where(sm => sm.CreatedDate >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(sm => sm.CreatedDate <= endDate.Value);
+
+        if (byUser.HasValue)
+            query = query.Where(sm => sm.ByUser == byUser.Value);
+
+        if (idProduct.HasValue)
+            query = query.Where(sm => sm.IdProduct == idProduct.Value);
+
+        if (idWarehouse.HasValue)
+            query = query.Where(sm => sm.IdWarehouse == idWarehouse.Value);
+
+        return await query
+            .AsNoTracking()
+            .OrderByDescending(sm => sm.CreatedDate)
+            .ToListAsync();
+    }
+
     public async Task<bool> ExistsAsync(int idStockMovement)
     {
         return await _context.Set<StockMovement>()

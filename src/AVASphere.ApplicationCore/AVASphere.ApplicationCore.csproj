@@ -16,8 +16,4 @@
       <Compile Remove="Projects\Entities\Visits.cs" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Inventory\DTOs\" />
-    </ItemGroup>
-
 </Project>

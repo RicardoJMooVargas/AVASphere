@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
@@ -59,6 +59,9 @@ public class MasterDbContext : DbContext
     public DbSet<ApplicationCore.Inventory.Entities.General.Inventory> Inventories { get; set; } = null!;
     public DbSet<PhysicalInventoryDetail> PhysicalInventoryDetails { get; set; } = null!;
     public DbSet<LocationDetails> LocationDetails { get; set; } = null!;
+    public DbSet<StockMovement> StockMovements { get; set; } = null!;
+    public DbSet<WarehouseTransfer> WarehouseTransfers { get; set; } = null!;
+    public DbSet<WarehouseTransferDetail> WarehouseTransferDetails { get; set; } = null!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

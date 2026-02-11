@@ -145,6 +145,7 @@ public class InventoryResponseDto
     public int IdProduct { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public string ProductCode { get; set; } = string.Empty;
+    public string Unit { get; set; } = string.Empty;
     public int IdWarehouse { get; set; }
     public string WarehouseName { get; set; } = string.Empty;
     public string WarehouseCode { get; set; } = string.Empty;

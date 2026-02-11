@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.Common.Entities.General;
@@ -73,6 +73,7 @@ public class UserRepository : IUserRepository
 
         return await _context.Users
             .Include(u => u.Rol)
+                .ThenInclude(r => r.Area)
             .Include(u => u.ConfigSys)
             .FirstOrDefaultAsync(u => u.IdUser == idUsers);
     }

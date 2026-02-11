@@ -173,7 +173,7 @@ public class InventoryService : IInventoryService
                     if (inventoryGroups.ContainsKey(groupKey))
                     {
                         // Ya existe este grupo, sumar el stock
-                        inventoryGroups[groupKey].TotalStock += totalStock;
+                        inventoryGroups[groupKey].TotalStock = (inventoryGroups[groupKey].TotalStock ?? 0) + totalStock;
                     }
                     else
                     {
@@ -216,8 +216,8 @@ public class InventoryService : IInventoryService
                     if (existingInventory != null)
                     {
                         // Actualizar el stock y ubicación existente
-                        existingInventory.Stock = group.TotalStock;
-                        existingInventory.LocationDetail = group.LocationDetail;
+                        existingInventory.Stock = group.TotalStock.GetValueOrDefault();
+                        existingInventory.LocationDetail = group.LocationDetail.GetValueOrDefault();
                         await _inventoryRepository.UpdateAsync(existingInventory);
 
                         result.Warnings.Add($"Actualizado: {group.ProductDescription} en {group.WarehouseCode}, Ubicación {group.LocationDetail}, Stock: {group.TotalStock}");
@@ -229,10 +229,10 @@ public class InventoryService : IInventoryService
                         {
                             IdProduct = group.IdProduct,
                             IdWarehouse = group.IdWarehouse,
-                            Stock = group.TotalStock,
+                            Stock = group.TotalStock.GetValueOrDefault(),
                             StockMin = 0,
-                            StockMax = group.TotalStock * 2,
-                            LocationDetail = group.LocationDetail,
+                            StockMax = group.TotalStock.GetValueOrDefault() * 2,
+                            LocationDetail = group.LocationDetail.GetValueOrDefault(),
                             IdPhysicalInventory = physicalInventoryCache[group.IdWarehouse]
                         };
 
@@ -393,11 +393,12 @@ public class InventoryService : IInventoryService
             Stock = inventory.Stock,
             StockMin = inventory.StockMin,
             StockMax = inventory.StockMax,
-            LocationDetail = inventory.LocationDetail,
-            IdPhysicalInventory = inventory.IdPhysicalInventory,
+            LocationDetail = inventory.LocationDetail ?? 0,
+            IdPhysicalInventory = inventory.IdPhysicalInventory ?? 0,
             IdProduct = inventory.IdProduct,
             ProductName = inventory.Product?.MainName ?? string.Empty,
             ProductCode = inventory.Product?.FirstCode ?? string.Empty,
+            Unit = inventory.Product?.Unit ?? string.Empty,
             IdWarehouse = inventory.IdWarehouse,
             WarehouseName = inventory.Warehouse?.Name ?? string.Empty,
             WarehouseCode = inventory.Warehouse?.Code ?? string.Empty
@@ -412,8 +413,8 @@ internal class InventoryGroup
 {
     public int IdProduct { get; set; }
     public int IdWarehouse { get; set; }
-    public int LocationDetail { get; set; }
-    public double TotalStock { get; set; }
+    public int? LocationDetail { get; set; }
+    public double? TotalStock { get; set; }
     public string ProductDescription { get; set; } = string.Empty;
     public string WarehouseCode { get; set; } = string.Empty;
 }

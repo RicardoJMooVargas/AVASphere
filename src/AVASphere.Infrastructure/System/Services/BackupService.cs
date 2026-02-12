@@ -28,10 +28,10 @@ public class BackupService
         try
         {
             _logger.LogInformation("Obteniendo lista de tablas disponibles...");
-            
+
             var tables = new List<string>();
             var connection = _dbContext.Database.GetDbConnection();
-            
+
             if (connection.State != ConnectionState.Open)
                 await connection.OpenAsync();
 
@@ -67,14 +67,14 @@ public class BackupService
         try
         {
             _logger.LogInformation("Iniciando exportación completa de la base de datos...");
-            
+
             var sql = new StringBuilder();
             var tables = await GetAvailableTablesAsync();
             var dependencies = await GetTableDependenciesAsync();
-            
+
             // Ordenar tablas por dependencias (las tablas referenciadas primero)
             var orderedTables = OrderTablesByDependencies(tables, dependencies);
-            
+
             sql.AppendLine("-- BACKUP COMPLETO DE LA BASE DE DATOS");
             sql.AppendLine($"-- Generado el: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
             sql.AppendLine($"-- Total de tablas: {tables.Count}");
@@ -116,17 +116,17 @@ public class BackupService
         try
         {
             _logger.LogInformation($"Iniciando exportación de {tableNames.Count} tablas seleccionadas...");
-            
+
             var sql = new StringBuilder();
             var availableTables = await GetAvailableTablesAsync();
             var dependencies = await GetTableDependenciesAsync();
-            
+
             // Filtrar solo tablas que existen
             var validTables = tableNames.Where(t => availableTables.Contains(t, StringComparer.OrdinalIgnoreCase)).ToList();
-            
+
             // Ordenar tablas seleccionadas por dependencias
             var orderedTables = OrderTablesByDependencies(validTables, dependencies);
-            
+
             sql.AppendLine("-- BACKUP DE TABLAS SELECCIONADAS");
             sql.AppendLine($"-- Generado el: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
             sql.AppendLine($"-- Tablas solicitadas: {string.Join(", ", tableNames)}");
@@ -150,7 +150,7 @@ public class BackupService
                     sql.AppendLine();
                 }
             }
-            
+
             // Reportar tablas no encontradas
             var missingTables = tableNames.Except(validTables, StringComparer.OrdinalIgnoreCase).ToList();
             foreach (var missingTable in missingTables)
@@ -176,27 +176,22 @@ public class BackupService
     {
         var result = new BackupImportResultDto
         {
-            Success = false,
-            OverwriteMode = overwrite,
-            ExecutedStatements = new List<string>(),
-            SkippedStatements = new List<string>(),
-            Errors = new List<string>(),
-            Warnings = new List<string>()
+            Success = false
         };
 
         try
         {
             _logger.LogInformation($"Iniciando importación SQL (overwrite: {overwrite})...");
-            
+
             var statements = ParseSqlStatements(sqlQueries);
             var availableTables = await GetAvailableTablesAsync();
             var dependencies = await GetTableDependenciesAsync();
-            
+
             // Ordenar declaraciones por dependencias de tabla
             var orderedStatements = OrderStatementsByTableDependencies(statements, dependencies);
-            
+
             _logger.LogInformation($"Procesando {orderedStatements.Count} declaraciones SQL ordenadas por dependencias");
-            
+
             // Procesar cada declaración por separado SIN transacción global
             // Esto evita que un error aborte toda la operación
             foreach (var statement in orderedStatements)
@@ -204,13 +199,17 @@ public class BackupService
                 await ProcessSqlStatementIndividuallyAsync(statement, availableTables, overwrite, result);
             }
 
+            // Calcular total ejecutado desde el resumen
+            var totalExecuted = result.TableSummary.Values.Sum();
+
             // Considerar exitoso si al menos el 50% de las declaraciones se ejecutaron
-            var successRate = orderedStatements.Count > 0 ? (double)result.ExecutedStatements.Count / orderedStatements.Count : 0;
-            result.Success = successRate >= 0.5 || result.Errors.Count == 0;
-            
-            result.Message = $"Importación completada. Ejecutadas: {result.ExecutedStatements.Count}, " +
-                           $"Omitidas: {result.SkippedStatements.Count}, Errores: {result.Errors.Count}";
-            
+            var successRate = orderedStatements.Count > 0 ? (double)totalExecuted / orderedStatements.Count : 0;
+            result.Success = successRate >= 0.5;
+
+            // Generar mensaje con resumen por tabla
+            var tableSummaryText = string.Join(", ", result.TableSummary.Select(kvp => $"{kvp.Key}: {kvp.Value}"));
+            result.Message = $"Importación completada. Total: {totalExecuted} registros ({tableSummaryText})";
+
             _logger.LogInformation(result.Message);
         }
         catch (Exception ex)
@@ -218,7 +217,6 @@ public class BackupService
             _logger.LogError(ex, "Error en importación SQL");
             result.Success = false;
             result.Message = $"Error en importación: {ex.Message}";
-            result.Errors.Add(ex.Message);
         }
 
         return result;
@@ -233,7 +231,7 @@ public class BackupService
     {
         var sql = new StringBuilder();
         var connection = _dbContext.Database.GetDbConnection();
-        
+
         if (connection.State != ConnectionState.Open)
             await connection.OpenAsync();
 
@@ -247,25 +245,25 @@ public class BackupService
         // Obtener datos
         using var command = connection.CreateCommand();
         command.CommandText = $"SELECT * FROM \"{tableName}\"";
-        
+
         using var reader = await command.ExecuteReaderAsync();
         var insertStatements = new List<string>();
-        
+
         while (await reader.ReadAsync())
         {
             var values = new List<string>();
-            
+
             for (int i = 0; i < reader.FieldCount; i++)
             {
                 var value = reader.GetValue(i);
                 values.Add(FormatSqlValue(value));
             }
-            
+
             var columnNames = string.Join(",", columns.Select(c => $"\"{c}\""));
             var valuesList = string.Join(",", values);
             insertStatements.Add($"INSERT INTO \"{tableName}\"({columnNames}) VALUES({valuesList});");
         }
-        
+
         if (insertStatements.Any())
         {
             sql.AppendLine($"-- Datos para tabla {tableName} ({insertStatements.Count} registros)");
@@ -278,7 +276,7 @@ public class BackupService
         {
             sql.AppendLine($"-- Tabla {tableName} está vacía");
         }
-        
+
         return sql.ToString();
     }
 
@@ -288,7 +286,7 @@ public class BackupService
     private async Task<List<string>> GetTableColumnsAsync(string tableName, IDbConnection connection)
     {
         var columns = new List<string>();
-        
+
         using var command = connection.CreateCommand();
         command.CommandText = $@"
             SELECT column_name 
@@ -296,13 +294,13 @@ public class BackupService
             WHERE table_name = '{tableName}' 
               AND table_schema = 'public'
             ORDER BY ordinal_position";
-        
+
         var reader = await ((DbCommand)command).ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             columns.Add(reader.GetString(0));
         }
-        
+
         reader.Close();
         return columns;
     }
@@ -314,7 +312,7 @@ public class BackupService
     {
         if (value == null || value == DBNull.Value)
             return "NULL";
-        
+
         return value switch
         {
             string s => $"'{s.Replace("'", "''")}'", // Escapar comillas simples
@@ -342,17 +340,17 @@ public class BackupService
         var statements = new List<string>();
         var lines = sqlQueries.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var currentStatement = new StringBuilder();
-        
+
         foreach (var line in lines)
         {
             var trimmedLine = line.Trim();
-            
+
             // Ignorar comentarios
             if (trimmedLine.StartsWith("--") || string.IsNullOrWhiteSpace(trimmedLine))
                 continue;
-            
+
             currentStatement.AppendLine(line);
-            
+
             // Si la línea termina con punto y coma, es el final de una declaración
             if (trimmedLine.EndsWith(";"))
             {
@@ -360,50 +358,49 @@ public class BackupService
                 currentStatement.Clear();
             }
         }
-        
+
         // Agregar cualquier declaración restante
         if (currentStatement.Length > 0)
         {
             statements.Add(currentStatement.ToString().Trim());
         }
-        
+
         return statements;
     }
 
     /// <summary>
     /// Procesa una declaración SQL individual con su propia transacción
     /// </summary>
-    private async Task ProcessSqlStatementIndividuallyAsync(string statement, List<string> availableTables, 
+    private async Task ProcessSqlStatementIndividuallyAsync(string statement, List<string> availableTables,
         bool overwrite, BackupImportResultDto result)
     {
         try
         {
             // Extraer nombre de tabla del INSERT antes de la limpieza para logging
             var tableName = ExtractTableNameFromInsert(statement);
-            
+
             _logger.LogDebug("Procesando declaración para tabla: {TableName}", tableName);
-            
+
             // Validar y limpiar la declaración SQL
             var originalStatement = statement;
             statement = ValidateAndCleanSqlStatement(statement);
-            
+
             if (statement != originalStatement)
             {
-                _logger.LogDebug("Declaración SQL limpiada para tabla {TableName}. Original length: {OriginalLength}, New length: {NewLength}", 
+                _logger.LogDebug("Declaración SQL limpiada para tabla {TableName}. Original length: {OriginalLength}, New length: {NewLength}",
                     tableName, originalStatement.Length, statement.Length);
             }
-            
+
             if (string.IsNullOrEmpty(tableName))
             {
-                result.SkippedStatements.Add($"No se pudo identificar tabla: {statement.Substring(0, Math.Min(50, statement.Length))}...");
+                _logger.LogWarning("No se pudo identificar tabla en statement: {Statement}", statement.Substring(0, Math.Min(50, statement.Length)));
                 return;
             }
 
             // REGLA 1: Si la tabla no existe en la DB, omitir
             if (!availableTables.Contains(tableName, StringComparer.OrdinalIgnoreCase))
             {
-                result.SkippedStatements.Add($"Tabla '{tableName}' no existe en la base de datos");
-                result.Warnings.Add($"Tabla '{tableName}' omitida - no existe en la DB actual");
+                _logger.LogWarning("Tabla '{TableName}' no existe en la base de datos - omitida", tableName);
                 return;
             }
 
@@ -411,30 +408,33 @@ public class BackupService
             var adjustedStatement = await AdjustStatementForMissingColumnsAsync(statement, tableName);
             if (adjustedStatement != statement)
             {
-                result.Warnings.Add($"Declaración ajustada para tabla '{tableName}' - columnas faltantes omitidas");
                 _logger.LogDebug("Declaración ajustada para tabla {TableName} por columnas faltantes", tableName);
             }
 
             // Usar una transacción individual para esta declaración
             using var transaction = await _dbContext.Database.BeginTransactionAsync();
-            
+
             try
             {
                 _logger.LogDebug("Ejecutando INSERT para tabla {TableName}", tableName);
-                
+
                 // Intentar ejecutar primero como INSERT normal
                 await _dbContext.Database.ExecuteSqlRawAsync(adjustedStatement);
                 await transaction.CommitAsync();
-                result.ExecutedStatements.Add($"Tabla '{tableName}': INSERT ejecutado exitosamente");
-                
+
+                // Incrementar contador en resumen por tabla
+                if (!result.TableSummary.ContainsKey(tableName))
+                    result.TableSummary[tableName] = 0;
+                result.TableSummary[tableName]++;
+
                 _logger.LogDebug("INSERT exitoso para tabla {TableName}", tableName);
             }
             catch (Exception ex) when (IsDuplicateKeyError(ex))
             {
                 await transaction.RollbackAsync();
-                
+
                 _logger.LogDebug("Conflicto de clave duplicada en tabla {TableName}, overwrite: {Overwrite}", tableName, overwrite);
-                
+
                 // Si hay conflicto de clave y overwrite está activado, usar UPSERT
                 if (overwrite)
                 {
@@ -443,54 +443,46 @@ public class BackupService
                     {
                         var upsertStatement = ConvertToUpsert(adjustedStatement, tableName);
                         _logger.LogDebug("Ejecutando UPSERT para tabla {TableName}", tableName);
-                        
+
                         await _dbContext.Database.ExecuteSqlRawAsync(upsertStatement);
                         await upsertTransaction.CommitAsync();
-                        result.ExecutedStatements.Add($"Tabla '{tableName}': UPSERT ejecutado exitosamente (overwrite)");
-                        
+
+                        // Incrementar contador en resumen por tabla
+                        if (!result.TableSummary.ContainsKey(tableName))
+                            result.TableSummary[tableName] = 0;
+                        result.TableSummary[tableName]++;
+
                         _logger.LogDebug("UPSERT exitoso para tabla {TableName}", tableName);
                     }
                     catch (Exception upsertEx)
                     {
                         await upsertTransaction.RollbackAsync();
-                        var upsertError = $"Error en UPSERT para tabla '{tableName}': {upsertEx.Message}";
-                        result.Errors.Add(upsertError);
-                        result.SkippedStatements.Add(statement);
-                        
                         _logger.LogWarning("Error en UPSERT para tabla {TableName}: {Error}", tableName, upsertEx.Message);
                     }
                 }
                 else
                 {
-                    result.SkippedStatements.Add($"Tabla '{tableName}': INSERT omitido - registro duplicado (overwrite=false)");
-                    result.Warnings.Add($"Registro duplicado en tabla '{tableName}' omitido porque overwrite=false");
+                    _logger.LogDebug("Registro duplicado en tabla {TableName} omitido (overwrite=false)", tableName);
                 }
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                
-                var errorMsg = $"Error ejecutando en tabla '{tableName}': {ex.Message}";
-                result.Errors.Add(errorMsg);
-                result.SkippedStatements.Add(statement);
-                
+
                 // Logging detallado del error para debugging
-                _logger.LogWarning("Error ejecutando SQL para tabla {TableName}: {Error}. Statement length: {Length}", 
+                _logger.LogWarning("Error ejecutando SQL para tabla {TableName}: {Error}. Statement length: {Length}",
                     tableName, ex.Message, adjustedStatement.Length);
-                
+
                 // Si es error de formato, loggear parte de la declaración para debug
                 if (ex.Message.Contains("Input string was not in a correct format"))
                 {
-                    _logger.LogWarning("Declaración problemática (primeros 200 chars): {Statement}", 
+                    _logger.LogWarning("Declaración problemática (primeros 200 chars): {Statement}",
                         adjustedStatement.Substring(0, Math.Min(200, adjustedStatement.Length)));
                 }
             }
         }
         catch (Exception ex)
         {
-            var errorMsg = $"Error procesando declaración: {ex.Message}";
-            result.Errors.Add(errorMsg);
-            result.SkippedStatements.Add(statement);
             _logger.LogWarning(ex, "Error al procesar declaración SQL");
         }
     }
@@ -511,9 +503,9 @@ public class BackupService
     private string ExtractTableNameFromInsert(string statement)
     {
         var match = Regex.Match(
-            statement, @"INSERT\s+INTO\s+[""']?([^""'\s\(]+)[""']?", 
+            statement, @"INSERT\s+INTO\s+[""']?([^""'\s\(]+)[""']?",
             RegexOptions.IgnoreCase);
-        
+
         return match.Success ? match.Groups[1].Value : string.Empty;
     }
 
@@ -527,34 +519,34 @@ public class BackupService
             var connection = _dbContext.Database.GetDbConnection();
             if (connection.State != ConnectionState.Open)
                 await connection.OpenAsync();
-                
+
             var existingColumns = await GetTableColumnsAsync(tableName, connection);
-            
+
             // Parsear la declaración INSERT para extraer columnas y valores
             var insertMatch = Regex.Match(
                 statement, @"INSERT\s+INTO\s+[""']?([^""'\s\(]+)[""']?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)",
                 RegexOptions.IgnoreCase);
-            
+
             if (!insertMatch.Success)
                 return statement; // No se pudo parsear, devolver original
-            
+
             var columns = insertMatch.Groups[2].Value
                 .Split(',')
                 .Select(c => c.Trim().Trim('"', '\''))
                 .ToList();
-            
+
             var values = insertMatch.Groups[3].Value
                 .Split(',')
                 .Select(v => v.Trim())
                 .ToList();
-            
+
             if (columns.Count != values.Count)
                 return statement; // Inconsistencia, devolver original
-            
+
             // Filtrar solo columnas que existen en la tabla actual
             var validColumns = new List<string>();
             var validValues = new List<string>();
-            
+
             for (int i = 0; i < columns.Count; i++)
             {
                 if (existingColumns.Contains(columns[i], StringComparer.OrdinalIgnoreCase))
@@ -563,13 +555,13 @@ public class BackupService
                     validValues.Add(values[i]);
                 }
             }
-            
+
             if (validColumns.Count == 0)
                 throw new InvalidOperationException($"No hay columnas válidas para la tabla {tableName}");
-            
+
             // Reconstruir la declaración
             var newStatement = $"INSERT INTO \"{tableName}\"({string.Join(",", validColumns)}) VALUES({string.Join(",", validValues)})";
-            
+
             return newStatement;
         }
         catch (Exception)
@@ -588,32 +580,32 @@ public class BackupService
         {
             // Para PostgreSQL, usar ON CONFLICT DO UPDATE
             var primaryKey = GetPrimaryKeyName(tableName);
-            
+
             if (string.IsNullOrEmpty(primaryKey))
                 return insertStatement; // No se pudo determinar PK, usar INSERT normal
-            
+
             // Extraer las columnas del INSERT
             var insertMatch = Regex.Match(
                 insertStatement, @"INSERT\s+INTO\s+[""']?([^""'\s\(]+)[""']?\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)",
                 RegexOptions.IgnoreCase);
-            
+
             if (!insertMatch.Success)
                 return insertStatement; // No se pudo parsear, devolver original
-            
+
             var columns = insertMatch.Groups[2].Value
                 .Split(',')
                 .Select(c => c.Trim().Trim('"', '\''))
                 .Where(c => !string.IsNullOrEmpty(c))
                 .ToList();
-            
+
             var values = insertMatch.Groups[3].Value
                 .Split(',')
                 .Select(v => v.Trim())
                 .ToList();
-            
+
             if (columns.Count != values.Count)
                 return insertStatement; // Inconsistencia, devolver original
-            
+
             // Construir el UPSERT
             var updateColumns = new List<string>();
             for (int i = 0; i < columns.Count; i++)
@@ -623,11 +615,11 @@ public class BackupService
                     updateColumns.Add($"\"{columns[i]}\" = EXCLUDED.\"{columns[i]}\"");
                 }
             }
-            
-            var upsertStatement = insertStatement.TrimEnd(';') + 
+
+            var upsertStatement = insertStatement.TrimEnd(';') +
                 $" ON CONFLICT (\"{primaryKey}\") DO UPDATE SET " +
                 string.Join(", ", updateColumns) + ";";
-            
+
             return upsertStatement;
         }
         catch (Exception)
@@ -646,7 +638,7 @@ public class BackupService
         return tableName.ToLowerInvariant() switch
         {
             "property" => "IdProperty",
-            "propertyvalue" => "IdPropertyValue", 
+            "propertyvalue" => "IdPropertyValue",
             "supplier" => "IdSupplier",
             "warehouse" => "IdWarehouse",
             "storagestructure" => "IdStorageStructure",
@@ -665,13 +657,13 @@ public class BackupService
     private List<string> GetUpdateColumnsForUpsert(string insertStatement, string primaryKey)
     {
         var updateColumns = new List<string>();
-        
+
         try
         {
             var match = Regex.Match(
-                insertStatement, @"\(([^)]+)\)", 
+                insertStatement, @"\(([^)]+)\)",
                 RegexOptions.IgnoreCase);
-            
+
             if (match.Success)
             {
                 var columns = match.Groups[1].Value
@@ -679,7 +671,7 @@ public class BackupService
                     .Select(c => c.Trim().Trim('"', '\''))
                     .Where(c => !c.Equals(primaryKey, StringComparison.OrdinalIgnoreCase))
                     .ToList();
-                
+
                 foreach (var column in columns)
                 {
                     updateColumns.Add("\"" + column + "\" = EXCLUDED.\"" + column + "\"");
@@ -690,7 +682,7 @@ public class BackupService
         {
             // En caso de error, devolver lista vacía
         }
-        
+
         return updateColumns;
     }
 
@@ -701,15 +693,15 @@ public class BackupService
     {
         if (string.IsNullOrWhiteSpace(statement))
             return statement;
-        
+
         try
         {
             // Limpiar espacios extra y saltos de línea
             statement = statement.Trim();
-            
+
             // Remover múltiples espacios consecutivos
             statement = Regex.Replace(statement, @"\s+", " ");
-            
+
             // LIMPIEZA ESPECÍFICA POR TABLA
             var tableName = ExtractTableNameFromInsert(statement);
             if (!string.IsNullOrEmpty(tableName))
@@ -733,17 +725,17 @@ public class BackupService
                 // Si no se puede identificar la tabla, usar limpieza general
                 statement = EscapeProblematicCharacters(statement);
             }
-            
+
             // Asegurar que termine con punto y coma
             if (!statement.EndsWith(";"))
                 statement += ";";
-            
+
             // Validar que sea una declaración INSERT válida
             if (!Regex.IsMatch(statement, @"^\s*INSERT\s+INTO\s+", RegexOptions.IgnoreCase))
             {
                 throw new InvalidOperationException("La declaración no es un INSERT válido");
             }
-            
+
             return statement;
         }
         catch (Exception ex)
@@ -820,7 +812,7 @@ public class BackupService
             {
                 // Dentro de comillas, agregar todo tal como está
                 currentValue.Append(c);
-                
+
                 // Rastrear profundidad de estructuras JSON dentro de comillas
                 if (c == '[')
                     bracketDepth++;
@@ -841,7 +833,7 @@ public class BackupService
             {
                 // Fuera de comillas
                 currentValue.Append(c);
-                
+
                 // Rastrear estructuras JSON fuera de comillas (aunque debería ser raro)
                 if (c == '[')
                     bracketDepth++;
@@ -929,13 +921,13 @@ public class BackupService
     private bool IsJsonValue(string value)
     {
         value = value.Trim();
-        
+
         // Remover comillas externas si existen
         if (value.StartsWith("'") && value.EndsWith("'"))
         {
             value = value.Substring(1, value.Length - 2);
         }
-        
+
         return value.StartsWith("[") || value.StartsWith("{");
     }
 
@@ -956,13 +948,13 @@ public class BackupService
             // Para PostgreSQL, los JSON se almacenan como strings
             // Necesitamos escapar las comillas internas
             content = content.Replace("'", "''");
-            
+
             return "'" + content + "'";
         }
         catch (Exception ex)
         {
             _logger.LogWarning($"Error limpiando valor JSON: {ex.Message}. Valor: {jsonValue.Substring(0, Math.Min(100, jsonValue.Length))}");
-            
+
             // Fallback: tratar como string normal
             var escaped = jsonValue.Replace("'", "''");
             return "'" + escaped + "'";
@@ -979,10 +971,10 @@ public class BackupService
 
         // Escapar comillas simples
         content = content.Replace("'", "''");
-        
+
         // Escapar caracteres de escape de barra invertida si es necesario
         // PostgreSQL usa \' para escapar, pero nosotros usamos '' que es más seguro
-        
+
         return content;
     }
 
@@ -994,25 +986,25 @@ public class BackupService
         try
         {
             // Patrón específico para tabla Product que tiene campos JSON
-            var match = Regex.Match(statement, 
-                @"INSERT\s+INTO\s+""Product""\s*\([^)]+\)\s*VALUES\s*\(([^)]+)\)", 
+            var match = Regex.Match(statement,
+                @"INSERT\s+INTO\s+""Product""\s*\([^)]+\)\s*VALUES\s*\(([^)]+)\)",
                 RegexOptions.IgnoreCase);
-            
+
             if (!match.Success)
                 return statement;
 
             var valuesString = match.Groups[1].Value;
-            
+
             // Para Product, esperamos estos campos en orden:
             // IdProduct, MainName, Unit, Description, Quantity, Taxes, IdSupplier, CodeJson, CostsJson, CategoriesJsons, SolutionsJsons
-            
+
             var cleanedValues = CleanProductValues(valuesString);
             var newStatement = statement.Replace(match.Groups[1].Value, cleanedValues);
-            
-            _logger.LogDebug("Declaración Product limpiada. Original: {Original}, Nueva: {New}", 
-                valuesString.Substring(0, Math.Min(100, valuesString.Length)), 
+
+            _logger.LogDebug("Declaración Product limpiada. Original: {Original}, Nueva: {New}",
+                valuesString.Substring(0, Math.Min(100, valuesString.Length)),
                 cleanedValues.Substring(0, Math.Min(100, cleanedValues.Length)));
-            
+
             return newStatement;
         }
         catch (Exception ex)
@@ -1032,11 +1024,11 @@ public class BackupService
         var currentValue = new StringBuilder();
         bool inQuotes = false;
         int commaCount = 0;
-        
+
         for (int i = 0; i < valuesString.Length; i++)
         {
             char c = valuesString[i];
-            
+
             if (c == '\'' && !inQuotes)
             {
                 inQuotes = true;
@@ -1067,13 +1059,13 @@ public class BackupService
                 currentValue.Append(c);
             }
         }
-        
+
         // Agregar el último valor
         if (currentValue.Length > 0)
         {
             values.Add(CleanProductValue(currentValue.ToString().Trim(), commaCount));
         }
-        
+
         return string.Join(",", values);
     }
 
@@ -1083,7 +1075,7 @@ public class BackupService
     private string CleanProductValue(string value, int position)
     {
         value = value.Trim();
-        
+
         // Posiciones de campos Product:
         // 0: IdProduct (int)
         // 1: MainName (string)  
@@ -1096,7 +1088,7 @@ public class BackupService
         // 8: CostsJson (json)
         // 9: CategoriesJsons (json)
         // 10: SolutionsJsons (json)
-        
+
         switch (position)
         {
             case 0: // IdProduct
@@ -1105,20 +1097,20 @@ public class BackupService
             case 6: // IdSupplier
                 // Campos numéricos
                 return Regex.IsMatch(value, @"^-?\d+(\.\d+)?$") ? value : "0";
-                
+
             case 1: // MainName
             case 2: // Unit
             case 3: // Description
                 // Campos string normales
                 return CleanSimpleStringValue(value);
-                
+
             case 7: // CodeJson
             case 8: // CostsJson
             case 9: // CategoriesJsons
             case 10: // SolutionsJsons
                 // Campos JSON
                 return CleanJsonFieldValue(value);
-                
+
             default:
                 return CleanSqlValue(value);
         }
@@ -1131,26 +1123,48 @@ public class BackupService
     {
         try
         {
-            // Patrón específico para tabla Supplier que tiene campos JSON y double
-            var match = Regex.Match(statement, 
-                @"INSERT\s+INTO\s+""Supplier""\s*\([^)]+\)\s*VALUES\s*\(([^)]+)\)", 
+            // Extraer columnas y valores del INSERT
+            var match = Regex.Match(statement,
+                @"INSERT\s+INTO\s+""Supplier""\s*\(([^)]+)\)\s*VALUES\s*\(([^)]+)\)",
                 RegexOptions.IgnoreCase);
-            
+
             if (!match.Success)
                 return statement;
 
-            var valuesString = match.Groups[1].Value;
-            
-            // Para Supplier, esperamos estos campos en orden:
-            // IdSupplier, Name, CompanyName, TaxId, PersonType, BusinessId, CurrencyCoin, DeliveryDays, RegistrationDate, Observations, ContactsJson, PaymentTermsJson, PaymentMethodsJson
-            
-            var cleanedValues = CleanSupplierValues(valuesString);
-            var newStatement = statement.Replace(match.Groups[1].Value, cleanedValues);
-            
-            _logger.LogDebug("Declaración Supplier limpiada. Original: {Original}, Nueva: {New}", 
-                valuesString.Substring(0, Math.Min(100, valuesString.Length)), 
-                cleanedValues.Substring(0, Math.Min(100, cleanedValues.Length)));
-            
+            var columnsString = match.Groups[1].Value;
+            var valuesString = match.Groups[2].Value;
+
+            // Extraer los nombres de las columnas
+            var columns = columnsString
+                .Split(',')
+                .Select(c => c.Trim().Trim('"', '\''))
+                .ToList();
+
+            // Dividir valores correctamente respetando comillas
+            var values = SplitSqlValues(valuesString);
+
+            if (columns.Count != values.Count)
+            {
+                _logger.LogWarning("Mismatch entre columnas ({ColumnCount}) y valores ({ValueCount}) en Supplier. Retornando original.",
+                    columns.Count, values.Count);
+                return statement; // No procesar si no coinciden
+            }
+
+            // Limpiar cada valor según su columna correspondiente
+            var cleanedValues = new List<string>();
+            for (int i = 0; i < columns.Count; i++)
+            {
+                var columnName = columns[i];
+                var value = values[i].Trim();
+                var cleanedValue = CleanSupplierValueByColumnName(value, columnName);
+                cleanedValues.Add(cleanedValue);
+            }
+
+            var newValuesString = string.Join(",", cleanedValues);
+            var newStatement = statement.Replace(match.Groups[2].Value, newValuesString);
+
+            _logger.LogDebug("Supplier: {ColumnCount} columnas procesadas", columns.Count);
+
             return newStatement;
         }
         catch (Exception ex)
@@ -1160,68 +1174,57 @@ public class BackupService
         }
     }
 
+
     /// <summary>
-    /// Limpia específicamente los valores de la tabla Supplier
+    /// Limpia un valor específico de Supplier basado en el nombre de la columna
     /// </summary>
-    private string CleanSupplierValues(string valuesString)
+    private string CleanSupplierValueByColumnName(string value, string columnName)
     {
-        // Dividir manualmente los valores de Supplier considerando la estructura esperada
-        var values = new List<string>();
-        var currentValue = new StringBuilder();
-        bool inQuotes = false;
-        int commaCount = 0;
-        
-        for (int i = 0; i < valuesString.Length; i++)
+        value = value.Trim();
+        columnName = columnName.ToLowerInvariant();
+
+        switch (columnName)
         {
-            char c = valuesString[i];
-            
-            if (c == '\'' && !inQuotes)
-            {
-                inQuotes = true;
-                currentValue.Append(c);
-            }
-            else if (c == '\'' && inQuotes)
-            {
-                // Verificar si es comilla escapada
-                if (i + 1 < valuesString.Length && valuesString[i + 1] == '\'')
-                {
-                    currentValue.Append("''"); // Mantener escape
-                    i++; // Skip next quote
-                }
-                else
-                {
-                    inQuotes = false;
-                    currentValue.Append(c);
-                }
-            }
-            else if (c == ',' && !inQuotes)
-            {
-                values.Add(CleanSupplierValue(currentValue.ToString().Trim(), commaCount));
-                currentValue.Clear();
-                commaCount++;
-            }
-            else
-            {
-                currentValue.Append(c);
-            }
+            case "idsupplier":
+                // Campo numérico entero
+                return Regex.IsMatch(value, @"^-?\d+$") ? value : "0";
+
+            case "name":
+            case "companyname":
+            case "taxid":
+            case "persontype":
+            case "businessid":
+            case "currencycoin":
+            case "observations":
+                // Campos string normales
+                return CleanSimpleStringValue(value);
+
+            case "deliverydays":
+                // Campo numérico decimal
+                return Regex.IsMatch(value, @"^-?\d+(\.\d+)?$") ? value : "NULL";
+
+            case "registrationdate":
+                // Campo DateTime
+                return CleanDateTimeValue(value);
+
+            case "contactsjson":
+            case "paymenttermsjson":
+            case "paymentmethodsjson":
+                // Campos JSON
+                return CleanJsonFieldValue(value);
+
+            default:
+                return CleanSqlValue(value);
         }
-        
-        // Agregar el último valor
-        if (currentValue.Length > 0)
-        {
-            values.Add(CleanSupplierValue(currentValue.ToString().Trim(), commaCount));
-        }
-        
-        return string.Join(",", values);
     }
 
     /// <summary>
-    /// Limpia un valor específico de Supplier basado en su posición
+    /// Limpia un valor específico de Supplier basado en su posición (DEPRECATED - usar CleanSupplierValueByColumnName)
     /// </summary>
     private string CleanSupplierValue(string value, int position)
     {
         value = value.Trim();
-        
+
         // Posiciones de campos Supplier:
         // 0: IdSupplier (int)
         // 1: Name (string)  
@@ -1236,13 +1239,13 @@ public class BackupService
         // 10: ContactsJson (json)
         // 11: PaymentTermsJson (json)
         // 12: PaymentMethodsJson (json)
-        
+
         switch (position)
         {
             case 0: // IdSupplier
                 // Campo numérico entero
                 return Regex.IsMatch(value, @"^-?\d+$") ? value : "0";
-                
+
             case 1: // Name
             case 2: // CompanyName
             case 3: // TaxId
@@ -1252,21 +1255,21 @@ public class BackupService
             case 9: // Observations
                 // Campos string normales
                 return CleanSimpleStringValue(value);
-                
+
             case 7: // DeliveryDays (double)
                 // Campo numérico decimal
                 return Regex.IsMatch(value, @"^-?\d+(\.\d+)?$") ? value : "0";
-                
+
             case 8: // RegistrationDate (DateTime)
                 // Campo DateTime
                 return CleanDateTimeValue(value);
-                
+
             case 10: // ContactsJson
             case 11: // PaymentTermsJson
             case 12: // PaymentMethodsJson
                 // Campos JSON
                 return CleanJsonFieldValue(value);
-                
+
             default:
                 return CleanSqlValue(value);
         }
@@ -1278,11 +1281,11 @@ public class BackupService
     private string CleanDateTimeValue(string value)
     {
         value = value.Trim();
-        
+
         // Si es NULL
         if (string.Equals(value, "NULL", StringComparison.OrdinalIgnoreCase))
             return "NULL";
-        
+
         // Si parece una fecha
         if (Regex.IsMatch(value, @"^\d{4}-\d{2}-\d{2}"))
         {
@@ -1293,7 +1296,7 @@ public class BackupService
             }
             return "'" + value + "'";
         }
-        
+
         // Fallback para fechas malformadas
         return "'1900-01-01 00:00:00'";
     }
@@ -1304,20 +1307,20 @@ public class BackupService
     private string CleanJsonFieldValue(string value)
     {
         value = value.Trim();
-        
+
         // Si es NULL
         if (string.Equals(value, "NULL", StringComparison.OrdinalIgnoreCase))
             return "NULL";
-        
+
         // Remover comillas externas si existen
         if (value.StartsWith("'") && value.EndsWith("'"))
         {
             value = value.Substring(1, value.Length - 2);
         }
-        
+
         // Escapar comillas internas para PostgreSQL
         value = value.Replace("'", "''");
-        
+
         // Devolver como string quoted
         return "'" + value + "'";
     }
@@ -1328,19 +1331,19 @@ public class BackupService
     private string CleanSimpleStringValue(string value)
     {
         value = value.Trim();
-        
+
         if (string.Equals(value, "NULL", StringComparison.OrdinalIgnoreCase))
             return "NULL";
-        
+
         // Remover comillas externas si existen
         if (value.StartsWith("'") && value.EndsWith("'"))
         {
             value = value.Substring(1, value.Length - 2);
         }
-        
+
         // Escapar comillas simples
         value = value.Replace("'", "''");
-        
+
         return "'" + value + "'";
     }
 
@@ -1350,7 +1353,7 @@ public class BackupService
     private async Task<Dictionary<string, List<string>>> GetTableDependenciesAsync()
     {
         var dependencies = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        
+
         try
         {
             var connection = _dbContext.Database.GetDbConnection();
@@ -1378,23 +1381,23 @@ public class BackupService
             {
                 var dependentTable = reader.GetString(0);
                 var referencedTable = reader.GetString(1);
-                
+
                 // No auto-referencias
                 if (!dependentTable.Equals(referencedTable, StringComparison.OrdinalIgnoreCase))
                 {
                     if (!dependencies.ContainsKey(dependentTable))
                         dependencies[dependentTable] = new List<string>();
-                    
+
                     if (!dependencies[dependentTable].Contains(referencedTable, StringComparer.OrdinalIgnoreCase))
                     {
                         dependencies[dependentTable].Add(referencedTable);
                     }
                 }
             }
-            
-            _logger.LogDebug("Dependencias de tablas encontradas: {Dependencies}", 
+
+            _logger.LogDebug("Dependencias de tablas encontradas: {Dependencies}",
                 string.Join(", ", dependencies.Select(d => $"{d.Key} -> [{string.Join(", ", d.Value)}]")));
-            
+
             return dependencies;
         }
         catch (Exception ex)
@@ -1412,12 +1415,12 @@ public class BackupService
         var orderedTables = new List<string>();
         var processed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var processing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        
+
         foreach (var table in tables)
         {
             ProcessTableDependencies(table, tables, dependencies, orderedTables, processed, processing);
         }
-        
+
         // Agregar cualquier tabla que no se haya procesado (sin dependencias)
         foreach (var table in tables)
         {
@@ -1427,33 +1430,33 @@ public class BackupService
                 processed.Add(table);
             }
         }
-        
+
         _logger.LogInformation("Orden de procesamiento de tablas: {TableOrder}", string.Join(" -> ", orderedTables));
-        
+
         return orderedTables;
     }
 
     /// <summary>
     /// Procesa recursivamente las dependencias de una tabla (algoritmo de ordenamiento topológico)
     /// </summary>
-    private void ProcessTableDependencies(string table, List<string> allTables, 
-        Dictionary<string, List<string>> dependencies, List<string> orderedTables, 
+    private void ProcessTableDependencies(string table, List<string> allTables,
+        Dictionary<string, List<string>> dependencies, List<string> orderedTables,
         HashSet<string> processed, HashSet<string> processing)
     {
         // Si ya fue procesada, retornar
         if (processed.Contains(table))
             return;
-        
+
         // Detectar referencias circulares
         if (processing.Contains(table))
         {
             _logger.LogWarning("Referencia circular detectada en tabla: {Table}", table);
             return;
         }
-        
+
         // Marcar como en proceso
         processing.Add(table);
-        
+
         // Procesar dependencias primero
         if (dependencies.ContainsKey(table))
         {
@@ -1466,7 +1469,7 @@ public class BackupService
                 }
             }
         }
-        
+
         // Marcar como procesada y agregar a la lista ordenada
         processing.Remove(table);
         if (!processed.Contains(table))
@@ -1486,7 +1489,7 @@ public class BackupService
             // Agrupar declaraciones por tabla
             var statementsByTable = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
             var unidentifiedStatements = new List<string>();
-            
+
             foreach (var statement in statements)
             {
                 var tableName = ExtractTableNameFromInsert(statement);
@@ -1494,7 +1497,7 @@ public class BackupService
                 {
                     if (!statementsByTable.ContainsKey(tableName))
                         statementsByTable[tableName] = new List<string>();
-                    
+
                     statementsByTable[tableName].Add(statement);
                 }
                 else
@@ -1502,13 +1505,13 @@ public class BackupService
                     unidentifiedStatements.Add(statement);
                 }
             }
-            
+
             // Ordenar tablas por dependencias
             var orderedTables = OrderTablesByDependencies(statementsByTable.Keys.ToList(), dependencies);
-            
+
             // Reconstruir lista de declaraciones en el orden correcto
             var orderedStatements = new List<string>();
-            
+
             // Agregar declaraciones en orden de dependencias
             foreach (var tableName in orderedTables)
             {
@@ -1517,13 +1520,13 @@ public class BackupService
                     orderedStatements.AddRange(statementsByTable[tableName]);
                 }
             }
-            
+
             // Agregar declaraciones no identificadas al final
             orderedStatements.AddRange(unidentifiedStatements);
-            
-            _logger.LogInformation("Declaraciones SQL ordenadas por dependencias. Orden de tablas: {TableOrder}", 
+
+            _logger.LogInformation("Declaraciones SQL ordenadas por dependencias. Orden de tablas: {TableOrder}",
                 string.Join(" -> ", orderedTables));
-            
+
             return orderedStatements;
         }
         catch (Exception ex)
@@ -1531,6 +1534,283 @@ public class BackupService
             _logger.LogWarning(ex, "Error ordenando declaraciones por dependencias, usando orden original");
             return statements;
         }
+    }
+
+    #endregion
+
+    #region Default Catalogs
+
+    /// <summary>
+    /// Obtiene el SQL con los datos por defecto de catálogos (Warehouse, Property, Supplier, PropertyValue)
+    /// </summary>
+    public string GetDefaultCatalogsSql()
+    {
+        return @"
+-- =========================================
+-- WAREHOUSE
+-- =========================================
+INSERT INTO ""Warehouse"" (""Name"", ""Code"", ""Location"", ""IsMain"", ""Active"") VALUES ('ARMANDO VIDRIOS Y ALUMINIOS', 'AVA01', NULL, 1, 1);
+INSERT INTO ""Warehouse"" (""Name"", ""Code"", ""Location"", ""IsMain"", ""Active"") VALUES ('BODEGA SECUNDARIA', 'AVA02', NULL, 0, 1);
+INSERT INTO ""Warehouse"" (""Name"", ""Code"", ""Location"", ""IsMain"", ""Active"") VALUES ('BODEGA MADERA', 'AVA03', NULL, 0, 1);
+INSERT INTO ""Warehouse"" (""Name"", ""Code"", ""Location"", ""IsMain"", ""Active"") VALUES ('BODEGA VINILOS', 'AVA04', NULL, 0, 1);
+
+-- =========================================
+-- PROPERTIES
+-- =========================================
+INSERT INTO ""Property""(""Name"",""NormalizedName"") VALUES ('Familia','Family');
+INSERT INTO ""Property""(""Name"",""NormalizedName"") VALUES ('Clase','Class');
+INSERT INTO ""Property""(""Name"",""NormalizedName"") VALUES ('Línea','Line');
+
+-- =========================================
+-- SUPPLIERS
+-- =========================================
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('LA VIGA EXTRUSIONES','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('LA VIGA CUPRUM','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('LA VIGA INDALUM','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('CASA FERNANDEZ DEL SURESTE, S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('HERRALUM INDUSTRIAL, S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('ASSA ABLOY MEXICO, S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('JACKSON CORPORATION MEXICO, SA DE CV','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('CONSORCIO DE ALUMINIO DEL SURESTE','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('M INDUSTRIA, S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('TECNO EXTRUSIONES, S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('PLASTICOS ESPECIALES GAREN, S A DE C V','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('ACRILICOS PLASTITEC, S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('PERFILETTO ALUMINIO, S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('GUARDIAN INDUSTRIES VP S DE RL DE CV','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('BRUKEN INTERNACIONAL SA DE CV','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('ROBIN HERRAJES Y ACCESORIOS, S DE RL DE CV','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('ACRILICOS NEWTON, S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('CASA GALVAN TODO PARA VIDRIO SA DE CV','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('PELICULAS GARCIA','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('MASTIQUES MADISON, S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('WURTH MEXICO S,A, DE C,V,','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('ARTEFACTOS DE PRECISION, S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('INDUX SA DE CV','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('ALUMINIOS Y VIDRIOS ARMANDO Y CIA','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('FANAL, S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('DB HERRAJES SA DE CV','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('ASESORIA TECNICA PENINSULAR, S.A.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('HERRAJES EUROPEOS','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('JR DE MEXICO','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('ARBI INDUSTRIAL, S A DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('CHAPA INDUSTRIAS S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('VDS DIVISION PENINSULAR DEL MAYAB S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('MERIK, S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('DISTRIBUIDORA MAYORISTA DE TORNILLOS DE YUCATAN S.A. DE C.V.','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('ARGENTUM MEXICANA S DE RL DE CV','2026-02-04');
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('CUPRUM CAMPECHE','2026-02-04');
+
+-- =========================================
+-- PROPERTY VALUES - FAMILIAS (IdProperty = 1)
+-- =========================================
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ACRILICOS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ALUMINIO BEIGE Y ORO', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ALUMINIO CAFE (18)', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ALUMINIO CAFE OSCURO (58)', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ALUMINIO CHAMPAGNE (4)', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ALUMINIO CORPORATIVO VALSA', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ALUMINIO INDALUM', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ALUMINIO LINEA ESPAÑOLA', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ALUMINIO LINEA ESPECIAL', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ALUMINIO LINEA NACIONAL', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ALUMINIO OUTLET', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('BISAGRAS HIDRAULICAS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CARRETILLAS ASSA ABLOY', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CARRETILLAS HERRALUM', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CARRETILLAS TECNO PROMOCION', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CELOSIAS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CERRADURA ASSA', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CERRADURAS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CERRADURAS HERRALUM', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CORREDIZA LIGHT 1 1/2', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTAL POR M2', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTAL TEMPLADOS HERRALUM', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTALES', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTALES ESPECIALES', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTALES MILLET', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ESPECIALES MADERA', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('EXTRUSIONES 2 Y 3 BLANCO Y NATURAL', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('FELPA HERRALUM', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('GENERAL', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('HERRAJES', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('HERRAJES LINEA ESPAÑOLA', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('HERRAJES OUTLET', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('HERRALUM LINEAS ESPAÑOLAS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('HERRAMIENTAS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('JALADERAS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('JALADERAS ACERO INOXIDABLE', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('KIT RIO BRAVO', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('MERIK', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PANEL ART', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PELICULAS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PIJAS Y TORNILLOS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PLASTICO HERRALUM', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PLASTICOS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('POLICARBONATO METROS LINEALES', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('POLICARBONATOS ROLLOS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('REMACHES', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('RETROVISOR', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ROLLO PELICULAS HERRALUM', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('SERIES CUPRUM', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('SERVICIOS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('SILICONES', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TELA ALUMINIO GRIS Y NEGRA', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TELA ALUMINIO NEGRA', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TELA FIBRA HERRALUM (ROLLO)', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TELA FIBRA METROS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TRABAJOS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VARIOS LA VIGA HERRAJES', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VIDRIOS CILINDRADOS', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VIDRIOS FLORENTINO', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VINIL HERRALUM', NULL, NULL, 1);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VINIL MADISON', NULL, NULL, 1);
+
+-- =========================================
+-- PROPERTY VALUES - CLASES (IdProperty = 2)
+-- =========================================
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ACRILICOS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ANGULOS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('BATIENTES', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('BAÑOS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CELOSIAS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CORREDIZAS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('DUELAS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('FIJOS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('MOSQUITEROS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PORTAVIDRIOS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PUERTAS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TUBOS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('MOLDURAS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PASAMANOS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PROYECCION', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ESPAÑOLA', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('GENERAL', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VITRINAS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CANALES', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CUPRUM', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTAL', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('HERRAJES', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VIDRIO', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('FELPAS Y FELPONES', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('INOXIDABLE', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PELICULAS P/CRISTAL', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('POLICARBONATOS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('SILICONES', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('HERRAMIENTAS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PORTONES', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PLASTICOS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('REMACHES', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TELAS MOSQUITERAS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TRABAJOS', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VINILES', NULL, NULL, 2);
+
+-- =========================================
+-- PROPERTY VALUES - LÍNEAS (IdProperty = 3)
+-- =========================================
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ACRILICOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ACRILICOS DECORADOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ANGULOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('BATIENTE 1750', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('BAÑOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CELOSIAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CORREDIZA 1 1/2""', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CORREDIZA 2""', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CORREDIZA 3""', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('DUELA LISA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('DUELA ONDULADA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('6000 ESPAÑOLA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('FIJA 2""', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('FIJA 3""', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('MOLDURAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('MOSQUITEROS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PASAMANO REDONDO', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PORTAVIDRIO 1""', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('SERIE 35', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TUBO CUADRADO', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TUBO RECTANGULAR', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TUBO REDONDO', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VITRINA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TEE', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('3500 ESPAÑOLA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('3600 ESPAÑOLA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('4500 ESPAÑOLA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('4600 ESPAÑOLA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CUADRICULA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VARIOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PASAMANO OVALADO', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('SERIE 70 EUROVENT', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('BISAGRAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('BISAGRAS ESPECIALES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CARRETILLAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CANCELES DE BAÑO', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CERRADURAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('FELPA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('GENERAL', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('HERRAMIENTAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('OPERADORES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('APARADORES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('BALANCINES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('BARRA DE EMPUJE', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('BARRA DE SEGURIDAD', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('BARRAS ANTIPANICOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('BRAZO DE PROYECCION', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('BROCAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CIERRA PUERTAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CIERRE FINAL', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CLIPOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('COMENZA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CONECTORES P/CRISTAL', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CORREDERAS P/MUEBLE', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CREMALLERAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTAL TEMPLADO', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTAL FILTRAPLUS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTAL FILTRASOL', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTAL REFLECTASOL', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTAL SATINADO', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTAL TINTEX', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTAL TRANSPARENTE', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ESPEJOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VIDRIO ARTICO', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VIDRIO LABRADO', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('ESCUADRAS RESBALONES RETENES Y SEGUROS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('GAVETAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('HERRAJE P/VIDRIO', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('HERRAJES FIJACION', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('JALADERAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('MAQUINARIA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('MENSULAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PASADORES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PIVOTES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('POLICARBONATOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('RESBALONES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('SELLAPOLVOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TAQUETES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TITANES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VENTOSAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('SOPORTES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PELICULAS DECORATIVAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VINIL', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('SELLADORES Y SILICONES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TELA DE MOSQUITERO', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PANEL ART', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TENSORES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TORNILLOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PLASTICOS HERRALUM', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PLASTICOS DECORADOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PLASTICOS LABRADOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PLASTICOS LISOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('REMACHES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CANALES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('SOLERAS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('PORTONES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TRABAJOS', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('RESIDENCIAL SERIE 50', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('SOL LITE', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTAL PAVIA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('10000 ESPAÑOLA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('1400 ESPAÑOLA', NULL, NULL, 3);
+";
     }
 
     #endregion

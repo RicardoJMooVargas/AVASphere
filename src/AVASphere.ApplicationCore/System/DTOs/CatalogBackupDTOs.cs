@@ -27,11 +27,7 @@ public class BackupImportResultDto
 {
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
-    public bool OverwriteMode { get; set; }
-    public List<string> ExecutedStatements { get; set; } = new();
-    public List<string> SkippedStatements { get; set; } = new();
-    public List<string> Errors { get; set; } = new();
-    public List<string> Warnings { get; set; } = new();
+    public Dictionary<string, int> TableSummary { get; set; } = new();
     public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
 }
 
@@ -139,17 +135,17 @@ public class RestoreStatsDto
     public int PropertiesInserted { get; set; }
     public int PropertiesUpdated { get; set; }
     public int PropertiesSkipped { get; set; }
-    
+
     public int SuppliersProcessed { get; set; }
     public int SuppliersInserted { get; set; }
     public int SuppliersUpdated { get; set; }
     public int SuppliersSkipped { get; set; }
-    
+
     public int PropertyValuesProcessed { get; set; }
     public int PropertyValuesInserted { get; set; }
     public int PropertyValuesUpdated { get; set; }
     public int PropertyValuesSkipped { get; set; }
-    
+
     public int TotalProcessed { get; set; }
     public int TotalInserted { get; set; }
     public int TotalUpdated { get; set; }

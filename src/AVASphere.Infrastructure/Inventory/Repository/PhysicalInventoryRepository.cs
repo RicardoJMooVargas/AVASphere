@@ -1,4 +1,4 @@
-﻿    using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿﻿    using AVASphere.ApplicationCore.Inventory.Entities.General;
 using AVASphere.ApplicationCore.Inventory.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -80,6 +80,48 @@ public class PhysicalInventoryRepository : IPhysicalInventoryRepository
             .Where(pi => pi.InventoryDate >= startDate && pi.InventoryDate <= endDate)
             .Include(pi => pi.Warehouse)
             .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<PhysicalInventory>> GetFilteredAsync(
+        int? idPhysicalInventory = null,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        string? status = null,
+        int? createdBy = null,
+        string? observations = null,
+        int? idWarehouse = null)
+    {
+        var query = _context.Set<PhysicalInventory>()
+            .Include(pi => pi.Warehouse)
+            .Include(pi => pi.Inventories)
+            .Include(pi => pi.PhysicalInventoryDetails)
+            .AsQueryable();
+
+        if (idPhysicalInventory.HasValue)
+            query = query.Where(pi => pi.IdPhysicalInventory == idPhysicalInventory.Value);
+
+        if (startDate.HasValue)
+            query = query.Where(pi => pi.InventoryDate >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(pi => pi.InventoryDate <= endDate.Value);
+
+        if (!string.IsNullOrEmpty(status))
+            query = query.Where(pi => pi.Status == status);
+
+        if (createdBy.HasValue)
+            query = query.Where(pi => pi.CreatedBy == createdBy.Value);
+
+        if (!string.IsNullOrEmpty(observations))
+            query = query.Where(pi => pi.Observations != null && pi.Observations.Contains(observations));
+
+        if (idWarehouse.HasValue)
+            query = query.Where(pi => pi.IdWarehouse == idWarehouse.Value);
+
+        return await query
+            .AsNoTracking()
+            .OrderByDescending(pi => pi.InventoryDate)
             .ToListAsync();
     }
 

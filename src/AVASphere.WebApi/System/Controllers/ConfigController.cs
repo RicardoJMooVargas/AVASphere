@@ -9,6 +9,8 @@ using AVASphere.Infrastructure.System.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using System.Data;
+using System.Data.Common;
 using System.Text;
 
 namespace AVASphere.WebApi.System.Controllers;
@@ -25,7 +27,7 @@ public class ConfigController : ControllerBase
     private readonly BackupService _backupService;
 
     public ConfigController(
-        DatabaseMigrationService dbMigrationService, 
+        DatabaseMigrationService dbMigrationService,
         MasterDbContext dbContext,
         IEncryptionService encryptionService,
         BackupService backupService)
@@ -173,7 +175,8 @@ public class ConfigController : ControllerBase
         var response = new ApiResponse
         {
             Success = true,
-            Data = new {
+            Data = new
+            {
                 diagnosis = result,
                 info = "Diagnóstico detallado del estado de las migraciones"
             },
@@ -291,7 +294,7 @@ public class ConfigController : ControllerBase
             var existingAdmin = await _dbContext.Users
                 .Include(u => u.Rol)
                 .FirstOrDefaultAsync(u => u.Rol.NormalizedName == "admin");
-            
+
             if (existingAdmin != null)
             {
                 var badResponse = new ApiResponse
@@ -306,7 +309,7 @@ public class ConfigController : ControllerBase
             // Crear o obtener el área de Sistema
             var areaSystem = await _dbContext.Areas
                 .FirstOrDefaultAsync(a => a.NormalizedName == "SYSTEM");
-            
+
             if (areaSystem == null)
             {
                 areaSystem = new Area
@@ -407,13 +410,13 @@ public class ConfigController : ControllerBase
         try
         {
             var tables = await _backupService.GetAvailableTablesAsync();
-            
+
             var response = new ApiResponse
             {
                 Success = true,
-                Data = new AvailableTablesDto 
-                { 
-                    Tables = tables, 
+                Data = new AvailableTablesDto
+                {
+                    Tables = tables,
                     TotalCount = tables.Count,
                     RetrievedAt = DateTime.UtcNow
                 },
@@ -462,7 +465,7 @@ public class ConfigController : ControllerBase
 
             var fileName = $"{backupName}.sql";
             var fileBytes = Encoding.UTF8.GetBytes(sqlBackup);
-            
+
             return File(fileBytes, "application/sql", fileName);
         }
         catch (Exception ex)
@@ -509,7 +512,7 @@ public class ConfigController : ControllerBase
             }
 
             var result = await _backupService.ImportFromSqlAsync(sqlContent, overwrite);
-            
+
             var response = new ApiResponse
             {
                 Success = result.Success,
@@ -517,7 +520,7 @@ public class ConfigController : ControllerBase
                 Message = result.Message,
                 StatusCode = result.Success ? 200 : 400
             };
-            
+
             return result.Success ? Ok(response) : BadRequest(response);
         }
         catch (Exception ex)
@@ -586,303 +589,184 @@ public class ConfigController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Importa los catálogos por defecto del sistema (Property, Supplier, PropertyValue)
+    /// </summary>
+    /// <param name="overwrite">Si es true, sobrescribe datos existentes. Si es false, solo inserta nuevos.</param>
+    /// <returns>Resultado de la importación con estadísticas detalladas</returns>
+    /// <remarks>
+    /// Este endpoint importa:
+    /// - 3 Properties (Familia, Clase, Línea)
+    /// - 36 Suppliers (La Viga, Casa Fernández, Herralum, etc.)
+    /// - 150+ PropertyValues organizados por categorías
+    /// </remarks>
     [HttpPost("load-default-catalogs")]
     public async Task<IActionResult> LoadDefaultCatalogs([FromQuery] bool overwrite = false)
     {
         try
         {
-            // SQL con datos por defecto
-            var defaultSql = GetDefaultCatalogsSql();
-            
+            // SQL con datos por defecto desde BackupService
+            var defaultSql = _backupService.GetDefaultCatalogsSql();
+
             var result = await _backupService.ImportFromSqlAsync(defaultSql, overwrite);
-            
-            var response = new ApiResponse
-            {
-                Success = result.Success,
-                Data = result,
-                Message = result.Success ? 
-                    "Catálogos por defecto cargados exitosamente. " + result.Message :
-                    "Error al cargar catálogos por defecto: " + result.Message,
-                StatusCode = result.Success ? 200 : 400
-            };
-            
-            return result.Success ? Ok(response) : BadRequest(response);
+
+            return result.Success ? Ok(result) : BadRequest(result);
         }
         catch (Exception ex)
         {
-            var errorResponse = new ApiResponse
+            return StatusCode(500, new
             {
-                Success = false,
-                Message = $"Error al cargar catálogos por defecto: {ex.Message}",
-                StatusCode = 500
-            };
-            return StatusCode(500, errorResponse);
+                success = false,
+                message = $"Error al cargar catálogos por defecto: {ex.Message}"
+            });
         }
     }
 
     #endregion
 
-    #region Private Methods
+    #region Delete Catalog Data
 
-    private static string GetDefaultCatalogsSql()
+    /// <summary>
+    /// Elimina todos los datos de las 6 tablas de catálogos base y todas sus dependencias, reiniciando las secuencias
+    /// </summary>
+    /// <returns>Resultado de la operación</returns>
+
+    [HttpDelete("delete-catalog-data")]
+    public async Task<IActionResult> DeleteCatalogData()
     {
-        return @"
--- PROPERTIES
-INSERT INTO ""Property""(""Name"",""NormalizedName"") VALUES
-('Familia','Family'),
-('Clase','Class'),
-('Línea','Line');
+        try
+        {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
--- SUPPLIERS
-INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") 
-VALUES
-('LA VIGA EXTRUSIONES','2026-02-04'),
-('LA VIGA CUPRUM','2026-02-04'),
-('LA VIGA INDALUM','2026-02-04'),
-('CASA FERNANDEZ DEL SURESTE, S.A. DE C.V.','2026-02-04'),
-('HERRALUM INDUSTRIAL, S.A. DE C.V.','2026-02-04'),
-('ASSA ABLOY MEXICO, S.A. DE C.V.','2026-02-04'),
-('JACKSON CORPORATION MEXICO, SA DE CV','2026-02-04'),
-('CONSORCIO DE ALUMINIO DEL SURESTE','2026-02-04'),
-('M INDUSTRIA, S.A. DE C.V.','2026-02-04'),
-('TECNO EXTRUSIONES, S.A. DE C.V.','2026-02-04'),
-('PLASTICOS ESPECIALES GAREN, S A DE C V','2026-02-04'),
-('ACRILICOS PLASTITEC, S.A. DE C.V.','2026-02-04'),
-('PERFILETTO ALUMINIO, S.A. DE C.V.','2026-02-04'),
-('GUARDIAN INDUSTRIES VP S DE RL DE CV','2026-02-04'),
-('BRUKEN INTERNACIONAL SA DE CV','2026-02-04'),
-('ROBIN HERRAJES Y ACCESORIOS, S DE RL DE CV','2026-02-04'),
-('ACRILICOS NEWTON, S.A. DE C.V.','2026-02-04'),
-('CASA GALVAN TODO PARA VIDRIO SA DE CV','2026-02-04'),
-('PELICULAS GARCIA','2026-02-04'),
-('MASTIQUES MADISON, S.A. DE C.V.','2026-02-04'),
-('WURTH MEXICO S,A, DE C,V,','2026-02-04'),
-('ARTEFACTOS DE PRECISION, S.A. DE C.V.','2026-02-04'),
-('INDUX SA DE CV','2026-02-04'),
-('ALUMINIOS Y VIDRIOS ARMANDO Y CIA','2026-02-04'),
-('FANAL, S.A. DE C.V.','2026-02-04'),
-('DB HERRAJES SA DE CV','2026-02-04'),
-('ASESORIA TECNICA PENINSULAR, S.A.','2026-02-04'),
-('HERRAJES EUROPEOS','2026-02-04'),
-('JR DE MEXICO','2026-02-04'),
-('ARBI INDUSTRIAL, S A DE C.V.','2026-02-04'),
-('CHAPA INDUSTRIAS S.A. DE C.V.','2026-02-04'),
-('VDS DIVISION PENINSULAR DEL MAYAB S.A. DE C.V.','2026-02-04'),
-('MERIK, S.A. DE C.V.','2026-02-04'),
-('DISTRIBUIDORA MAYORISTA DE TORNILLOS DE YUCATAN S.A. DE C.V.','2026-02-04'),
-('ARGENTUM MEXICANA S DE RL DE CV','2026-02-04'),
-('CUPRUM CAMPECHE','2026-02-04');
+            try
+            {
+                // Eliminar TODAS las tablas dependientes primero, luego las 6 tablas base
+                var deleteCommands = new[]
+                {
+                    // ========================================
+                    // NIVEL 1: Detalles y tablas más dependientes
+                    // ========================================
+                    "DELETE FROM \"PhysicalInventoryDetail\";",
+                    "ALTER SEQUENCE IF EXISTS \"PhysicalInventoryDetail_IdPhysicalInventoryDetail_seq\" RESTART WITH 1;",
 
--- PROPERTY VALUES - FAMILIAS (IdProperty = 1)
-INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") 
-VALUES
-('ACRILICOS', NULL, NULL, 1),
-('ALUMINIO BEIGE Y ORO', NULL, NULL, 1),
-('ALUMINIO CAFE (18)', NULL, NULL, 1),
-('ALUMINIO CAFE OSCURO (58)', NULL, NULL, 1),
-('ALUMINIO CHAMPAGNE (4)', NULL, NULL, 1),
-('ALUMINIO CORPORATIVO VALSA', NULL, NULL, 1),
-('ALUMINIO INDALUM', NULL, NULL, 1),
-('ALUMINIO LINEA ESPAÑOLA', NULL, NULL, 1),
-('ALUMINIO LINEA ESPECIAL', NULL, NULL, 1),
-('ALUMINIO LINEA NACIONAL', NULL, NULL, 1),
-('ALUMINIO OUTLET', NULL, NULL, 1),
-('BISAGRAS HIDRAULICAS', NULL, NULL, 1),
-('CARRETILLAS ASSA ABLOY', NULL, NULL, 1),
-('CARRETILLAS HERRALUM', NULL, NULL, 1),
-('CARRETILLAS TECNO PROMOCION', NULL, NULL, 1),
-('CELOSIAS', NULL, NULL, 1),
-('CERRADURA ASSA', NULL, NULL, 1),
-('CERRADURAS', NULL, NULL, 1),
-('CERRADURAS HERRALUM', NULL, NULL, 1),
-('CORREDIZA LIGHT 1 1/2', NULL, NULL, 1),
-('CRISTAL POR M2', NULL, NULL, 1),
-('CRISTAL TEMPLADOS HERRALUM', NULL, NULL, 1),
-('CRISTALES', NULL, NULL, 1),
-('CRISTALES ESPECIALES', NULL, NULL, 1),
-('CRISTALES MILLET', NULL, NULL, 1),
-('ESPECIALES MADERA', NULL, NULL, 1),
-('EXTRUSIONES 2 Y 3 BLANCO Y NATURAL', NULL, NULL, 1),
-('FELPA HERRALUM', NULL, NULL, 1),
-('GENERAL', NULL, NULL, 1),
-('HERRAJES', NULL, NULL, 1),
-('HERRAJES LINEA ESPAÑOLA', NULL, NULL, 1),
-('HERRAJES OUTLET', NULL, NULL, 1),
-('HERRALUM LINEAS ESPAÑOLAS', NULL, NULL, 1),
-('HERRAMIENTAS', NULL, NULL, 1),
-('JALADERAS', NULL, NULL, 1),
-('JALADERAS ACERO INOXIDABLE', NULL, NULL, 1),
-('KIT RIO BRAVO', NULL, NULL, 1),
-('MERIK', NULL, NULL, 1),
-('PANEL ART', NULL, NULL, 1),
-('PELICULAS', NULL, NULL, 1),
-('PIJAS Y TORNILLOS', NULL, NULL, 1),
-('PLASTICO HERRALUM', NULL, NULL, 1),
-('PLASTICOS', NULL, NULL, 1),
-('POLICARBONATO METROS LINEALES', NULL, NULL, 1),
-('POLICARBONATOS ROLLOS', NULL, NULL, 1),
-('REMACHES', NULL, NULL, 1),
-('RETROVISOR', NULL, NULL, 1),
-('ROLLO PELICULAS HERRALUM', NULL, NULL, 1),
-('SERIES CUPRUM', NULL, NULL, 1),
-('SERVICIOS', NULL, NULL, 1),
-('SILICONES', NULL, NULL, 1),
-('TELA ALUMINIO GRIS Y NEGRA', NULL, NULL, 1),
-('TELA ALUMINIO NEGRA', NULL, NULL, 1),
-('TELA FIBRA HERRALUM (ROLLO)', NULL, NULL, 1),
-('TELA FIBRA METROS', NULL, NULL, 1),
-('TRABAJOS', NULL, NULL, 1),
-('VARIOS LA VIGA HERRAJES', NULL, NULL, 1),
-('VIDRIOS CILINDRADOS', NULL, NULL, 1),
-('VIDRIOS FLORENTINO', NULL, NULL, 1),
-('VINIL HERRALUM', NULL, NULL, 1),
-('VINIL MADISON', NULL, NULL, 1);
+                    "DELETE FROM \"WarehouseTransferDetail\";",
+                    "ALTER SEQUENCE IF EXISTS \"WarehouseTransferDetail_IdWarehouseTransferDetail_seq\" RESTART WITH 1;",
+                    
+                    // ========================================
+                    // NIVEL 2: Tablas de inventario que dependen de Product/Warehouse
+                    // ========================================
+                    "DELETE FROM \"PhysicalInventory\";",
+                    "ALTER SEQUENCE IF EXISTS \"PhysicalInventory_IdPhysicalInventory_seq\" RESTART WITH 1;",
 
--- PROPERTY VALUES - CLASES (IdProperty = 2)
-INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") 
-VALUES
-('ACRILICOS', NULL, NULL, 2),
-('ANGULOS', NULL, NULL, 2),
-('BATIENTES', NULL, NULL, 2),
-('BAÑOS', NULL, NULL, 2),
-('CELOSIAS', NULL, NULL, 2),
-('CORREDIZAS', NULL, NULL, 2),
-('DUELAS', NULL, NULL, 2),
-('FIJOS', NULL, NULL, 2),
-('MOSQUITEROS', NULL, NULL, 2),
-('PORTAVIDRIOS', NULL, NULL, 2),
-('PUERTAS', NULL, NULL, 2),
-('TUBOS', NULL, NULL, 2),
-('MOLDURAS', NULL, NULL, 2),
-('PASAMANOS', NULL, NULL, 2),
-('PROYECCION', NULL, NULL, 2),
-('ESPAÑOLA', NULL, NULL, 2),
-('GENERAL', NULL, NULL, 2),
-('VITRINAS', NULL, NULL, 2),
-('CANALES', NULL, NULL, 2),
-('CUPRUM', NULL, NULL, 2),
-('CRISTAL', NULL, NULL, 2),
-('HERRAJES', NULL, NULL, 2),
-('VIDRIO', NULL, NULL, 2),
-('FELPAS Y FELPONES', NULL, NULL, 2),
-('INOXIDABLE', NULL, NULL, 2),
-('PELICULAS P/CRISTAL', NULL, NULL, 2),
-('POLICARBONATOS', NULL, NULL, 2),
-('SILICONES', NULL, NULL, 2),
-('HERRAMIENTAS', NULL, NULL, 2),
-('PORTONES', NULL, NULL, 2),
-('PLASTICOS', NULL, NULL, 2),
-('REMACHES', NULL, NULL, 2),
-('TELAS MOSQUITERAS', NULL, NULL, 2),
-('TRABAJOS', NULL, NULL, 2),
-('VINILES', NULL, NULL, 2);
+                    "DELETE FROM \"WarehouseTransfer\";",
+                    "ALTER SEQUENCE IF EXISTS \"WarehouseTransfer_IdWarehouseTransfer_seq\" RESTART WITH 1;",
 
--- PROPERTY VALUES - LÍNEAS (IdProperty = 3)
-INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") 
-VALUES
-('ACRILICOS', NULL, NULL, 3),
-('ACRILICOS DECORADOS', NULL, NULL, 3),
-('ANGULOS', NULL, NULL, 3),
-('BATIENTE 1750', NULL, NULL, 3),
-('BAÑOS', NULL, NULL, 3),
-('CELOSIAS', NULL, NULL, 3),
-('CORREDIZA 1 1/2""', NULL, NULL, 3),
-('CORREDIZA 2""', NULL, NULL, 3),
-('CORREDIZA 3""', NULL, NULL, 3),
-('DUELA LISA', NULL, NULL, 3),
-('DUELA ONDULADA', NULL, NULL, 3),
-('6000 ESPAÑOLA', NULL, NULL, 3),
-('FIJA 2""', NULL, NULL, 3),
-('FIJA 3""', NULL, NULL, 3),
-('MOLDURAS', NULL, NULL, 3),
-('MOSQUITEROS', NULL, NULL, 3),
-('PASAMANO REDONDO', NULL, NULL, 3),
-('PORTAVIDRIO 1""', NULL, NULL, 3),
-('SERIE 35', NULL, NULL, 3),
-('TUBO CUADRADO', NULL, NULL, 3),
-('TUBO RECTANGULAR', NULL, NULL, 3),
-('TUBO REDONDO', NULL, NULL, 3),
-('VITRINA', NULL, NULL, 3),
-('TEE', NULL, NULL, 3),
-('3500 ESPAÑOLA', NULL, NULL, 3),
-('3600 ESPAÑOLA', NULL, NULL, 3),
-('4500 ESPAÑOLA', NULL, NULL, 3),
-('4600 ESPAÑOLA', NULL, NULL, 3),
-('CUADRICULA', NULL, NULL, 3),
-('VARIOS', NULL, NULL, 3),
-('PASAMANO OVALADO', NULL, NULL, 3),
-('SERIE 70 EUROVENT', NULL, NULL, 3),
-('BISAGRAS', NULL, NULL, 3),
-('BISAGRAS ESPECIALES', NULL, NULL, 3),
-('CARRETILLAS', NULL, NULL, 3),
-('CANCELES DE BAÑO', NULL, NULL, 3),
-('CERRADURAS', NULL, NULL, 3),
-('FELPA', NULL, NULL, 3),
-('GENERAL', NULL, NULL, 3),
-('HERRAMIENTAS', NULL, NULL, 3),
-('OPERADORES', NULL, NULL, 3),
-('APARADORES', NULL, NULL, 3),
-('BALANCINES', NULL, NULL, 3),
-('BARRA DE EMPUJE', NULL, NULL, 3),
-('BARRA DE SEGURIDAD', NULL, NULL, 3),
-('BARRAS ANTIPANICOS', NULL, NULL, 3),
-('BRAZO DE PROYECCION', NULL, NULL, 3),
-('BROCAS', NULL, NULL, 3),
-('CIERRA PUERTAS', NULL, NULL, 3),
-('CIERRE FINAL', NULL, NULL, 3),
-('CLIPOS', NULL, NULL, 3),
-('COMENZA', NULL, NULL, 3),
-('CONECTORES P/CRISTAL', NULL, NULL, 3),
-('CORREDERAS P/MUEBLE', NULL, NULL, 3),
-('CREMALLERAS', NULL, NULL, 3),
-('CRISTAL TEMPLADO', NULL, NULL, 3),
-('CRISTAL FILTRAPLUS', NULL, NULL, 3),
-('CRISTAL FILTRASOL', NULL, NULL, 3),
-('CRISTAL REFLECTASOL', NULL, NULL, 3),
-('CRISTAL SATINADO', NULL, NULL, 3),
-('CRISTAL TINTEX', NULL, NULL, 3),
-('CRISTAL TRANSPARENTE', NULL, NULL, 3),
-('ESPEJOS', NULL, NULL, 3),
-('VIDRIO ARTICO', NULL, NULL, 3),
-('VIDRIO LABRADO', NULL, NULL, 3),
-('ESCUADRAS RESBALONES RETENES Y SEGUROS', NULL, NULL, 3),
-('GAVETAS', NULL, NULL, 3),
-('HERRAJE P/VIDRIO', NULL, NULL, 3),
-('HERRAJES FIJACION', NULL, NULL, 3),
-('JALADERAS', NULL, NULL, 3),
-('MAQUINARIA', NULL, NULL, 3),
-('MENSULAS', NULL, NULL, 3),
-('PASADORES', NULL, NULL, 3),
-('PIVOTES', NULL, NULL, 3),
-('POLICARBONATOS', NULL, NULL, 3),
-('RESBALONES', NULL, NULL, 3),
-('SELLAPOLVOS', NULL, NULL, 3),
-('TAQUETES', NULL, NULL, 3),
-('TITANES', NULL, NULL, 3),
-('VENTOSAS', NULL, NULL, 3),
-('SOPORTES', NULL, NULL, 3),
-('PELICULAS DECORATIVAS', NULL, NULL, 3),
-('VINIL', NULL, NULL, 3),
-('SELLADORES Y SILICONES', NULL, NULL, 3),
-('TELA DE MOSQUITERO', NULL, NULL, 3),
-('PANEL ART', NULL, NULL, 3),
-('TENSORES', NULL, NULL, 3),
-('TORNILLOS', NULL, NULL, 3),
-('PLASTICOS HERRALUM', NULL, NULL, 3),
-('PLASTICOS DECORADOS', NULL, NULL, 3),
-('PLASTICOS LABRADOS', NULL, NULL, 3),
-('PLASTICOS LISOS', NULL, NULL, 3),
-('REMACHES', NULL, NULL, 3),
-('CANALES', NULL, NULL, 3),
-('SOLERAS', NULL, NULL, 3),
-('PORTONES', NULL, NULL, 3),
-('TRABAJOS', NULL, NULL, 3),
-('RESIDENCIAL SERIE 50', NULL, NULL, 3),
-('SOL LITE', NULL, NULL, 3),
-('CRISTAL PAVIA', NULL, NULL, 3),
-('10000 ESPAÑOLA', NULL, NULL, 3),
-('1400 ESPAÑOLA', NULL, NULL, 3);
-";
+                    "DELETE FROM \"StockMovement\";",
+                    "ALTER SEQUENCE IF EXISTS \"StockMovement_IdStockMovement_seq\" RESTART WITH 1;",
+
+                    "DELETE FROM \"Inventory\";",
+                    "ALTER SEQUENCE IF EXISTS \"Inventory_IdInventory_seq\" RESTART WITH 1;",
+                    
+                    // ========================================
+                    // NIVEL 3: Ubicaciones y estructuras de almacén
+                    // ========================================
+                    "DELETE FROM \"LocationDetails\";",
+                    "ALTER SEQUENCE IF EXISTS \"LocationDetails_IdLocationDetails_seq\" RESTART WITH 1;",
+
+                    "DELETE FROM \"StorageStructure\";",
+                    "ALTER SEQUENCE IF EXISTS \"StorageStructure_IdStorageStructure_seq\" RESTART WITH 1;",
+                    
+                    // ========================================
+                    // NIVEL 4: LAS 6 TABLAS DE CATÁLOGOS BASE
+                    // ========================================
+                    
+                    // ProductProperties (depende de Product y Property)
+                    "DELETE FROM \"ProductProperties\";",
+                    "ALTER SEQUENCE IF EXISTS \"ProductProperties_IdProductProperties_seq\" RESTART WITH 1;",
+                    
+                    // PropertyValue (depende de Property)
+                    "DELETE FROM \"PropertyValue\";",
+                    "ALTER SEQUENCE IF EXISTS \"PropertyValue_IdPropertyValue_seq\" RESTART WITH 1;",
+                    
+                    // Product (tabla principal)
+                    "DELETE FROM \"Product\";",
+                    "ALTER SEQUENCE IF EXISTS \"Product_IdProduct_seq\" RESTART WITH 1;",
+                    
+                    // Property (tabla base)
+                    "DELETE FROM \"Property\";",
+                    "ALTER SEQUENCE IF EXISTS \"Property_IdProperty_seq\" RESTART WITH 1;",
+                    
+                    // Supplier (tabla independiente)
+                    "DELETE FROM \"Supplier\";",
+                    "ALTER SEQUENCE IF EXISTS \"Supplier_IdSupplier_seq\" RESTART WITH 1;",
+                    
+                    // Warehouse (tabla independiente)
+                    "DELETE FROM \"Warehouse\";",
+                    "ALTER SEQUENCE IF EXISTS \"Warehouse_IdWarehouse_seq\" RESTART WITH 1;"
+                };
+
+                foreach (var command in deleteCommands)
+                {
+                    await _dbContext.Database.ExecuteSqlRawAsync(command);
+                }
+
+                await transaction.CommitAsync();
+
+                var response = new ApiResponse
+                {
+                    Success = true,
+                    Message = "Datos de catálogos e inventario eliminados exitosamente",
+                    StatusCode = 200,
+                    Data = new
+                    {
+                        InventoryTablesCleared = new[]
+                        {
+                            "PhysicalInventoryDetail",
+                            "PhysicalInventory",
+                            "WarehouseTransferDetail",
+                            "WarehouseTransfer",
+                            "StockMovement",
+                            "Inventory",
+                            "LocationDetails",
+                            "StorageStructure"
+                        },
+                        CatalogTablesCleared = new[]
+                        {
+                            "ProductProperties",
+                            "PropertyValue",
+                            "Product",
+                            "Property",
+                            "Supplier",
+                            "Warehouse"
+                        },
+                        TotalTablesCleared = 14,
+                        SequencesReset = true
+                    }
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+        catch (Exception ex)
+        {
+            var response = new ApiResponse
+            {
+                Success = false,
+                Message = $"Error al eliminar datos de catálogos: {ex.Message}",
+                StatusCode = 500,
+                Data = new
+                {
+                    Error = ex.Message
+                }
+            };
+
+            return StatusCode(500, response);
+        }
     }
 
     #endregion

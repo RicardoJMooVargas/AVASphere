@@ -182,24 +182,27 @@ public static class DependencyInjection
 
     private static void AddInventoryServices(IServiceCollection services)
     {
+        // Inventory Service
+        services.AddScoped<IInventoryService, InventoryService>();
+
+        // Inventory Repository
+        services.AddScoped<IInventoryRepository, InventoryRepository>();
+
         // Warehouse
         services.AddScoped<IWarehouseRepository, WarehouseRepository>();
-        
-        // Inventory
-        services.AddScoped<IInventoryRepository, InventoryRepository>();
-        
+
         // Physical Inventory
         services.AddScoped<IPhysicalInventoryRepository, PhysicalInventoryRepository>();
         services.AddScoped<IPhysicalInventoryDetailRepository, PhysicalInventoryDetailRepository>();
-        
+
         // Storage Structure
         services.AddScoped<IStorageStructureRepository, StorageStructureRepository>();
         services.AddScoped<IStorageStructureService, StorageStructureService>();
         services.AddScoped<ILocationDetailsRepository, LocationDetailsRepository>();
-        
+
         // Stock Movement
         services.AddScoped<IStockMovementRepository, StockMovementRepository>();
-        
+
         // Warehouse Transfer
         services.AddScoped<IWarehouseTransferRepository, WarehouseTransferRepository>();
         services.AddScoped<IWarehouseTransferDetailRepository, WarehouseTransferDetailRepository>();

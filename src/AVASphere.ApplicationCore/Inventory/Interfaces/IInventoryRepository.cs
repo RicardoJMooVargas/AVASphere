@@ -1,4 +1,4 @@
-﻿using InventoryEntity = AVASphere.ApplicationCore.Inventory.Entities.General.Inventory;
+﻿﻿using InventoryEntity = AVASphere.ApplicationCore.Inventory.Entities.General.Inventory;
 
 namespace AVASphere.ApplicationCore.Inventory.Interfaces;
 
@@ -14,6 +14,18 @@ public interface IInventoryRepository
     Task<IEnumerable<InventoryEntity>> GetByProductIdAsync(int idProduct);
     Task<InventoryEntity?> GetByWarehouseAndProductAsync(int idWarehouse, int idProduct);
     Task<IEnumerable<InventoryEntity>> GetLowStockItemsAsync();
+    Task<IEnumerable<InventoryEntity>> GetFilteredAsync(
+        int? idInventory = null,
+        double? minStock = null,
+        double? maxStock = null,
+        double? minStockMin = null,
+        double? maxStockMin = null,
+        double? minStockMax = null,
+        double? maxStockMax = null,
+        double? locationDetail = null,
+        int? idPhysicalInventory = null,
+        int? idProduct = null,
+        int? idWarehouse = null);
     Task<bool> ExistsAsync(int idInventory);
     
     // Update

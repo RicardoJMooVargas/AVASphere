@@ -21,6 +21,3 @@ public class StockMovement
     public Warehouse Warehouse { get; set; } = null!;
 }
 
-
-
-

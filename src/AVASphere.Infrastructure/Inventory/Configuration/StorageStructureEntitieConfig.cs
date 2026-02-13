@@ -1,5 +1,4 @@
 ﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
-using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -29,22 +28,21 @@ public class StorageStructureEntitieConfig : IEntityTypeConfiguration<StorageStr
             .IsRequired();
         
         entity.Property(e => e.IdArea)
-            .IsRequired(false); // Nullable - permite que un rack no tenga área asignada
-        
-        // Relación N-1 con Warehouse
-        entity.HasOne(ss => ss.Warehouse)
+            .IsRequired(false); // Nullable
+            
+        // Configurar relaciones explícitamente para evitar duplicados
+        entity.HasOne(e => e.Warehouse)
             .WithMany()
-            .HasForeignKey(ss => ss.IdWarehouse)
+            .HasForeignKey(e => e.IdWarehouse)
             .OnDelete(DeleteBehavior.Restrict);
-        
-        // Relación N-1 con Area - nullable, si se elimina el área, IdArea se pone en null
-        entity.HasOne(ss => ss.Area)
-            .WithMany(a => a.StorageStructures)
-            .HasForeignKey(ss => ss.IdArea)
-            .OnDelete(DeleteBehavior.SetNull);
-        
-        // Relación 1-N con LocationDetails
-        entity.HasMany(ss => ss.LocationDetails)
+            
+        entity.HasOne(e => e.Area)
+            .WithMany()
+            .HasForeignKey(e => e.IdArea)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+            
+        entity.HasMany(e => e.LocationDetails)
             .WithOne(ld => ld.StorageStructure)
             .HasForeignKey(ld => ld.IdStorageStructure)
             .OnDelete(DeleteBehavior.Restrict);

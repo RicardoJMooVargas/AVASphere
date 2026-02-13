@@ -58,7 +58,7 @@ dotnet ef migrations add Initial \
   --startup-project src/AVASphere.Infrastructure \
   --context MasterDbContext \
   --output-dir System/Migrations
-
+            
 # DESDE EL DIRECTORIO WEBAPI (/home/ricardomogas/RiderProjects/AVASphere/src/AVASphere.WebApi
 
 # OPCIÓN CON PATHS ABSOLUTOS (desde cualquier directorio):

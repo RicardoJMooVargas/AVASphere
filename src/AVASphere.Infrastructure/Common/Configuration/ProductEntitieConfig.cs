@@ -1,5 +1,5 @@
 ﻿//ACTUALIZADO A LA VERSION 0.2 DE LA DB
-﻿using AVASphere.ApplicationCore.Common.Entities.Products;
+using AVASphere.ApplicationCore.Common.Entities.Products;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -47,17 +47,11 @@ public class ProductEntitieConfig : IEntityTypeConfiguration<Product>
             .HasForeignKey(lptq => lptq.IdProduct)
             .OnDelete(DeleteBehavior.Cascade);
         
-        // Relación 1-N con Inventory
-        entity.HasMany(p => p.Inventories)
-            .WithOne(i => i.Product)
-            .HasForeignKey(i => i.IdProduct)
-            .OnDelete(DeleteBehavior.Restrict);
-        
-        // Relación 1-N con PhysicalInventoryDetail
-        entity.HasMany(p => p.PhysicalInventoryDetails)
-            .WithOne(pid => pid.Product)
-            .HasForeignKey(pid => pid.IdProduct)
-            .OnDelete(DeleteBehavior.Restrict);
+        // Las relaciones con entidades de inventario se configuran en sus respectivos EntityConfigs para evitar duplicados:
+        // - Inventory: InventoryEntitieConfig
+        // - PhysicalInventoryDetail: PhysicalInventoryDetailEntitieConfig  
+        // - StockMovement: StockMovementEntitieConfig
+        // - WarehouseTransferDetail: WarehouseTransferDetailEntitieConfig
         
         // Json Relacionado con Modelo
         entity.Property(e => e.CodeJson)

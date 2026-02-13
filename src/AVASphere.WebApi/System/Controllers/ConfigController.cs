@@ -318,32 +318,22 @@ public class ConfigController : ControllerBase
                 await _dbContext.SaveChangesAsync();
             }
 
-            // Crear el rol de Administrador con todos los permisos y módulos
+            // Crear el rol de Administrador con módulo específico y permisos vacíos
             var adminRole = new Rol
             {
                 Name = "Administrador",
                 NormalizedName = "admin",
                 IdArea = areaSystem.IdArea,
-                Permissions = new List<Permission>
+                Permissions = new List<Permission>(), // ✅ ARREGLO VACÍO según solicitud
+                Modules = new List<Module>           // ✅ SOLO MÓDULO 'Total' según solicitud
                 {
-                    new Permission
+                    new Module
                     {
+                        Name = "Total",
                         Index = 0,
-                        Name = "Acceso Total",
-                        Normalized = "FULL_ACCESS",
-                        Type = "SUPER_ADMIN",
-                        Status = "active"
+                        Normalized = "/all"
                     }
-                },
-                Modules = Enum.GetValues(typeof(SystemModule))
-                    .Cast<SystemModule>()
-                    .Select(module => new Module
-                    {
-                        Index = (int)module,
-                        Name = module.ToString(),
-                        Normalized = "/" + module.ToString().ToLower()
-                    })
-                    .ToList()
+                }
             };
 
             _dbContext.Rols.Add(adminRole);

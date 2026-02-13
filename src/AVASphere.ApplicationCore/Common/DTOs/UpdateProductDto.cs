@@ -6,13 +6,12 @@ namespace AVASphere.ApplicationCore.Common.DTOs.ProductDTOs;
 
 public class UpdateProductDto
 {
-    public string MainName { get; set; } = string.Empty;
-    public string SupplierName { get; set; } = string.Empty;
-    public string Unit { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public double Quantity { get; set; }
-    public double Taxes { get; set; }
-    public int IdSupplier { get; set; }
+    public string? MainName { get; set; }
+    public string? Unit { get; set; }
+    public string? Description { get; set; }
+    public double? Quantity { get; set; }
+    public double? Taxes { get; set; }
+    public int? IdSupplier { get; set; }
 
     public List<CodeJson>? CodeJson { get; set; }
     public List<CostsJson>? CostsJson { get; set; }

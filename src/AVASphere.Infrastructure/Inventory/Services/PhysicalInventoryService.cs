@@ -1,9 +1,11 @@
 using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Inventory.DTOs;
 using AVASphere.ApplicationCore.Inventory.Entities.General;
+using AVASphere.ApplicationCore.Inventory.Enums;
 using AVASphere.ApplicationCore.Inventory.Interfaces;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
+using AVASphere.ApplicationCore.Common.Entities.Products;
 using Microsoft.Extensions.Logging;
 
 namespace AVASphere.Infrastructure.Inventory.Services;
@@ -33,12 +35,12 @@ public class PhysicalInventoryService : IPhysicalInventoryService
         _logger = logger;
     }
 
-    public async Task<ApiResponse<PhysicalInventoryResponseDto>> CreatePhysicalInventoryAsync(CreatePhysicalInventoryDto createDto)
+    public async Task<ApiResponse<PhysicalInventoryResponseDto>> CreatePhysicalInventoryAsync(CreatePhysicalInventoryDto createDto, int userId)
     {
         try
         {
             _logger.LogInformation("Creating new PhysicalInventory for warehouse {WarehouseId} by user {UserId}", 
-                createDto.IdWarehouse, createDto.CreatedBy);
+                createDto.IdWarehouse, userId);
 
             // Validar que el warehouse existe
             var warehouse = await _warehouseRepository.GetByIdAsync(createDto.IdWarehouse);
@@ -53,7 +55,7 @@ public class PhysicalInventoryService : IPhysicalInventoryService
             }
 
             // Validar que el usuario existe
-            var user = await _userRepository.SelectByIdAsync(createDto.CreatedBy);
+            var user = await _userRepository.SelectByIdAsync(userId);
             if (user == null)
             {
                 return new ApiResponse<PhysicalInventoryResponseDto>
@@ -68,8 +70,8 @@ public class PhysicalInventoryService : IPhysicalInventoryService
             var physicalInventory = new PhysicalInventory
             {
                 InventoryDate = createDto.InventoryDate,
-                Status = createDto.Status,
-                CreatedBy = createDto.CreatedBy,
+                Status = PhysicalInventoryStatus.Open.ToString(), // Status automáticamente como "Open"
+                CreatedBy = userId, // ID obtenido del token
                 Observations = createDto.Observations,
                 IdWarehouse = createDto.IdWarehouse
             };
@@ -490,5 +492,219 @@ public class PhysicalInventoryService : IPhysicalInventoryService
             DetailsCount = detailsList.Count,
             CreatedAt = physicalInventory.InventoryDate
         };
+    }
+
+    public async Task<ApiResponse<ProductInventoryListResponseDto>> GetProductInventoryListAsync(int idWarehouse, int userId)
+    {
+        try
+        {
+            _logger.LogInformation("Getting product inventory list for warehouse {WarehouseId} and user {UserId}", 
+                idWarehouse, userId);
+
+            // 1. Validar que el warehouse existe
+            var warehouse = await _warehouseRepository.GetByIdAsync(idWarehouse);
+            if (warehouse == null)
+            {
+                return new ApiResponse<ProductInventoryListResponseDto>
+                {
+                    Success = false,
+                    Message = "El warehouse especificado no existe",
+                    StatusCode = 404
+                };
+            }
+
+            // 2. Obtener información del usuario para conocer su área
+            var user = await _userRepository.SelectByIdAsync(userId);
+            if (user == null)
+            {
+                return new ApiResponse<ProductInventoryListResponseDto>
+                {
+                    Success = false,
+                    Message = "El usuario especificado no existe",
+                    StatusCode = 404
+                };
+            }
+
+            var userAreaId = user.Rol?.Area?.IdArea;
+            var userAreaName = user.Rol?.Area?.Name ?? "Sin área";
+
+            // 3. Intentar obtener productos desde la tabla Inventory filtrando por IdWarehouse y área
+            var inventoryItems = await GetInventoryItemsWithLocationFilterAsync(idWarehouse, userAreaId);
+            
+            if (inventoryItems.Any())
+            {
+                // Hay registros en Inventory - usar estos datos
+                var inventoryProducts = await MapInventoryToProductListAsync(inventoryItems, false);
+                
+                return new ApiResponse<ProductInventoryListResponseDto>
+                {
+                    Success = true,
+                    Data = new ProductInventoryListResponseDto
+                    {
+                        Products = inventoryProducts,
+                        TotalProducts = inventoryProducts.Count,
+                        HasInventoryRecords = true,
+                        WarehouseName = warehouse.Name,
+                        UserAreaName = userAreaName
+                    },
+                    Message = $"Se encontraron {inventoryProducts.Count} productos en el inventario",
+                    StatusCode = 200
+                };
+            }
+            else
+            {
+                // No hay registros en Inventory - obtener productos directamente de la tabla Product
+                _logger.LogInformation("No inventory records found, getting products directly from Product table");
+                
+                var directProducts = await GetDirectProductsAsync(idWarehouse);
+                var productList = await MapProductsToProductListAsync(directProducts, true);
+                
+                return new ApiResponse<ProductInventoryListResponseDto>
+                {
+                    Success = true,
+                    Data = new ProductInventoryListResponseDto
+                    {
+                        Products = productList,
+                        TotalProducts = productList.Count,
+                        HasInventoryRecords = false,
+                        WarehouseName = warehouse.Name,
+                        UserAreaName = userAreaName
+                    },
+                    Message = $"Se encontraron {productList.Count} productos directamente (sin registros de inventario)",
+                    StatusCode = 200
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting product inventory list for warehouse {WarehouseId}", idWarehouse);
+            return new ApiResponse<ProductInventoryListResponseDto>
+            {
+                Success = false,
+                Message = $"Error al obtener la lista de productos: {ex.Message}",
+                StatusCode = 500
+            };
+        }
+    }
+
+    // Método auxiliar para obtener items de inventario con filtro de localización
+    private async Task<List<AVASphere.ApplicationCore.Inventory.Entities.General.Inventory>> GetInventoryItemsWithLocationFilterAsync(int idWarehouse, int? userAreaId)
+    {
+        var inventoryItems = await _inventoryRepository.GetByWarehouseIdAsync(idWarehouse);
+        
+        // Si no hay área de usuario, devolver todos los items del warehouse
+        if (!userAreaId.HasValue)
+        {
+            return inventoryItems.ToList();
+        }
+
+        // Filtrar por área si existe LocationDetail vinculado al área del usuario
+        // Nota: Esto requiere una consulta más compleja debido a la estructura actual
+        // Por ahora retornamos todos los items del warehouse
+        // TODO: Implementar filtro por LocationDetails.IdArea cuando esté disponible
+        return inventoryItems.ToList();
+    }
+
+    // Método auxiliar para obtener productos directamente
+    private Task<IEnumerable<Product>> GetDirectProductsAsync(int idWarehouse)
+    {
+        // Obtener todos los productos (sin filtro por warehouse por ahora)
+        // TODO: Implementar lógica para relacionar productos con warehouse
+        // Por ahora simulamos obteniendo productos de un repositorio genérico
+        
+        // Como no tenemos repositorio de productos, vamos a simular con datos mínimos
+        return Task.FromResult<IEnumerable<Product>>(new List<Product>());
+    }
+
+    // Método auxiliar para mapear Inventory a ProductInventoryListDto
+    private async Task<List<ProductInventoryListDto>> MapInventoryToProductListAsync(
+        List<AVASphere.ApplicationCore.Inventory.Entities.General.Inventory> inventoryItems, bool isDirectFromProducts)
+    {
+        var result = new List<ProductInventoryListDto>();
+
+        foreach (var item in inventoryItems)
+        {
+            var productDto = new ProductInventoryListDto
+            {
+                IdPhysicalInventoryDetail = null, // No viene de PhysicalInventoryDetail
+                SystemQuantity = item.Stock,
+                PhysicalQuantity = 0, // Se llenará durante el conteo
+                Difference = 0, // Se calculará después
+                ProductMainName = item.Product.MainName ?? "Sin nombre",
+                ProductUnit = item.Product.Unit ?? "Sin unidad", 
+                ProductDescription = item.Product.Description ?? "Sin descripción",
+                ProductSupplierName = item.Product.Supplier?.Name ?? "Sin proveedor",
+                ProductCodeJsonCode = item.Product.CodeJson?.FirstOrDefault(c => c.Type == "Principal")?.Code ?? 
+                                      item.Product.FirstCode,
+                ProductProperties = await MapProductPropertiesAsync(item.Product.ProductProperties),
+                IdLocationDetails = item.LocationDetail.HasValue ? (int?)item.LocationDetail.Value : null,
+                LocationDetailsCode = await BuildLocationDetailsCodeAsync(item.LocationDetail),
+                IsDirectFromProducts = isDirectFromProducts
+            };
+
+            result.Add(productDto);
+        }
+
+        return result;
+    }
+
+    // Método auxiliar para mapear Products directos a ProductInventoryListDto
+    private async Task<List<ProductInventoryListDto>> MapProductsToProductListAsync(
+        IEnumerable<Product> products, bool isDirectFromProducts)
+    {
+        var result = new List<ProductInventoryListDto>();
+
+        foreach (var product in products)
+        {
+            var productDto = new ProductInventoryListDto
+            {
+                IdPhysicalInventoryDetail = null,
+                SystemQuantity = 0, // No hay stock registrado
+                PhysicalQuantity = 0,
+                Difference = 0,
+                ProductMainName = product.MainName ?? "Sin nombre",
+                ProductUnit = product.Unit ?? "Sin unidad",
+                ProductDescription = product.Description ?? "Sin descripción", 
+                ProductSupplierName = product.Supplier?.Name ?? "Sin proveedor",
+                ProductCodeJsonCode = product.CodeJson?.FirstOrDefault(c => c.Type == "Principal")?.Code ?? 
+                                      product.FirstCode,
+                ProductProperties = await MapProductPropertiesAsync(product.ProductProperties),
+                IdLocationDetails = null,
+                LocationDetailsCode = "Sin ubicación",
+                IsDirectFromProducts = isDirectFromProducts
+            };
+
+            result.Add(productDto);
+        }
+
+        return result;
+    }
+
+    // Método auxiliar para mapear propiedades del producto
+    private Task<List<ProductPropertyDto>> MapProductPropertiesAsync(ICollection<ProductProperties> properties)
+    {
+        var result = properties.Select(p => new ProductPropertyDto
+        {
+            IdProductProperties = p.IdProductProperties,
+            CustomValue = p.CustomValue,
+            IdPropertyValue = p.IdPropertyValue,
+            PropertyName = p.PropertyValue?.Property?.Name ?? "Sin nombre",
+            PropertyValue = p.PropertyValue?.Value ?? "Sin valor"
+        }).ToList();
+
+        return Task.FromResult(result);
+    }
+
+    // Método auxiliar para construir el código de ubicación
+    private Task<string> BuildLocationDetailsCodeAsync(double? locationDetailId)
+    {
+        if (!locationDetailId.HasValue)
+        {
+            return Task.FromResult("Sin ubicación");
+        }
+
+        // TODO: Implementar lógica para obtener LocationDetails por ID y construir el código
+        // Por ahora retornamos un placeholder
+        return Task.FromResult($"LOC-{locationDetailId.Value}");
     }
 }

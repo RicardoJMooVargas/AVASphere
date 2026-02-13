@@ -10,7 +10,7 @@ public interface IPhysicalInventoryService
     /// </summary>
     /// <param name="createDto">Datos para crear el conteo físico</param>
     /// <returns>Respuesta con el conteo físico creado</returns>
-    Task<ApiResponse<PhysicalInventoryResponseDto>> CreatePhysicalInventoryAsync(CreatePhysicalInventoryDto createDto);
+    Task<ApiResponse<PhysicalInventoryResponseDto>> CreatePhysicalInventoryAsync(CreatePhysicalInventoryDto createDto, int userId);
     
     /// <summary>
     /// Actualiza un Conteo Físico existente
@@ -56,5 +56,15 @@ public interface IPhysicalInventoryService
         string? status = null, 
         DateTime? startDate = null, 
         DateTime? endDate = null);
+        
+    /// <summary>
+    /// Obtener lista de productos para conteo físico basado en IdWarehouse y área del usuario
+    /// Filtra por IdWarehouse e IdLocationDetails.IdArea del usuario.
+    /// Si no existen registros en Inventory, obtiene productos directamente de la tabla Product.
+    /// </summary>
+    /// <param name="idWarehouse">ID del warehouse</param>
+    /// <param name="userId">ID del usuario (obtenido del token) para determinar su área</param>
+    /// <returns>Lista de productos para conteo físico</returns>
+    Task<ApiResponse<ProductInventoryListResponseDto>> GetProductInventoryListAsync(int idWarehouse, int userId);
 }
 

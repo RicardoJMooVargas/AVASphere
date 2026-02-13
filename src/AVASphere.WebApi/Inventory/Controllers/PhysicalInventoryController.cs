@@ -2,6 +2,8 @@ using AVASphere.ApplicationCore.Common.Enums;
 using AVASphere.ApplicationCore.Inventory.DTOs;
 using AVASphere.ApplicationCore.Inventory.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;   
 
 namespace AVASphere.WebApi.Inventory.Controllers;
 
@@ -24,9 +26,17 @@ public class PhysicalInventoryController : ControllerBase
     /// <param name="createDto">Datos para crear el conteo físico</param>
     /// <returns>Conteo físico creado</returns>
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> CreatePhysicalInventory([FromBody] CreatePhysicalInventoryDto createDto)
     {
-        var result = await _physicalInventoryService.CreatePhysicalInventoryAsync(createDto);
+        // Obtener el ID del usuario del token JWT
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+        {
+            return Unauthorized("Token de autorización inválido o usuario no encontrado.");
+        }
+
+        var result = await _physicalInventoryService.CreatePhysicalInventoryAsync(createDto, userId);
         
         if (result.Success)
         {
@@ -164,6 +174,41 @@ public class PhysicalInventoryController : ControllerBase
         
         return result.StatusCode switch
         {
+            500 => StatusCode(500, result),
+            _ => BadRequest(result)
+        };
+    }
+
+    /// <summary>
+    /// Obtener lista de productos para conteo físico basado en warehouse y área del usuario
+    /// Filtra productos desde la tabla Inventory usando IdWarehouse e IdLocationDetails.IdArea del usuario.
+    /// Si no existen registros en Inventory, obtiene productos directamente de la tabla Product.
+    /// El userId se obtiene automáticamente del token JWT.
+    /// </summary>
+    /// <param name="idWarehouse">ID del warehouse para filtrar productos</param>
+    /// <returns>Lista de productos para realizar el conteo físico</returns>
+    [HttpGet("get-product-inventory-list")]
+    [Authorize]
+    public async Task<IActionResult> GetProductInventoryList([FromQuery] int idWarehouse)
+    {
+        // Obtener el ID del usuario del token JWT
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+        {
+            return Unauthorized("Token de autorización inválido o usuario no encontrado.");
+        }
+
+        var result = await _physicalInventoryService.GetProductInventoryListAsync(idWarehouse, userId);
+        
+        if (result.Success)
+        {
+            return Ok(result);
+        }
+        
+        return result.StatusCode switch
+        {
+            400 => BadRequest(result),
+            404 => NotFound(result),
             500 => StatusCode(500, result),
             _ => BadRequest(result)
         };

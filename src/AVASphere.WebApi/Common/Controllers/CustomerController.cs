@@ -31,7 +31,7 @@ public class CustomerController : ControllerBase
             };
 
             var customers = await _customerService.GetAsync(filters);
-            
+
             return Ok(new ApiResponse(customers, "Customers retrieved successfully"));
         }
         catch (Exception)
@@ -52,7 +52,7 @@ public class CustomerController : ControllerBase
             }
 
             var createdCustomer = await _customerService.NewAsync(request);
-            
+
             return Ok(new ApiResponse(createdCustomer, "Customer created successfully", 201));
         }
         catch (ArgumentNullException ex)
@@ -81,7 +81,7 @@ public class CustomerController : ControllerBase
             }
 
             var updatedCustomer = await _customerService.EditAsync(request);
-            
+
             return Ok(new ApiResponse(updatedCustomer, "Customer updated successfully"));
         }
         catch (ArgumentNullException ex)
@@ -113,12 +113,12 @@ public class CustomerController : ControllerBase
         try
         {
             var deleted = await _customerService.DeleteAsync(idCustomer);
-            
+
             if (!deleted)
             {
                 return NotFound(new ApiResponse($"Customer with Id {idCustomer} not found", 404));
             }
-            
+
             return Ok(new ApiResponse(true, "Customer deleted successfully"));
         }
         catch (Exception)
@@ -127,7 +127,7 @@ public class CustomerController : ControllerBase
         }
     }
 
-    
+
     // Búsqueda inteligente de clientes por nombre completo
     [HttpGet("search")]
     public async Task<ActionResult> SearchCustomers([FromQuery] string searchText)
@@ -140,12 +140,81 @@ public class CustomerController : ControllerBase
             }
 
             var customers = await _customerService.SearchAsync(searchText);
-            
+
             return Ok(new ApiResponse(customers, "Customer search completed successfully"));
         }
         catch (Exception)
         {
             return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
+
+    /// <summary>
+    /// Importa clientes desde un archivo Excel
+    /// </summary>
+    /// <param name="file">Archivo Excel que contiene los clientes a importar</param>
+    [HttpPost("import-clients")]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult> ImportFromExcel(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new ApiResponse("No se proporcionó ningún archivo", 400));
+
+        if (!file.FileName.EndsWith(".xlsx") && !file.FileName.EndsWith(".xls"))
+            return BadRequest(new ApiResponse("El archivo debe ser un Excel (.xlsx o .xls)", 400));
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var result = await _customerService.ImportFromExcelAsync(stream);
+
+            // Construir mensaje con estadísticas completas
+            var messageParts = new List<string>();
+
+            if (result.SuccessCount > 0)
+                messageParts.Add($"{result.SuccessCount} importados");
+
+            if (result.SkippedCount > 0)
+                messageParts.Add($"{result.SkippedCount} omitidos (ya existen)");
+
+            if (result.ErrorCount > 0)
+                messageParts.Add($"{result.ErrorCount} errores");
+
+            var message = $"Importación completada: {string.Join(", ", messageParts)}";
+
+            if (result.ErrorCount > 0)
+            {
+                return Ok(new ApiResponse(result, message, 207)); // 207 Multi-Status
+            }
+
+            return Ok(new ApiResponse(result, message, 200));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse($"Error al importar: {ex.Message}", 500));
+        }
+    }
+
+    /// <summary>
+    /// Restablece la tabla de clientes eliminando todos los registros y reiniciando la secuencia de ID
+    /// </summary>
+    [HttpDelete("reset-table-customers")]
+    public async Task<ActionResult> ResetTable()
+    {
+        try
+        {
+            var result = await _customerService.ResetTableAsync();
+
+            if (!result)
+            {
+                return StatusCode(500, new ApiResponse("Error al restablecer la tabla de clientes", 500));
+            }
+
+            return Ok(new ApiResponse(true, "Tabla de clientes restablecida exitosamente. Todos los registros fueron eliminados y el ID reiniciado.", 200));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse($"Error al restablecer tabla: {ex.Message}", 500));
         }
     }
 }

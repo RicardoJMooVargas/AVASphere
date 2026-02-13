@@ -34,4 +34,10 @@ public interface ICustomerRepository
 
     // Búsqueda inteligente por coincidencia de texto en nombre completo
     Task<IEnumerable<Customer>> SearchByFullNameAsync(string searchText);
+
+    // Verificar si existe un cliente por ExternalId
+    Task<bool> ExistsByExternalIdAsync(int externalId);
+
+    // Restablecer tabla Customers (eliminar todos los registros y reiniciar secuencia)
+    Task<bool> ResetTableAsync();
 }

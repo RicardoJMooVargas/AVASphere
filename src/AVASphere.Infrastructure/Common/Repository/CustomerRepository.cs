@@ -217,4 +217,27 @@ public class CustomerRepository : ICustomerRepository
 
         return await query.AsNoTracking().ToListAsync();
     }
+
+    public async Task<bool> ExistsByExternalIdAsync(int externalId)
+    {
+        return await _context.Customers.AnyAsync(c => c.ExternalId == externalId);
+    }
+
+    public async Task<bool> ResetTableAsync()
+    {
+        try
+        {
+            // Eliminar todos los registros
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"Customers\"");
+
+            // Reiniciar la secuencia del ID
+            await _context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE IF EXISTS \"Customers_IdCustomer_seq\" RESTART WITH 1");
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

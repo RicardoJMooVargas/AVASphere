@@ -7,6 +7,8 @@ using AVASphere.ApplicationCore.Sales.DTOs.ImportDTOs;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using System.Text.Json;
 using SaleEntity = AVASphere.ApplicationCore.Sales.Entities.Sale;
+using AVASphere.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 
 
 namespace AVASphere.WebApi.Sale.Controllers
@@ -20,15 +22,18 @@ namespace AVASphere.WebApi.Sale.Controllers
         private readonly ISaleService _saleService;
         private readonly IExternalSalesService _externalSalesService;
         private readonly HttpClient _httpClient;
+        private readonly MasterDbContext _dbContext;
 
         public SaleManagerController(
             ISaleService saleService,
             IExternalSalesService externalSalesService,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            MasterDbContext dbContext)
         {
             _saleService = saleService;
             _externalSalesService = externalSalesService ?? throw new ArgumentNullException(nameof(externalSalesService));
             _httpClient = httpClient;
+            _dbContext = dbContext;
         }
 
         /* <summary>
@@ -62,12 +67,12 @@ namespace AVASphere.WebApi.Sale.Controllers
             {
                 // Catálogo fijo automático
                 const string catalogo = "AVA01";
-                
+
                 if (aux == "string")
                 {
                     aux = null;
                 }
-                
+
                 // Construir filtro
                 var filter = new SaleFilterDto
                 {
@@ -186,7 +191,7 @@ namespace AVASphere.WebApi.Sale.Controllers
 
             var created = await _saleService.CreateSaleAsync(saleDto, createdByUserId, customerId, salesExecutive);
 
-            return CreatedAtAction(nameof(GetById), new { id = created.IdSale }, created);
+            return StatusCode(StatusCodes.Status201Created, created);
         }
 
         // GET: api/Sale/{id}
@@ -204,6 +209,70 @@ namespace AVASphere.WebApi.Sale.Controllers
             var ok = await _saleService.DeleteSaleAsync(id);
             if (!ok) return NotFound();
             return NoContent();
+        }
+
+        /// <summary>
+        /// Elimina todos los datos de ventas y relaciones, reiniciando las secuencias
+        /// </summary>
+        [HttpDelete("delete-sales-data")]
+        public async Task<IActionResult> DeleteSalesData()
+        {
+            try
+            {
+                await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+                try
+                {
+                    var deleteCommands = new[]
+                    {
+                        // Eliminar vínculos primero (FK a Sales)
+                        "DELETE FROM \"SaleQuotations\";",
+                        "ALTER SEQUENCE IF EXISTS \"SaleQuotations_IdSaleQuotation_seq\" RESTART WITH 1;",
+
+                        // Eliminar ventas
+                        "DELETE FROM \"Sales\";",
+                        "ALTER SEQUENCE IF EXISTS \"Sales_IdSale_seq\" RESTART WITH 1;",
+
+                        // Limpiar referencias en cotizaciones
+                        "UPDATE \"Quotations\" SET \"LinkedSaleId\" = NULL, \"LinkedSaleFolio\" = NULL, \"UpdatedAt\" = NOW();"
+                    };
+
+                    foreach (var command in deleteCommands)
+                    {
+                        await _dbContext.Database.ExecuteSqlRawAsync(command);
+                    }
+
+                    await transaction.CommitAsync();
+
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "Datos de ventas eliminados exitosamente",
+                        tablesCleared = new[] { "SaleQuotations", "Sales" },
+                        tablesUpdated = new[] { "Quotations" },
+                        sequencesReset = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        error = "Error al eliminar datos de ventas",
+                        details = ex.Message
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    error = "Error al iniciar transacción",
+                    details = ex.Message
+                });
+            }
         }
 
         [HttpPost("CreateFromQuotations")]
@@ -232,7 +301,107 @@ namespace AVASphere.WebApi.Sale.Controllers
             };
 
             var created = await _saleService.CreateSaleFromQuotationsAsync(dto.QuotationIds, sale, User?.Identity?.Name ?? "system");
-            return CreatedAtAction(nameof(GetById), new { id = created.IdSale }, created);
+            return StatusCode(StatusCodes.Status201Created, created);
+        }
+
+
+        [HttpPost("RegisterSaleWithQuotation")]
+        public async Task<IActionResult> RegisterSaleWithQuotation([FromBody] CreateSaleWithQuotationLinkDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                string userName = User?.Identity?.Name ?? "system";
+
+                var createdSale = await _saleService.CreateSaleAndLinkQuotationAsync(dto, userName);
+
+                // Crear respuesta estructurada
+                var response = new
+                {
+                    success = true,
+                    idSale = createdSale.IdSale,
+                    folio = createdSale.Folio,
+                    totalAmount = createdSale.TotalAmount,
+                    saleDate = createdSale.SaleDate,
+                    type = createdSale.Type,
+                    idCustomer = createdSale.IdCustomer,
+                    linkedQuotationId = dto.IdQuotation,
+                    message = "Venta creada y vinculada exitosamente con la cotización"
+                };
+
+                return StatusCode(StatusCodes.Status201Created, response);
+            }
+            catch (ArgumentNullException ex)
+            {
+                return BadRequest(new { success = false, error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { success = false, error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    error = "Error al crear la venta y vincular la cotización",
+                    details = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// Desvincula una venta de una cotización existente.
+        /// </summary>
+        [HttpDelete("UnlinkSaleFromQuotation")]
+        public async Task<IActionResult> UnlinkSaleFromQuotation(
+            [FromQuery] int saleId,
+            [FromQuery] int quotationId)
+        {
+            try
+            {
+                string userName = User?.Identity?.Name ?? "system";
+
+                var result = await _saleService.UnlinkSaleFromQuotationAsync(saleId, quotationId, userName);
+
+                if (!result)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        error = "No se pudo desvincular la venta de la cotización"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Venta desvinculada de la cotización exitosamente",
+                    saleId = saleId,
+                    quotationId = quotationId,
+                    unlinkedAt = DateTime.UtcNow,
+                    unlinkedBy = userName
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    error = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    error = "Error al desvincular la venta de la cotización",
+                    details = ex.Message
+                });
+            }
         }
 
         [HttpGet("ObtenerVentasPorFecha")]
@@ -348,41 +517,8 @@ namespace AVASphere.WebApi.Sale.Controllers
                 });
             }
         }
-        
-        /// <summary>
-        /// POST: api/SaleManager/ImportSalesMonth
-        /// 
-        /// PROPÓSITO: Importa ventas del sistema externo InforAVA para un mes completo
-        /// de forma optimizada, minimizando la carga en la API externa.
-        /// 
-        /// OPTIMIZACIONES IMPLEMENTADAS:
-        /// 1. Procesamiento por lotes de días (configurable, por defecto 5 días)
-        /// 2. Cache de clientes para evitar consultas repetitivas
-        /// 3. Detección de ventas duplicadas antes de inserción
-        /// 4. Pausas entre lotes para no saturar API externa
-        /// 5. Manejo granular de errores sin afectar el lote completo
-        /// 6. Consulta de detalles de productos para cada venta
-        /// 
-        /// PROCESO:
-        /// 1. Valida parámetros (año/mes válidos, no futuro, máximo 1 mes)
-        /// 2. Divide el mes en lotes de días para procesamiento controlado
-        /// 3. Para cada día del lote, consulta VENTASPORFECHAV
-        /// 4. Filtra ventas ya existentes en BD local
-        /// 5. Crea/encuentra clientes necesarios en cache
-        /// 6. Para cada venta, consulta DetalleVentaV para obtener productos
-        /// 7. Inserta ventas con toda la información enriquecida
-        /// 8. Retorna estadísticas detalladas del proceso
-        /// 
-        /// LIMITACIONES:
-        /// - Máximo 1 mes por importación
-        /// - Timeout de 10 minutos por importación
-        /// - Máximo 1000 ventas procesadas por seguridad
-        /// </summary>
-        /// <param name="year">Año a importar (2020-presente)</param>
-        /// <param name="month">Mes a importar (1-12)</param>
-        /// <param name="idConfigSys">ID del sistema de configuración (requerido)</param>
-        /// <param name="batchSize">Tamaño del lote en días (opcional, por defecto 5)</param>
-        /// <returns>Estadísticas detalladas de la importación</returns>
+
+
         [HttpPost("ImportSalesMonth")]
         public async Task<IActionResult> ImportSalesMonth(
             [FromQuery] int year,
@@ -448,10 +584,10 @@ namespace AVASphere.WebApi.Sale.Controllers
                 var createdByUserId = "system"; // O obtener del contexto de usuario actual
 
                 var importResult = await _saleService.ImportSalesForMonthAsync(
-                    year, 
-                    month, 
-                    idConfigSys, 
-                    createdByUserId, 
+                    year,
+                    month,
+                    idConfigSys,
+                    createdByUserId,
                     batchSize);
 
                 // 📈 PREPARAR RESPUESTA CON ESTADÍSTICAS DETALLADAS
@@ -473,8 +609,8 @@ namespace AVASphere.WebApi.Sale.Controllers
                         TotalSalesImported = importResult.TotalSalesImported,
                         TotalSalesSkipped = importResult.TotalSalesSkipped,
                         TotalSalesError = importResult.TotalSalesError,
-                        SuccessRate = importResult.TotalSalesFound > 0 
-                            ? Math.Round((double)importResult.TotalSalesImported / importResult.TotalSalesFound * 100, 2) 
+                        SuccessRate = importResult.TotalSalesFound > 0
+                            ? Math.Round((double)importResult.TotalSalesImported / importResult.TotalSalesFound * 100, 2)
                             : 0
                     },
                     Customers = new
@@ -488,8 +624,8 @@ namespace AVASphere.WebApi.Sale.Controllers
                         TotalProcessingTime = importResult.TotalProcessingTime.ToString(@"hh\:mm\:ss"),
                         BatchesProcessed = importResult.BatchesProcessed,
                         AverageTimePerBatch = $"{importResult.AverageTimePerBatch:F2} seconds",
-                        SalesPerMinute = importResult.TotalProcessingTime.TotalMinutes > 0 
-                            ? Math.Round(importResult.TotalSalesImported / importResult.TotalProcessingTime.TotalMinutes, 2) 
+                        SalesPerMinute = importResult.TotalProcessingTime.TotalMinutes > 0
+                            ? Math.Round(importResult.TotalSalesImported / importResult.TotalProcessingTime.TotalMinutes, 2)
                             : 0
                     },
                     BatchDetails = importResult.BatchSummaries.Select(b => new

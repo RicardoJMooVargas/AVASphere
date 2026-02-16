@@ -9,6 +9,7 @@ using AVASphere.ApplicationCore.Common.Extensions;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Sales.DTOs;
 using AVASphere.ApplicationCore.Sales.DTOs.ImportDTOs;
+using AVASphere.ApplicationCore.Sales.DTOs.SaleDTOs;
 using AVASphere.ApplicationCore.Sales.Entities;
 using AVASphere.ApplicationCore.Sales.Interfaces;
 using AVASphere.Infrastructure;
@@ -137,6 +138,177 @@ public class SaleService : ISaleService
         {
             await tx.RollbackAsync();
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Crea una venta y la vincula inmediatamente con una cotización existente.
+    /// Usado cuando desde el frontend se convierte una cotización en venta.
+    /// 
+    /// FLUJO TRANSACCIONAL:
+    /// 1. Valida que la cotización exista
+    /// 2. Valida que el cliente exista
+    /// 3. Crea el registro en la tabla Sales
+    /// 4. Crea el registro en la tabla SaleQuotations (vinculación)
+    /// 5. Opcionalmente marca la cotización como primaria
+    /// 6. Actualiza la cotización con los datos de la venta vinculada
+    /// 7. Commit de transacción
+    /// </summary>
+    public async Task<Sale> CreateSaleAndLinkQuotationAsync(
+        CreateSaleWithQuotationLinkDto dto,
+        string createdByUserId)
+    {
+        if (dto == null)
+            throw new ArgumentNullException(nameof(dto), "DTO cannot be null");
+
+        await using var tx = await _dbContext.Database.BeginTransactionAsync();
+        try
+        {
+            // 1️⃣ VALIDAR COTIZACIÓN
+            var quotation = await _quotationRepository.GetByIdAsync(dto.IdQuotation);
+            if (quotation == null)
+                throw new InvalidOperationException($"Quotation with ID {dto.IdQuotation} not found");
+
+            // 2️⃣ VALIDAR CLIENTE
+            var customer = await _customerRepository.GetByIdAsync(dto.IdCustomer);
+            if (customer == null)
+                throw new InvalidOperationException($"Customer with ID {dto.IdCustomer} not found");
+
+            // 3️⃣ VALIDAR FOLIO ÚNICO
+            var existingSale = await _saleRepository.GetSaleByFolioAsync(dto.Folio);
+            if (existingSale != null)
+                throw new InvalidOperationException($"A sale with folio '{dto.Folio}' already exists");
+
+            // 4️⃣ CREAR ENTIDAD SALE
+            var sale = new Sale
+            {
+                IdCustomer = dto.IdCustomer,
+                SalesExecutive = dto.SalesExecutive,
+                SaleDate = dto.SaleDate ?? DateTime.UtcNow,
+                Type = dto.Type,
+                Folio = dto.Folio,
+                TotalAmount = dto.TotalAmount,
+                DeliveryDriver = dto.DeliveryDriver,
+                HomeDelivery = dto.HomeDelivery,
+                DeliveryDate = dto.DeliveryDate,
+                SatisfactionLevel = dto.SatisfactionLevel,
+                SatisfactionReason = dto.SatisfactionReason,
+                Comment = dto.Comment,
+                AfterSalesFollowupDate = dto.AfterSalesFollowupDate,
+                IdConfigSys = dto.IdConfigSys,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+
+                // Inicializar colecciones vacías
+                ProductsJson = new List<SingleProductJson>(),
+                LinkedQuotations = new List<QuotationReference>()
+            };
+
+            // 5️⃣ INSERTAR VENTA
+            var createdSale = await _saleRepository.CreateSaleAsync(sale);
+
+            // 6️⃣ CREAR RELACIÓN SALEQUOTATION
+            var saleQuotation = new SaleQuotation
+            {
+                IdSale = createdSale.IdSale,
+                IdQuotation = dto.IdQuotation,
+                CreatedBy = createdByUserId,
+                CreatedAt = DateTime.UtcNow,
+                GeneralComment = dto.GeneralCommentForLink ?? $"Venta creada desde cotización {dto.IdQuotation}",
+
+                // Copiar productos desde la cotización si existen
+                ProductsJson = quotation.ProductsJson ?? new List<SingleProductJson>(),
+
+                // Crear snapshot de precios
+                PriceSnapshot = new PriceSnapshotJson
+                {
+                    Subtotal = dto.TotalAmount,
+                    TaxAmount = 0,
+                    TotalAmount = dto.TotalAmount,
+                    Currency = "MXN"
+                }
+            };
+
+            await _dbContext.Set<SaleQuotation>().AddAsync(saleQuotation);
+            await _dbContext.SaveChangesAsync();
+
+            // 7️⃣ ACTUALIZAR COTIZACIÓN CON DATOS DE LA VENTA
+            quotation.LinkedSaleId = createdSale.IdSale.ToString();
+            quotation.LinkedSaleFolio = createdSale.Folio;
+            quotation.UpdatedAt = DateTime.UtcNow;
+            await _quotationRepository.UpdateQuotationAsync(quotation);
+
+            // 8️⃣ SI MARCAR COMO PRIMARIA
+            if (dto.MarkAsPrimary)
+            {
+                await _saleQuotationService.MarkPrimaryQuotationAsync(
+                    createdSale.IdSale,
+                    dto.IdQuotation,
+                    createdByUserId
+                );
+            }
+
+            await tx.CommitAsync();
+            return createdSale;
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync();
+            throw new InvalidOperationException(
+                $"Error creating sale and linking quotation: {ex.Message}",
+                ex
+            );
+        }
+    }
+
+    /// <summary>
+    /// Desvincula una venta de una cotización existente.
+    /// Elimina el registro de SaleQuotations y actualiza la Quotation removiendo la referencia a la venta.
+    /// </summary>
+    public async Task<bool> UnlinkSaleFromQuotationAsync(int saleId, int quotationId, string requestedByUserId)
+    {
+        await using var tx = await _dbContext.Database.BeginTransactionAsync();
+        try
+        {
+            // 1️⃣ VALIDAR QUE LA VENTA EXISTA
+            var sale = await _saleRepository.GetSaleByIdAsync(saleId);
+            if (sale == null)
+                throw new InvalidOperationException($"Sale with ID {saleId} not found");
+
+            // 2️⃣ VALIDAR QUE LA COTIZACIÓN EXISTA
+            var quotation = await _quotationRepository.GetByIdAsync(quotationId);
+            if (quotation == null)
+                throw new InvalidOperationException($"Quotation with ID {quotationId} not found");
+
+            // 3️⃣ VALIDAR QUE EXISTA LA RELACIÓN
+            var saleQuotations = await _dbContext.Set<SaleQuotation>()
+                .Where(sq => sq.IdSale == saleId && sq.IdQuotation == quotationId)
+                .ToListAsync();
+
+            if (saleQuotations == null || saleQuotations.Count == 0)
+                throw new InvalidOperationException(
+                    $"No relationship found between Sale {saleId} and Quotation {quotationId}");
+
+            // 4️⃣ ELIMINAR LA RELACIÓN EN SALEQUOTATIONS
+            _dbContext.Set<SaleQuotation>().RemoveRange(saleQuotations);
+            await _dbContext.SaveChangesAsync();
+
+            // 5️⃣ ACTUALIZAR COTIZACIÓN REMOVIENDO REFERENCIA A LA VENTA
+            quotation.LinkedSaleId = null;
+            quotation.LinkedSaleFolio = null;
+            quotation.UpdatedAt = DateTime.UtcNow;
+            await _quotationRepository.UpdateQuotationAsync(quotation);
+
+            await tx.CommitAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync();
+            throw new InvalidOperationException(
+                $"Error unlinking sale {saleId} from quotation {quotationId}: {ex.Message}",
+                ex
+            );
         }
     }
 
@@ -349,10 +521,10 @@ public class SaleService : ISaleService
     /// 4. Compilar estadísticas de resultado
     /// </summary>
     public async Task<ImportSalesResult> ImportSalesForMonthAsync(
-        int year, 
-        int month, 
-        int idConfigSys, 
-        string createdByUserId, 
+        int year,
+        int month,
+        int idConfigSys,
+        string createdByUserId,
         int batchSize = 5)
     {
         var result = new ImportSalesResult
@@ -380,14 +552,14 @@ public class SaleService : ISaleService
             foreach (var batch in dateBatches)
             {
                 var batchSummary = await ProcessDateBatchAsync(
-                    batch, 
-                    idConfigSys, 
-                    createdByUserId, 
-                    customerCache, 
+                    batch,
+                    idConfigSys,
+                    createdByUserId,
+                    customerCache,
                     batchNumber);
 
                 result.BatchSummaries.Add(batchSummary);
-                
+
                 // Acumular estadísticas
                 result.TotalSalesFound += batchSummary.SalesProcessed;
                 result.TotalSalesImported += batchSummary.SalesImported;
@@ -410,12 +582,12 @@ public class SaleService : ISaleService
 
             stopwatch.Stop();
             result.TotalProcessingTime = stopwatch.Elapsed;
-            result.AverageTimePerBatch = result.BatchesProcessed > 0 
-                ? result.TotalProcessingTime.TotalSeconds / result.BatchesProcessed 
+            result.AverageTimePerBatch = result.BatchesProcessed > 0
+                ? result.TotalProcessingTime.TotalSeconds / result.BatchesProcessed
                 : 0;
 
             result.IsSuccessful = result.TotalSalesError == 0;
-            result.Message = result.IsSuccessful 
+            result.Message = result.IsSuccessful
                 ? $"Importación completada exitosamente. {result.TotalSalesImported} ventas importadas."
                 : $"Importación completada con {result.TotalSalesError} errores. {result.TotalSalesImported} ventas importadas.";
 
@@ -465,8 +637,8 @@ public class SaleService : ISaleService
     /// Divide el rango de fechas en lotes para procesamiento optimizado.
     /// </summary>
     private List<(DateTime StartDate, DateTime EndDate)> GenerateDateBatches(
-        DateTime startDate, 
-        DateTime endDate, 
+        DateTime startDate,
+        DateTime endDate,
         int batchSize)
     {
         var batches = new List<(DateTime, DateTime)>();
@@ -520,7 +692,7 @@ public class SaleService : ISaleService
             // 🚫 FILTRAR VENTAS YA EXISTENTES
             var existingFolios = await GetExistingSaleFoliosAsync(externalSales.Select(s => s.Folio).Where(f => !string.IsNullOrEmpty(f)));
             var newSales = externalSales.Where(s => !existingFolios.Contains(s.Folio)).ToList();
-            
+
             summary.SalesSkipped = summary.SalesProcessed - newSales.Count;
 
             // 👥 PROCESAR CLIENTES
@@ -543,7 +715,7 @@ public class SaleService : ISaleService
             }
 
             summary.IsSuccessful = summary.SalesError == 0;
-            summary.Message = summary.IsSuccessful 
+            summary.Message = summary.IsSuccessful
                 ? $"Lote procesado exitosamente: {summary.SalesImported} importadas, {summary.SalesSkipped} omitidas."
                 : $"Lote procesado con errores: {summary.SalesImported} importadas, {summary.SalesError} errores.";
 
@@ -567,7 +739,7 @@ public class SaleService : ISaleService
     /// Obtiene ventas externas para un rango de fechas.
     /// </summary>
     private async Task<IEnumerable<ExternalSalesDto>> GetExternalSalesForDateRangeAsync(
-        DateTime startDate, 
+        DateTime startDate,
         DateTime endDate)
     {
         var allSales = new List<ExternalSalesDto>();
@@ -611,11 +783,11 @@ public class SaleService : ISaleService
     /// 3. Maneja duplicados de ExternalId de forma robusta
     /// </summary>
     private async Task ProcessCustomersForSalesAsync(
-        IEnumerable<ExternalSalesDto> sales, 
+        IEnumerable<ExternalSalesDto> sales,
         Dictionary<string, Customer> customerCache)
     {
         var salesList = sales.ToList();
-        
+
         // 🚀 OPTIMIZACIÓN: Pre-cargar todos los ExternalIds únicos del lote
         var externalIds = salesList
             .Where(s => !string.IsNullOrWhiteSpace(s.Cliente) && int.TryParse(s.Cliente.Trim(), out _))
@@ -625,7 +797,7 @@ public class SaleService : ISaleService
 
         // 📦 Cargar todos los clientes existentes en una sola consulta
         var existingCustomers = new Dictionary<int, Customer>();
-        
+
         if (externalIds.Any())
         {
             var customers = await _customerRepository.SelectAsync(null, null, null);
@@ -637,7 +809,7 @@ public class SaleService : ISaleService
 
         // 🔄 Procesar cada venta
         var customersToCreate = new List<(string ExternalId, ExternalSalesDto Sale)>();
-        
+
         foreach (var sale in salesList)
         {
             if (string.IsNullOrWhiteSpace(sale.Cliente) || string.IsNullOrWhiteSpace(sale.NombreCliente))
@@ -649,12 +821,12 @@ public class SaleService : ISaleService
             {
                 // 🔍 Buscar en clientes pre-cargados
                 Customer? existingCustomer = null;
-                
+
                 if (int.TryParse(customerExternalId, out var extId) && existingCustomers.ContainsKey(extId))
                 {
                     existingCustomer = existingCustomers[extId];
                 }
-                
+
                 // Si no se encuentra por ExternalId, buscar por nombre (fallback)
                 if (existingCustomer == null)
                 {
@@ -691,7 +863,7 @@ public class SaleService : ISaleService
                     {
                         var allCustomers = await _customerRepository.SelectAsync(null, null, conflictExtId);
                         var conflictCustomer = allCustomers.FirstOrDefault();
-                        
+
                         if (conflictCustomer != null)
                         {
                             customerCache[externalId] = conflictCustomer;
@@ -757,7 +929,7 @@ public class SaleService : ISaleService
     private async Task<Customer> CreateBasicCustomerFromSaleDataAsync(ExternalSalesDto sale, bool useAlternativeExternalId = false)
     {
         int externalId;
-        
+
         if (useAlternativeExternalId)
         {
             // Usar un ExternalId alternativo para evitar duplicados
@@ -767,7 +939,7 @@ public class SaleService : ISaleService
         {
             // Intentar usar el ExternalId del sistema externo
             externalId = int.TryParse(sale.Cliente, out var extId) ? extId : await _customerRepository.GetNextExternalIdAsync();
-            
+
             // Verificar si ya existe un cliente con este ExternalId
             var existingCustomers = await _customerRepository.SelectAsync(null, null, externalId);
             var existingCustomer = existingCustomers.FirstOrDefault();
@@ -814,14 +986,14 @@ public class SaleService : ISaleService
     /// Procesa una venta individual con todos sus detalles.
     /// </summary>
     private async Task ProcessSingleSaleAsync(
-        ExternalSalesDto externalSale, 
-        int idConfigSys, 
-        string createdByUserId, 
+        ExternalSalesDto externalSale,
+        int idConfigSys,
+        string createdByUserId,
         Dictionary<string, Customer> customerCache)
     {
         // 🔍 OBTENER CLIENTE usando ExternalId como clave
         var customerExternalId = externalSale.Cliente?.Trim() ?? "0";
-        
+
         if (!customerCache.TryGetValue(customerExternalId, out var customer))
         {
             throw new InvalidOperationException($"Cliente no encontrado en cache para ExternalId: {customerExternalId}, Cliente: {externalSale.NombreCliente}");
@@ -875,9 +1047,9 @@ public class SaleService : ISaleService
             }
 
             var details = await _externalSalesRepository.GetSaleDetailAsync(
-                externalSale.NF, 
-                externalSale.Caja, 
-                externalSale.Serie, 
+                externalSale.NF,
+                externalSale.Caja,
+                externalSale.Serie,
                 externalSale.Folio);
 
             return details.Select(d => new SingleProductJson

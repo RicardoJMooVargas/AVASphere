@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -22,9 +22,9 @@ public class LocationDetailsEntitieConfig : IEntityTypeConfiguration<LocationDet
         entity.Property(e => e.VerticalLevel)
             .IsRequired();
         
-        // Relación con Area
+        // Relación con Area - sin navegación inversa para evitar duplicados
         entity.HasOne(ld => ld.Area)
-            .WithMany()
+            .WithMany() // Sin especificar la navegación inversa para evitar duplicados
             .HasForeignKey(ld => ld.IdArea)
             .OnDelete(DeleteBehavior.Restrict);
         

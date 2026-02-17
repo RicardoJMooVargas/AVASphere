@@ -30,12 +30,7 @@ public class PhysicalInventoryEntitieConfig : IEntityTypeConfiguration<PhysicalI
             .HasForeignKey(pi => pi.IdWarehouse)
             .OnDelete(DeleteBehavior.Restrict);
         
-        // Relación 1-N con Inventory
-        entity.HasMany(pi => pi.Inventories)
-            .WithOne(i => i.PhysicalInventory)
-            .HasForeignKey(i => i.IdPhysicalInventory)
-            .OnDelete(DeleteBehavior.Cascade);
-        
+
         // Relación 1-N con PhysicalInventoryDetail
         entity.HasMany(pi => pi.PhysicalInventoryDetails)
             .WithOne(pid => pid.PhysicalInventory)

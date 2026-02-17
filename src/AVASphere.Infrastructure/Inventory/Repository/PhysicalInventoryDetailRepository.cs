@@ -59,7 +59,15 @@ public class PhysicalInventoryDetailRepository : IPhysicalInventoryDetailReposit
         return await _context.Set<PhysicalInventoryDetail>()
             .Where(pid => pid.IdPhysicalInventory == idPhysicalInventory)
             .Include(pid => pid.Product)
+                .ThenInclude(p => p.Supplier)
+            .Include(pid => pid.Product)
+                .ThenInclude(p => p.ProductProperties)
+                    .ThenInclude(pp => pp.PropertyValue)
+                        .ThenInclude(pv => pv.Property)
             .Include(pid => pid.LocationDetails)
+                .ThenInclude(ld => ld.StorageStructure)
+            .Include(pid => pid.LocationDetails)
+                .ThenInclude(ld => ld.Area)
             .AsNoTracking()
             .ToListAsync();
     }
@@ -72,6 +80,24 @@ public class PhysicalInventoryDetailRepository : IPhysicalInventoryDetailReposit
             .Include(pid => pid.LocationDetails)
             .AsNoTracking()
             .ToListAsync();
+    }
+
+    public async Task<PhysicalInventoryDetail?> GetByPhysicalInventoryAndProductAsync(int idPhysicalInventory, int idProduct)
+    {
+        return await _context.Set<PhysicalInventoryDetail>()
+            .Where(pid => pid.IdPhysicalInventory == idPhysicalInventory && pid.IdProduct == idProduct)
+            .Include(pid => pid.Product)
+                .ThenInclude(p => p.Supplier)
+            .Include(pid => pid.Product)
+                .ThenInclude(p => p.ProductProperties)
+                    .ThenInclude(pp => pp.PropertyValue)
+                        .ThenInclude(pv => pv.Property)
+            .Include(pid => pid.LocationDetails)
+                .ThenInclude(ld => ld.StorageStructure)
+            .Include(pid => pid.LocationDetails)
+                .ThenInclude(ld => ld.Area)
+            .AsNoTracking()
+            .FirstOrDefaultAsync();
     }
 
     public async Task<IEnumerable<PhysicalInventoryDetail>> GetDiscrepanciesAsync(int idPhysicalInventory)

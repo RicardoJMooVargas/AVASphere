@@ -4,8 +4,8 @@ using AVASphere.ApplicationCore.Inventory.Entities.General;
 using AVASphere.ApplicationCore.Inventory.Enums;
 using AVASphere.ApplicationCore.Inventory.Interfaces;
 using AVASphere.ApplicationCore.Common.Interfaces;
-using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.Products;
+using AVASphere.ApplicationCore.Common.DTOs.ProductDTOs;
 using Microsoft.Extensions.Logging;
 
 namespace AVASphere.Infrastructure.Inventory.Services;
@@ -14,9 +14,11 @@ public class PhysicalInventoryService : IPhysicalInventoryService
 {
     private readonly IPhysicalInventoryRepository _physicalInventoryRepository;
     private readonly IPhysicalInventoryDetailRepository _physicalInventoryDetailRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IWarehouseRepository _warehouseRepository;
     private readonly IInventoryRepository _inventoryRepository;
-    private readonly IUserRepository _userRepository;
+    private readonly ILocationDetailsRepository _locationDetailsRepository;
+    private readonly IProductRepository _productRepository;
     private readonly ILogger<PhysicalInventoryService> _logger;
 
     public PhysicalInventoryService(
@@ -24,6 +26,8 @@ public class PhysicalInventoryService : IPhysicalInventoryService
         IPhysicalInventoryDetailRepository physicalInventoryDetailRepository,
         IWarehouseRepository warehouseRepository,
         IInventoryRepository inventoryRepository,
+        ILocationDetailsRepository locationDetailsRepository,
+        IProductRepository productRepository,
         IUserRepository userRepository,
         ILogger<PhysicalInventoryService> logger)
     {
@@ -31,6 +35,8 @@ public class PhysicalInventoryService : IPhysicalInventoryService
         _physicalInventoryDetailRepository = physicalInventoryDetailRepository;
         _warehouseRepository = warehouseRepository;
         _inventoryRepository = inventoryRepository;
+        _locationDetailsRepository = locationDetailsRepository;
+        _productRepository = productRepository;
         _userRepository = userRepository;
         _logger = logger;
     }
@@ -70,14 +76,18 @@ public class PhysicalInventoryService : IPhysicalInventoryService
             var physicalInventory = new PhysicalInventory
             {
                 InventoryDate = createDto.InventoryDate,
-                Status = PhysicalInventoryStatus.Open.ToString(), // Status automáticamente como "Open"
-                CreatedBy = userId, // ID obtenido del token
+                Status = PhysicalInventoryStatus.Open.ToString(),
+                CreatedBy = userId,
                 Observations = createDto.Observations,
                 IdWarehouse = createDto.IdWarehouse
             };
 
             // Crear en la base de datos
             var createdInventory = await _physicalInventoryRepository.CreateAsync(physicalInventory);
+
+            // Generar automáticamente los PhysicalInventoryDetail basado en filtros
+            await GeneratePhysicalInventoryDetailsAsync(createdInventory.IdPhysicalInventory, createDto.IdWarehouse, 
+                user.Rol?.Area?.IdArea, createDto.ProductFilters);
 
             // Mapear a DTO de respuesta
             var responseDto = await MapToPhysicalInventoryResponseDto(createdInventory);
@@ -111,7 +121,6 @@ public class PhysicalInventoryService : IPhysicalInventoryService
         {
             _logger.LogInformation("Updating PhysicalInventory {PhysicalInventoryId}", updateDto.IdPhysicalInventory);
 
-            // Verificar que el conteo físico existe
             var existingInventory = await _physicalInventoryRepository.GetByIdAsync(updateDto.IdPhysicalInventory);
             if (existingInventory == null)
             {
@@ -123,10 +132,8 @@ public class PhysicalInventoryService : IPhysicalInventoryService
                 };
             }
 
-            // Verificar si se está intentando cambiar el IdWarehouse
             if (existingInventory.IdWarehouse != updateDto.IdWarehouse)
             {
-                // Verificar si existen registros en PhysicalInventoryDetail
                 var details = await _physicalInventoryDetailRepository.GetByPhysicalInventoryIdAsync(updateDto.IdPhysicalInventory);
                 if (details.Any())
                 {
@@ -138,7 +145,6 @@ public class PhysicalInventoryService : IPhysicalInventoryService
                     };
                 }
 
-                // Validar que el nuevo warehouse existe
                 var newWarehouse = await _warehouseRepository.GetByIdAsync(updateDto.IdWarehouse);
                 if (newWarehouse == null)
                 {
@@ -151,7 +157,6 @@ public class PhysicalInventoryService : IPhysicalInventoryService
                 }
             }
 
-            // Validar que el usuario existe
             var user = await _userRepository.SelectByIdAsync(updateDto.CreatedBy);
             if (user == null)
             {
@@ -163,17 +168,13 @@ public class PhysicalInventoryService : IPhysicalInventoryService
                 };
             }
 
-            // Actualizar la entidad
             existingInventory.InventoryDate = updateDto.InventoryDate;
             existingInventory.Status = updateDto.Status;
             existingInventory.CreatedBy = updateDto.CreatedBy;
             existingInventory.Observations = updateDto.Observations;
             existingInventory.IdWarehouse = updateDto.IdWarehouse;
 
-            // Actualizar en la base de datos
             var updatedInventory = await _physicalInventoryRepository.UpdateAsync(existingInventory);
-
-            // Mapear a DTO de respuesta
             var responseDto = await MapToPhysicalInventoryResponseDto(updatedInventory);
 
             _logger.LogInformation("PhysicalInventory {PhysicalInventoryId} updated successfully", 
@@ -206,7 +207,6 @@ public class PhysicalInventoryService : IPhysicalInventoryService
             _logger.LogInformation("Deleting PhysicalInventory {PhysicalInventoryId}, forceDelete: {ForceDelete}", 
                 idPhysicalInventory, forceDelete);
 
-            // Verificar que el conteo físico existe
             var physicalInventory = await _physicalInventoryRepository.GetByIdAsync(idPhysicalInventory);
             if (physicalInventory == null)
             {
@@ -219,9 +219,8 @@ public class PhysicalInventoryService : IPhysicalInventoryService
                 };
             }
 
-            // Verificar si existen registros en PhysicalInventoryDetail
             var details = await _physicalInventoryDetailRepository.GetByPhysicalInventoryIdAsync(idPhysicalInventory);
-            var detailsList = details.ToList(); // Materializar para evitar enumeración múltiple
+            var detailsList = details.ToList();
             var hasDetails = detailsList.Any();
 
             if (hasDetails && !forceDelete)
@@ -235,7 +234,6 @@ public class PhysicalInventoryService : IPhysicalInventoryService
                 };
             }
 
-            // Si tiene detalles y forceDelete es true, eliminar primero los detalles
             if (hasDetails && forceDelete)
             {
                 _logger.LogInformation("Force deleting {DetailsCount} PhysicalInventoryDetails for PhysicalInventory {PhysicalInventoryId}", 
@@ -254,7 +252,6 @@ public class PhysicalInventoryService : IPhysicalInventoryService
                 }
             }
 
-            // Eliminar el conteo físico
             var deleteResult = await _physicalInventoryRepository.DeleteAsync(idPhysicalInventory);
             if (!deleteResult)
             {
@@ -294,11 +291,8 @@ public class PhysicalInventoryService : IPhysicalInventoryService
     {
         try
         {
-            _logger.LogInformation("Getting PhysicalInventory {PhysicalInventoryId} with products for user {UserId}", 
-                idPhysicalInventory, userId);
-
-            // Obtener el conteo físico
-            var physicalInventory = await _physicalInventoryRepository.GetByIdWithDetailsAsync(idPhysicalInventory);
+            // Implementación básica - puede expandirse según necesidades
+            var physicalInventory = await _physicalInventoryRepository.GetByIdAsync(idPhysicalInventory);
             if (physicalInventory == null)
             {
                 return new ApiResponse<PhysicalInventoryWithProductsDto>
@@ -309,77 +303,12 @@ public class PhysicalInventoryService : IPhysicalInventoryService
                 };
             }
 
-            // Obtener información del usuario para conocer su área
-            var user = await _userRepository.SelectByIdAsync(userId);
-            if (user == null)
-            {
-                return new ApiResponse<PhysicalInventoryWithProductsDto>
-                {
-                    Success = false,
-                    Message = "El usuario especificado no existe",
-                    StatusCode = 404
-                };
-            }
-
-            // Obtener productos relacionados al warehouse
-            var inventoryItems = await _inventoryRepository.GetByWarehouseIdAsync(physicalInventory.IdWarehouse);
-
-            // Mapear los productos
-            var products = inventoryItems.Select(inv => new ProductForInventoryDto
-            {
-                IdProduct = inv.Product.IdProduct,
-                MainName = inv.Product.MainName,
-                Description = inv.Product.Description,
-                Unit = inv.Product.Unit,
-                SupplierName = inv.Product.Supplier?.Name ?? "Sin proveedor",
-                CurrentStock = inv.Stock,
-                Location = inv.LocationDetail.HasValue ? new LocationInfoDto
-                {
-                    // Nota: Necesitaríamos acceso a LocationDetails para completar esta información
-                    // Por ahora dejamos valores por defecto
-                    IdLocationDetails = 0,
-                    TypeStorageSystem = "N/A",
-                    Section = "N/A",
-                    VerticalLevel = 0,
-                    AreaName = user.Rol?.Area?.Name ?? "Sin área",
-                    StorageStructureCode = "N/A"
-                } : null
-            }).ToList();
-
-            // Crear el DTO de respuesta
-            var responseDto = new PhysicalInventoryWithProductsDto
-            {
-                IdPhysicalInventory = physicalInventory.IdPhysicalInventory,
-                InventoryDate = physicalInventory.InventoryDate,
-                Status = physicalInventory.Status,
-                CreatedBy = physicalInventory.CreatedBy,
-                CreatedByUserName = user.Name,
-                Observations = physicalInventory.Observations,
-                Warehouse = new WarehouseInfoDto
-                {
-                    IdWarehouse = physicalInventory.Warehouse.IdWarehouse,
-                    Name = physicalInventory.Warehouse.Name,
-                    Code = physicalInventory.Warehouse.Code,
-                    Location = physicalInventory.Warehouse.Location
-                },
-                Products = products,
-                UserArea = new UserAreaInfoDto
-                {
-                    IdArea = user.Rol?.Area?.IdArea ?? 0,
-                    AreaName = user.Rol?.Area?.Name ?? "Sin área",
-                    AreaNormalizedName = user.Rol?.Area?.NormalizedName ?? "Sin área"
-                }
-            };
-
-            _logger.LogInformation("Retrieved PhysicalInventory {PhysicalInventoryId} with {ProductsCount} products", 
-                idPhysicalInventory, products.Count);
-
+            // Retorna respuesta básica - implementar según PhysicalInventoryWithProductsDto
             return new ApiResponse<PhysicalInventoryWithProductsDto>
             {
                 Success = true,
-                Data = responseDto,
-                Message = "Conteo físico con productos obtenido exitosamente",
-                StatusCode = 200
+                Message = "Método no implementado completamente",
+                StatusCode = 501
             };
         }
         catch (Exception ex)
@@ -469,13 +398,213 @@ public class PhysicalInventoryService : IPhysicalInventoryService
         }
     }
 
-    // Método privado para mapear entidad a DTO
+    public async Task<ApiResponse<ProductInventoryListResponseDto>> GetProductInventoryListAsync(int idPhysicalInventory, int userId)
+    {
+        try
+        {
+            _logger.LogInformation("Getting product inventory list for PhysicalInventory {PhysicalInventoryId} and user {UserId}", 
+                idPhysicalInventory, userId);
+
+            var physicalInventory = await _physicalInventoryRepository.GetByIdAsync(idPhysicalInventory);
+            if (physicalInventory == null)
+            {
+                return new ApiResponse<ProductInventoryListResponseDto>
+                {
+                    Success = false,
+                    Message = "El inventario físico especificado no existe",
+                    StatusCode = 404
+                };
+            }
+
+            var user = await _userRepository.SelectByIdAsync(userId);
+            if (user == null)
+            {
+                return new ApiResponse<ProductInventoryListResponseDto>
+                {
+                    Success = false,
+                    Message = "El usuario especificado no existe",
+                    StatusCode = 404
+                };
+            }
+
+            var userAreaName = user.Rol?.Area?.Name ?? "Sin área";
+
+            var inventoryDetails = await _physicalInventoryDetailRepository.GetByPhysicalInventoryIdAsync(idPhysicalInventory);
+            var detailsList = inventoryDetails.ToList();
+
+            if (!detailsList.Any())
+            {
+                return new ApiResponse<ProductInventoryListResponseDto>
+                {
+                    Success = true,
+                    Data = new ProductInventoryListResponseDto
+                    {
+                        Products = new List<ProductInventoryListDto>(),
+                        TotalProducts = 0,
+                        HasInventoryRecords = true,
+                        WarehouseName = physicalInventory.Warehouse?.Name ?? "Sin nombre",
+                        UserAreaName = userAreaName
+                    },
+                    Message = "No hay productos asociados a este inventario físico",
+                    StatusCode = 200
+                };
+            }
+
+            var productList = await MapPhysicalInventoryDetailsToProductListAsync(detailsList);
+
+            return new ApiResponse<ProductInventoryListResponseDto>
+            {
+                Success = true,
+                Data = new ProductInventoryListResponseDto
+                {
+                    Products = productList,
+                    TotalProducts = productList.Count,
+                    HasInventoryRecords = true,
+                    WarehouseName = physicalInventory.Warehouse?.Name ?? "Sin nombre",
+                    UserAreaName = userAreaName
+                },
+                Message = $"Se encontraron {productList.Count} productos en el inventario físico",
+                StatusCode = 200
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting product inventory list for PhysicalInventory {PhysicalInventoryId}", idPhysicalInventory);
+            return new ApiResponse<ProductInventoryListResponseDto>
+            {
+                Success = false,
+                Message = $"Error al obtener la lista de productos: {ex.Message}",
+                StatusCode = 500
+            };
+        }
+    }
+
+    public async Task<ApiResponse<PhysicalInventoryCountResponseDto>> CreateOrUpdatePhysicalCountAsync(CreateOrUpdatePhysicalCountDto countDto)
+    {
+        try
+        {
+            _logger.LogInformation("Creating or updating physical count for Product {ProductId} in PhysicalInventory {PhysicalInventoryId}", 
+                countDto.IdProduct, countDto.IdPhysicalInventory);
+
+            var physicalInventory = await _physicalInventoryRepository.GetByIdAsync(countDto.IdPhysicalInventory);
+            if (physicalInventory == null)
+            {
+                return new ApiResponse<PhysicalInventoryCountResponseDto>
+                {
+                    Success = false,
+                    Message = "El inventario físico especificado no existe",
+                    StatusCode = 404
+                };
+            }
+
+            var existingDetail = await _physicalInventoryDetailRepository.GetByPhysicalInventoryAndProductAsync(
+                countDto.IdPhysicalInventory, countDto.IdProduct);
+
+            PhysicalInventoryDetail detail;
+            bool isNewRecord = false;
+
+            if (existingDetail == null)
+            {
+                isNewRecord = true;
+                
+                double systemQuantity = 0;
+                var inventoryRecord = await _inventoryRepository.GetByWarehouseAndProductAsync(
+                    physicalInventory.IdWarehouse, countDto.IdProduct);
+                
+                if (inventoryRecord != null)
+                {
+                    systemQuantity = inventoryRecord.Stock;
+                }
+
+                // Validar IdLocationDetails si se proporciona
+                int? validLocationDetailsId = null;
+                if (countDto.IdLocationDetails.HasValue && countDto.IdLocationDetails.Value > 0)
+                {
+                    var locationDetails = await _locationDetailsRepository.GetByIdAsync(countDto.IdLocationDetails.Value);
+                    if (locationDetails != null)
+                    {
+                        validLocationDetailsId = countDto.IdLocationDetails;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("LocationDetails with ID {LocationDetailsId} not found, setting to null", countDto.IdLocationDetails);
+                    }
+                }
+
+                detail = new PhysicalInventoryDetail
+                {
+                    IdPhysicalInventory = countDto.IdPhysicalInventory,
+                    IdProduct = countDto.IdProduct,
+                    IdLocationDetails = validLocationDetailsId,
+                    SystemQuantity = systemQuantity,
+                    PhysicalQuantity = countDto.PhysicalQuantity,
+                    Difference = countDto.PhysicalQuantity - systemQuantity
+                };
+
+                detail = await _physicalInventoryDetailRepository.CreateAsync(detail);
+            }
+            else
+            {
+                existingDetail.PhysicalQuantity = countDto.PhysicalQuantity;
+                existingDetail.Difference = countDto.PhysicalQuantity - existingDetail.SystemQuantity;
+                
+                // Validar IdLocationDetails si se proporciona
+                if (countDto.IdLocationDetails.HasValue && countDto.IdLocationDetails.Value > 0)
+                {
+                    var locationDetails = await _locationDetailsRepository.GetByIdAsync(countDto.IdLocationDetails.Value);
+                    if (locationDetails != null)
+                    {
+                        existingDetail.IdLocationDetails = countDto.IdLocationDetails;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("LocationDetails with ID {LocationDetailsId} not found, keeping existing value", countDto.IdLocationDetails);
+                    }
+                }
+
+                detail = await _physicalInventoryDetailRepository.UpdateAsync(existingDetail);
+            }
+
+            var response = new PhysicalInventoryCountResponseDto
+            {
+                IdPhysicalInventoryDetail = detail.IdPhysicalInventoryDetail,
+                SystemQuantity = detail.SystemQuantity,
+                PhysicalQuantity = detail.PhysicalQuantity,
+                Difference = detail.Difference,
+                IdPhysicalInventory = detail.IdPhysicalInventory,
+                IdProduct = detail.IdProduct,
+                ProductMainName = detail.Product?.MainName ?? "Producto no encontrado",
+                IdLocationDetails = detail.IdLocationDetails,
+                LocationDetailsCode = await BuildLocationDetailsCodeAsync(detail.IdLocationDetails),
+                IsNewRecord = isNewRecord
+            };
+
+            return new ApiResponse<PhysicalInventoryCountResponseDto>
+            {
+                Success = true,
+                Data = response,
+                Message = isNewRecord ? "Conteo físico creado exitosamente" : "Conteo físico actualizado exitosamente",
+                StatusCode = isNewRecord ? 201 : 200
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating or updating physical count for Product {ProductId}", countDto.IdProduct);
+            return new ApiResponse<PhysicalInventoryCountResponseDto>
+            {
+                Success = false,
+                Message = $"Error al procesar el conteo físico: {ex.Message}",
+                StatusCode = 500
+            };
+        }
+    }
+
+    // Métodos privados auxiliares
     private async Task<PhysicalInventoryResponseDto> MapToPhysicalInventoryResponseDto(PhysicalInventory physicalInventory)
     {
-        // Obtener información adicional
         var user = await _userRepository.SelectByIdAsync(physicalInventory.CreatedBy);
         var details = await _physicalInventoryDetailRepository.GetByPhysicalInventoryIdAsync(physicalInventory.IdPhysicalInventory);
-        var detailsList = details.ToList(); // Materializar para evitar enumeración múltiple
+        var detailsList = details.ToList();
 
         return new PhysicalInventoryResponseDto
         {
@@ -494,217 +623,301 @@ public class PhysicalInventoryService : IPhysicalInventoryService
         };
     }
 
-    public async Task<ApiResponse<ProductInventoryListResponseDto>> GetProductInventoryListAsync(int idWarehouse, int userId)
+    private async Task<List<ProductInventoryListDto>> MapPhysicalInventoryDetailsToProductListAsync(
+        List<PhysicalInventoryDetail> details)
+    {
+        var result = new List<ProductInventoryListDto>();
+
+        foreach (var detail in details)
+        {
+            var principalCode = GetPrincipalCodeFromProduct(detail.Product);
+            
+            var productDto = new ProductInventoryListDto
+            {
+                IdPhysicalInventoryDetail = detail.IdPhysicalInventoryDetail,
+                SystemQuantity = detail.SystemQuantity,
+                PhysicalQuantity = detail.PhysicalQuantity,
+                Difference = detail.Difference,
+                ProductMainName = detail.Product.MainName ?? "Sin nombre",
+                ProductUnit = detail.Product.Unit ?? "Sin unidad", 
+                ProductDescription = detail.Product.Description ?? "Sin descripción",
+                ProductSupplierName = detail.Product.Supplier?.Name ?? "Sin proveedor",
+                ProductCodeJsonCode = principalCode,
+                ProductProperties = MapProductPropertiesToDto(detail.Product.ProductProperties),
+                IdLocationDetails = detail.IdLocationDetails,
+                LocationDetailsCode = await BuildLocationDetailsCodeAsync(detail.IdLocationDetails),
+                IsDirectFromProducts = false
+            };
+
+            result.Add(productDto);
+        }
+
+        return result;
+    }
+
+    private string GetPrincipalCodeFromProduct(Product product)
     {
         try
         {
-            _logger.LogInformation("Getting product inventory list for warehouse {WarehouseId} and user {UserId}", 
-                idWarehouse, userId);
+            var principalCode = product.CodeJson?.FirstOrDefault(c => c.Type == "Principal")?.Code;
+            return principalCode ?? product.FirstCode ?? "Sin código";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting principal code for product {ProductId}", product.IdProduct);
+            return "Error código";
+        }
+    }
 
-            // 1. Validar que el warehouse existe
-            var warehouse = await _warehouseRepository.GetByIdAsync(idWarehouse);
-            if (warehouse == null)
+    private List<AVASphere.ApplicationCore.Inventory.DTOs.ProductPropertyDto> MapProductPropertiesToDto(ICollection<ProductProperties> properties)
+    {
+        try 
+        {
+            return properties.Select(p => new AVASphere.ApplicationCore.Inventory.DTOs.ProductPropertyDto
             {
-                return new ApiResponse<ProductInventoryListResponseDto>
-                {
-                    Success = false,
-                    Message = "El warehouse especificado no existe",
-                    StatusCode = 404
-                };
-            }
+                IdProductProperties = p.IdProductProperties,
+                CustomValue = p.CustomValue,
+                IdPropertyValue = p.IdPropertyValue,
+                PropertyName = p.PropertyValue?.Property?.Name ?? "Sin nombre",
+                PropertyValue = p.PropertyValue?.Value ?? "Sin valor"
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error mapping product properties");
+            return new List<AVASphere.ApplicationCore.Inventory.DTOs.ProductPropertyDto>();
+        }
+    }
 
-            // 2. Obtener información del usuario para conocer su área
-            var user = await _userRepository.SelectByIdAsync(userId);
-            if (user == null)
-            {
-                return new ApiResponse<ProductInventoryListResponseDto>
-                {
-                    Success = false,
-                    Message = "El usuario especificado no existe",
-                    StatusCode = 404
-                };
-            }
+    private async Task<string> BuildLocationDetailsCodeAsync(int? locationDetailId)
+    {
+        if (!locationDetailId.HasValue || locationDetailId.Value == 0)
+        {
+            return "DESCONOCIDO";
+        }
 
-            var userAreaId = user.Rol?.Area?.IdArea;
-            var userAreaName = user.Rol?.Area?.Name ?? "Sin área";
-
-            // 3. Intentar obtener productos desde la tabla Inventory filtrando por IdWarehouse y área
-            var inventoryItems = await GetInventoryItemsWithLocationFilterAsync(idWarehouse, userAreaId);
+        try 
+        {
+            var locationDetails = await _locationDetailsRepository.GetByIdAsync(locationDetailId.Value);
             
-            if (inventoryItems.Any())
+            if (locationDetails == null)
             {
-                // Hay registros en Inventory - usar estos datos
-                var inventoryProducts = await MapInventoryToProductListAsync(inventoryItems, false);
-                
-                return new ApiResponse<ProductInventoryListResponseDto>
+                return "DESCONOCIDO ER";
+            }
+
+            var codeRack = locationDetails.StorageStructure?.CodeRack ?? "SIN-RACK";
+            var section = locationDetails.Section ?? "SIN-SECCION";
+            var verticalLevel = locationDetails.VerticalLevel.ToString();
+            
+            return $"{codeRack}-{section}-{verticalLevel}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error building location details code for ID: {LocationDetailId}", locationDetailId);
+            return "DESCONOCIDO ER";
+        }
+    }
+
+    private async Task GeneratePhysicalInventoryDetailsAsync(int idPhysicalInventory, int idWarehouse, 
+        int? userAreaId, ProductSelectionFilterDto? filters)
+    {
+        try
+        {
+            _logger.LogInformation("Generating PhysicalInventoryDetails for PhysicalInventory {PhysicalInventoryId} with filters: {@Filters}", 
+                idPhysicalInventory, filters);
+
+            // Verificar que el PhysicalInventory existe
+            var physicalInventory = await _physicalInventoryRepository.GetByIdAsync(idPhysicalInventory);
+            if (physicalInventory == null)
+            {
+                throw new InvalidOperationException($"PhysicalInventory with ID {idPhysicalInventory} does not exist");
+            }
+
+            var detailsToCreate = new List<PhysicalInventoryDetail>();
+
+            if (filters != null && (filters.IdSupplier.HasValue || !string.IsNullOrEmpty(filters.SupplierName) || 
+                filters.ProductProperties?.Any() == true))
+            {
+                _logger.LogInformation("Using filtered products with supplier ID: {SupplierId}, supplier name: {SupplierName}", 
+                    filters.IdSupplier, filters.SupplierName);
+
+                var productFilter = new ProductFilterDto
                 {
-                    Success = true,
-                    Data = new ProductInventoryListResponseDto
-                    {
-                        Products = inventoryProducts,
-                        TotalProducts = inventoryProducts.Count,
-                        HasInventoryRecords = true,
-                        WarehouseName = warehouse.Name,
-                        UserAreaName = userAreaName
-                    },
-                    Message = $"Se encontraron {inventoryProducts.Count} productos en el inventario",
-                    StatusCode = 200
+                    IdSupplier = filters.IdSupplier,
+                    SupplierName = filters.SupplierName,
+                    Properties = filters.ProductProperties
                 };
+
+                var filteredProducts = await _productRepository.GetAllProductsAsync(productFilter);
+                var filteredProductsList = filteredProducts.ToList();
+                
+                _logger.LogInformation("Found {ProductCount} filtered products", filteredProductsList.Count);
+                
+                foreach (var product in filteredProductsList)
+                {
+                    try
+                    {
+                        _logger.LogDebug("Processing product {ProductId}: {ProductName}", 
+                            product.IdProduct, product.MainName ?? "Sin nombre");
+
+                        // Verificar que el producto no tenga ya un detalle para este inventario físico
+                        var existingDetail = await _physicalInventoryDetailRepository
+                            .GetByPhysicalInventoryAndProductAsync(idPhysicalInventory, product.IdProduct);
+                        
+                        if (existingDetail != null)
+                        {
+                            _logger.LogWarning("Product {ProductId} already has a detail for PhysicalInventory {PhysicalInventoryId}, skipping", 
+                                product.IdProduct, idPhysicalInventory);
+                            continue;
+                        }
+
+                        var inventoryRecord = await _inventoryRepository.GetByWarehouseAndProductAsync(idWarehouse, product.IdProduct);
+                        double systemQuantity = inventoryRecord?.Stock ?? 0;
+                        
+                        // Para conteo físico inicial, LocationDetails siempre es null
+                        // Se asignará durante el proceso de conteo
+                        var detail = new PhysicalInventoryDetail
+                        {
+                            IdPhysicalInventory = idPhysicalInventory,
+                            IdProduct = product.IdProduct,
+                            IdLocationDetails = null, // Siempre null en la creación inicial
+                            SystemQuantity = systemQuantity,
+                            PhysicalQuantity = 0,
+                            Difference = -systemQuantity
+                        };
+                        
+                        detailsToCreate.Add(detail);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error processing product {ProductId} for PhysicalInventory {PhysicalInventoryId}", 
+                            product.IdProduct, idPhysicalInventory);
+                        throw;
+                    }
+                }
             }
             else
             {
-                // No hay registros en Inventory - obtener productos directamente de la tabla Product
-                _logger.LogInformation("No inventory records found, getting products directly from Product table");
+                _logger.LogInformation("Using all inventory items for warehouse {WarehouseId}", idWarehouse);
                 
-                var directProducts = await GetDirectProductsAsync(idWarehouse);
-                var productList = await MapProductsToProductListAsync(directProducts, true);
-                
-                return new ApiResponse<ProductInventoryListResponseDto>
+                var inventoryItems = await _inventoryRepository.GetByWarehouseIdAsync(idWarehouse);
+                var inventoryItemsList = inventoryItems.ToList();
+
+                if (inventoryItemsList.Any())
                 {
-                    Success = true,
-                    Data = new ProductInventoryListResponseDto
+                    _logger.LogInformation("Found {InventoryItemCount} inventory items", inventoryItemsList.Count);
+                    
+                    foreach (var inventoryItem in inventoryItemsList)
                     {
-                        Products = productList,
-                        TotalProducts = productList.Count,
-                        HasInventoryRecords = false,
-                        WarehouseName = warehouse.Name,
-                        UserAreaName = userAreaName
-                    },
-                    Message = $"Se encontraron {productList.Count} productos directamente (sin registros de inventario)",
-                    StatusCode = 200
-                };
+                        // Verificar que el producto no tenga ya un detalle para este inventario físico
+                        var existingDetail = await _physicalInventoryDetailRepository
+                            .GetByPhysicalInventoryAndProductAsync(idPhysicalInventory, inventoryItem.IdProduct);
+                        
+                        if (existingDetail != null)
+                        {
+                            _logger.LogWarning("Product {ProductId} already has a detail for PhysicalInventory {PhysicalInventoryId}, skipping", 
+                                inventoryItem.IdProduct, idPhysicalInventory);
+                            continue;
+                        }
+
+                        // Para conteo físico inicial, LocationDetails siempre es null
+                        // Se asignará durante el proceso de conteo
+                        var detail = new PhysicalInventoryDetail
+                        {
+                            IdPhysicalInventory = idPhysicalInventory,
+                            IdProduct = inventoryItem.IdProduct,
+                            IdLocationDetails = null, // Siempre null en la creación inicial
+                            SystemQuantity = inventoryItem.Stock,
+                            PhysicalQuantity = 0,
+                            Difference = -inventoryItem.Stock
+                        };
+                        
+                        detailsToCreate.Add(detail);
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("No inventory records found, creating details from all products");
+                    
+                    var allProducts = await _productRepository.GetAllProductsAsync();
+                    var allProductsList = allProducts.ToList();
+                    
+                    _logger.LogInformation("Found {AllProductCount} total products", allProductsList.Count);
+                    
+                    foreach (var product in allProductsList)
+                    {
+                        // Verificar que el producto no tenga ya un detalle para este inventario físico
+                        var existingDetail = await _physicalInventoryDetailRepository
+                            .GetByPhysicalInventoryAndProductAsync(idPhysicalInventory, product.IdProduct);
+                        
+                        if (existingDetail != null)
+                        {
+                            _logger.LogWarning("Product {ProductId} already has a detail for PhysicalInventory {PhysicalInventoryId}, skipping", 
+                                product.IdProduct, idPhysicalInventory);
+                            continue;
+                        }
+
+                        var detail = new PhysicalInventoryDetail
+                        {
+                            IdPhysicalInventory = idPhysicalInventory,
+                            IdProduct = product.IdProduct,
+                            IdLocationDetails = null,
+                            SystemQuantity = 0,
+                            PhysicalQuantity = 0,
+                            Difference = 0
+                        };
+                        
+                        detailsToCreate.Add(detail);
+                    }
+                }
+            }
+
+            _logger.LogInformation("About to create {Count} PhysicalInventoryDetails", detailsToCreate.Count);
+
+            if (detailsToCreate.Any())
+            {
+                // Validar que no hay duplicados en la lista
+                var duplicates = detailsToCreate
+                    .GroupBy(d => new { d.IdPhysicalInventory, d.IdProduct })
+                    .Where(g => g.Count() > 1)
+                    .ToList();
+
+                if (duplicates.Any())
+                {
+                    _logger.LogWarning("Found {DuplicateCount} duplicate combinations of PhysicalInventory-Product in the creation list", 
+                        duplicates.Count);
+                    
+                    // Remover duplicados, manteniendo solo el primero
+                    detailsToCreate = detailsToCreate
+                        .GroupBy(d => new { d.IdPhysicalInventory, d.IdProduct })
+                        .Select(g => g.First())
+                        .ToList();
+                    
+                    _logger.LogInformation("After removing duplicates: {Count} PhysicalInventoryDetails", 
+                        detailsToCreate.Count);
+                }
+
+                await _physicalInventoryDetailRepository.CreateBatchAsync(detailsToCreate);
+                _logger.LogInformation("Successfully created {Count} PhysicalInventoryDetails for PhysicalInventory {PhysicalInventoryId}", 
+                    detailsToCreate.Count, idPhysicalInventory);
+            }
+            else
+            {
+                _logger.LogWarning("No products found to create PhysicalInventoryDetails for PhysicalInventory {PhysicalInventoryId}", 
+                    idPhysicalInventory);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting product inventory list for warehouse {WarehouseId}", idWarehouse);
-            return new ApiResponse<ProductInventoryListResponseDto>
+            _logger.LogError(ex, "Error generating PhysicalInventoryDetails for PhysicalInventory {PhysicalInventoryId}: {ErrorMessage}", 
+                idPhysicalInventory, ex.Message);
+            
+            if (ex.InnerException != null)
             {
-                Success = false,
-                Message = $"Error al obtener la lista de productos: {ex.Message}",
-                StatusCode = 500
-            };
+                _logger.LogError(ex.InnerException, "Inner exception: {InnerErrorMessage}", ex.InnerException.Message);
+            }
+            
+            throw;
         }
-    }
-
-    // Método auxiliar para obtener items de inventario con filtro de localización
-    private async Task<List<AVASphere.ApplicationCore.Inventory.Entities.General.Inventory>> GetInventoryItemsWithLocationFilterAsync(int idWarehouse, int? userAreaId)
-    {
-        var inventoryItems = await _inventoryRepository.GetByWarehouseIdAsync(idWarehouse);
-        
-        // Si no hay área de usuario, devolver todos los items del warehouse
-        if (!userAreaId.HasValue)
-        {
-            return inventoryItems.ToList();
-        }
-
-        // Filtrar por área si existe LocationDetail vinculado al área del usuario
-        // Nota: Esto requiere una consulta más compleja debido a la estructura actual
-        // Por ahora retornamos todos los items del warehouse
-        // TODO: Implementar filtro por LocationDetails.IdArea cuando esté disponible
-        return inventoryItems.ToList();
-    }
-
-    // Método auxiliar para obtener productos directamente
-    private Task<IEnumerable<Product>> GetDirectProductsAsync(int idWarehouse)
-    {
-        // Obtener todos los productos (sin filtro por warehouse por ahora)
-        // TODO: Implementar lógica para relacionar productos con warehouse
-        // Por ahora simulamos obteniendo productos de un repositorio genérico
-        
-        // Como no tenemos repositorio de productos, vamos a simular con datos mínimos
-        return Task.FromResult<IEnumerable<Product>>(new List<Product>());
-    }
-
-    // Método auxiliar para mapear Inventory a ProductInventoryListDto
-    private async Task<List<ProductInventoryListDto>> MapInventoryToProductListAsync(
-        List<AVASphere.ApplicationCore.Inventory.Entities.General.Inventory> inventoryItems, bool isDirectFromProducts)
-    {
-        var result = new List<ProductInventoryListDto>();
-
-        foreach (var item in inventoryItems)
-        {
-            var productDto = new ProductInventoryListDto
-            {
-                IdPhysicalInventoryDetail = null, // No viene de PhysicalInventoryDetail
-                SystemQuantity = item.Stock,
-                PhysicalQuantity = 0, // Se llenará durante el conteo
-                Difference = 0, // Se calculará después
-                ProductMainName = item.Product.MainName ?? "Sin nombre",
-                ProductUnit = item.Product.Unit ?? "Sin unidad", 
-                ProductDescription = item.Product.Description ?? "Sin descripción",
-                ProductSupplierName = item.Product.Supplier?.Name ?? "Sin proveedor",
-                ProductCodeJsonCode = item.Product.CodeJson?.FirstOrDefault(c => c.Type == "Principal")?.Code ?? 
-                                      item.Product.FirstCode,
-                ProductProperties = await MapProductPropertiesAsync(item.Product.ProductProperties),
-                IdLocationDetails = item.LocationDetail.HasValue ? (int?)item.LocationDetail.Value : null,
-                LocationDetailsCode = await BuildLocationDetailsCodeAsync(item.LocationDetail),
-                IsDirectFromProducts = isDirectFromProducts
-            };
-
-            result.Add(productDto);
-        }
-
-        return result;
-    }
-
-    // Método auxiliar para mapear Products directos a ProductInventoryListDto
-    private async Task<List<ProductInventoryListDto>> MapProductsToProductListAsync(
-        IEnumerable<Product> products, bool isDirectFromProducts)
-    {
-        var result = new List<ProductInventoryListDto>();
-
-        foreach (var product in products)
-        {
-            var productDto = new ProductInventoryListDto
-            {
-                IdPhysicalInventoryDetail = null,
-                SystemQuantity = 0, // No hay stock registrado
-                PhysicalQuantity = 0,
-                Difference = 0,
-                ProductMainName = product.MainName ?? "Sin nombre",
-                ProductUnit = product.Unit ?? "Sin unidad",
-                ProductDescription = product.Description ?? "Sin descripción", 
-                ProductSupplierName = product.Supplier?.Name ?? "Sin proveedor",
-                ProductCodeJsonCode = product.CodeJson?.FirstOrDefault(c => c.Type == "Principal")?.Code ?? 
-                                      product.FirstCode,
-                ProductProperties = await MapProductPropertiesAsync(product.ProductProperties),
-                IdLocationDetails = null,
-                LocationDetailsCode = "Sin ubicación",
-                IsDirectFromProducts = isDirectFromProducts
-            };
-
-            result.Add(productDto);
-        }
-
-        return result;
-    }
-
-    // Método auxiliar para mapear propiedades del producto
-    private Task<List<ProductPropertyDto>> MapProductPropertiesAsync(ICollection<ProductProperties> properties)
-    {
-        var result = properties.Select(p => new ProductPropertyDto
-        {
-            IdProductProperties = p.IdProductProperties,
-            CustomValue = p.CustomValue,
-            IdPropertyValue = p.IdPropertyValue,
-            PropertyName = p.PropertyValue?.Property?.Name ?? "Sin nombre",
-            PropertyValue = p.PropertyValue?.Value ?? "Sin valor"
-        }).ToList();
-
-        return Task.FromResult(result);
-    }
-
-    // Método auxiliar para construir el código de ubicación
-    private Task<string> BuildLocationDetailsCodeAsync(double? locationDetailId)
-    {
-        if (!locationDetailId.HasValue)
-        {
-            return Task.FromResult("Sin ubicación");
-        }
-
-        // TODO: Implementar lógica para obtener LocationDetails por ID y construir el código
-        // Por ahora retornamos un placeholder
-        return Task.FromResult($"LOC-{locationDetailId.Value}");
     }
 }

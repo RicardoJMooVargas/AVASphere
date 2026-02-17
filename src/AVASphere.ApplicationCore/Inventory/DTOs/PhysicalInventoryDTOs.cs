@@ -13,6 +13,12 @@
         
         [Required]
         public int IdWarehouse { get; set; }
+        
+        /// <summary>
+        /// Filtros opcionales para selección automática de productos.
+        /// Si no se especifica, se incluirán todos los productos del warehouse/área del usuario.
+        /// </summary>
+        public ProductSelectionFilterDto? ProductFilters { get; set; }
     }
 
     // DTO para actualizar un conteo físico

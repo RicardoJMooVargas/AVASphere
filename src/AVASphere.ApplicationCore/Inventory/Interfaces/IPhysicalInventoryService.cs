@@ -58,13 +58,19 @@ public interface IPhysicalInventoryService
         DateTime? endDate = null);
         
     /// <summary>
-    /// Obtener lista de productos para conteo físico basado en IdWarehouse y área del usuario
-    /// Filtra por IdWarehouse e IdLocationDetails.IdArea del usuario.
-    /// Si no existen registros en Inventory, obtiene productos directamente de la tabla Product.
+    /// Obtener lista de productos para conteo físico basado en el IdPhysicalInventory
+    /// Obtiene todos los PhysicalInventoryDetail asociados al inventario físico especificado
     /// </summary>
-    /// <param name="idWarehouse">ID del warehouse</param>
-    /// <param name="userId">ID del usuario (obtenido del token) para determinar su área</param>
+    /// <param name="idPhysicalInventory">ID del inventario físico</param>
+    /// <param name="userId">ID del usuario (obtenido del token) para validación</param>
     /// <returns>Lista de productos para conteo físico</returns>
-    Task<ApiResponse<ProductInventoryListResponseDto>> GetProductInventoryListAsync(int idWarehouse, int userId);
+    Task<ApiResponse<ProductInventoryListResponseDto>> GetProductInventoryListAsync(int idPhysicalInventory, int userId);
+    
+    /// <summary>
+    /// Crea o actualiza un conteo específico de un producto en el inventario físico
+    /// </summary>
+    /// <param name="countDto">Datos del conteo a crear o actualizar</param>
+    /// <returns>Respuesta con el detalle del conteo actualizado</returns>
+    Task<ApiResponse<PhysicalInventoryCountResponseDto>> CreateOrUpdatePhysicalCountAsync(CreateOrUpdatePhysicalCountDto countDto);
 }
 

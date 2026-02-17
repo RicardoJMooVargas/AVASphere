@@ -180,16 +180,15 @@ public class PhysicalInventoryController : ControllerBase
     }
 
     /// <summary>
-    /// Obtener lista de productos para conteo físico basado en warehouse y área del usuario
-    /// Filtra productos desde la tabla Inventory usando IdWarehouse e IdLocationDetails.IdArea del usuario.
-    /// Si no existen registros en Inventory, obtiene productos directamente de la tabla Product.
+    /// Obtener lista de productos para conteo físico basado en el IdPhysicalInventory
+    /// Obtiene todos los PhysicalInventoryDetail asociados al inventario físico especificado.
     /// El userId se obtiene automáticamente del token JWT.
     /// </summary>
-    /// <param name="idWarehouse">ID del warehouse para filtrar productos</param>
+    /// <param name="idPhysicalInventory">ID del inventario físico para obtener sus productos</param>
     /// <returns>Lista de productos para realizar el conteo físico</returns>
     [HttpGet("get-product-inventory-list")]
     [Authorize]
-    public async Task<IActionResult> GetProductInventoryList([FromQuery] int idWarehouse)
+    public async Task<IActionResult> GetProductInventoryList([FromQuery] int idPhysicalInventory)
     {
         // Obtener el ID del usuario del token JWT
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
@@ -198,11 +197,35 @@ public class PhysicalInventoryController : ControllerBase
             return Unauthorized("Token de autorización inválido o usuario no encontrado.");
         }
 
-        var result = await _physicalInventoryService.GetProductInventoryListAsync(idWarehouse, userId);
+        var result = await _physicalInventoryService.GetProductInventoryListAsync(idPhysicalInventory, userId);
         
         if (result.Success)
         {
             return Ok(result);
+        }
+        
+        return result.StatusCode switch
+        {
+            400 => BadRequest(result),
+            404 => NotFound(result),
+            500 => StatusCode(500, result),
+            _ => BadRequest(result)
+        };
+    }
+
+    /// <summary>
+    /// Crear o actualizar un conteo específico de un producto en el inventario físico
+    /// </summary>
+    /// <param name="countDto">Datos del conteo a crear o actualizar</param>
+    /// <returns>Detalle del conteo actualizado</returns>
+    [HttpPost("physical-count")]
+    public async Task<IActionResult> CreateOrUpdatePhysicalCount([FromBody] CreateOrUpdatePhysicalCountDto countDto)
+    {
+        var result = await _physicalInventoryService.CreateOrUpdatePhysicalCountAsync(countDto);
+        
+        if (result.Success)
+        {
+            return result.StatusCode == 201 ? Created(string.Empty, result) : Ok(result);
         }
         
         return result.StatusCode switch

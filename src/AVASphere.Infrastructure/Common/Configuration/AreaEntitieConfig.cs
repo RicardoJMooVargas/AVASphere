@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.Entities.Catalogs;
+﻿﻿using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -25,6 +25,7 @@ public class AreaEntitieConfig : IEntityTypeConfiguration<Area>
             .HasForeignKey(r => r.IdArea)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Relación con StorageStructure se configura en StorageStructureEntitieConfig para evitar duplicados
+        // Las relaciones con StorageStructure y LocationDetails se configuran
+        // desde sus respectivas configuraciones para evitar configuraciones duplicadas
     }
 }

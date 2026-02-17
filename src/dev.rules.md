@@ -28,13 +28,15 @@
 ### ✅ NUEVO: Sistema Automatizado (Recomendado)
 Usa el endpoint que hace todo automáticamente:
 ```http
-POST /api/system/DbTools/full-migration?name=NombreMigracion
+POST /api/system/DbTools/full-migration?name=Initial
 ```
+**⚠️ IMPORTANTE:** La migración principal DEBE llamarse "Initial" para que las instalaciones nuevas funcionen correctamente.
+
 Este endpoint automáticamente:
 1. Verifica la conexión
 2. Elimina tablas existentes
 3. Elimina archivos de migración antiguos en `System\Migrations` (ubicación correcta)
-4. Crea nueva migración
+4. Crea nueva migración con nombre "Initial"
 5. Aplica la migración
 
 ### ❌ Sistema Manual (Antiguo - No recomendado)

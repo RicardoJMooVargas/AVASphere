@@ -21,13 +21,16 @@ public class ExternalSalesService : IExternalSalesService
 {
     private readonly IExternalSalesRepository _externalSalesRepository;
     private readonly ISaleRepository _saleRepository;
+    private readonly ISaleQuotationRepository _saleQuotationRepository;
 
     public ExternalSalesService(
         IExternalSalesRepository externalSalesRepository,
-        ISaleRepository saleRepository)
+        ISaleRepository saleRepository,
+        ISaleQuotationRepository saleQuotationRepository)
     {
         _externalSalesRepository = externalSalesRepository ?? throw new ArgumentNullException(nameof(externalSalesRepository));
         _saleRepository = saleRepository ?? throw new ArgumentNullException(nameof(saleRepository));
+        _saleQuotationRepository = saleQuotationRepository ?? throw new ArgumentNullException(nameof(saleQuotationRepository));
     }
 
     /// <summary>
@@ -102,6 +105,17 @@ public class ExternalSalesService : IExternalSalesService
                      s.SaleDate.Date == externalDate.Date)
                 );
 
+                // 🔗 Verificar si hay relaciones en SaleQuotations
+                int saleQuotationCount = 0;
+                bool hasSaleQuotationLinks = false;
+
+                if (linkedInternalSale != null)
+                {
+                    var saleQuotations = await _saleQuotationRepository.GetBySaleIdAsync(linkedInternalSale.IdSale);
+                    saleQuotationCount = saleQuotations.Count();
+                    hasSaleQuotationLinks = saleQuotationCount > 0;
+                }
+
                 var combined = new CombinedSalesDto
                 {
                     ExternalSales = externalSale,
@@ -116,7 +130,11 @@ public class ExternalSalesService : IExternalSalesService
                     SatisfactionReason = linkedInternalSale?.SatisfactionReason,
                     Comment = linkedInternalSale?.Comment,
                     AfterSalesFollowupDate = linkedInternalSale?.AfterSalesFollowupDate,
-                    LinkedQuotations = linkedInternalSale?.LinkedQuotations ?? new List<QuotationReference>()
+                    LinkedQuotations = linkedInternalSale?.LinkedQuotations ?? new List<QuotationReference>(),
+
+                    // 🔗 VERIFICACIÓN DE SALEQUOTATIONS
+                    HasSaleQuotationLinks = hasSaleQuotationLinks,
+                    SaleQuotationCount = saleQuotationCount
                 };
 
                 combinedList.Add(combined);

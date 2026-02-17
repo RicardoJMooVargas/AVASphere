@@ -38,7 +38,7 @@ public interface ISaleService
     Task<Sale> CreateSaleAndLinkQuotationAsync(CreateSaleWithQuotationLinkDto dto, string createdByUserId);
 
     /// <summary>
-    /// Desvincula una venta de una cotización existente.
+    /// Desvincula una venta de una cotización existente y elimina completamente la venta.
     /// 
     /// FLUJO TRANSACCIONAL:
     /// 1. Valida que la venta exista
@@ -46,17 +46,18 @@ public interface ISaleService
     /// 3. Valida que exista la relación en SaleQuotations
     /// 4. Elimina el registro de la tabla SaleQuotations
     /// 5. Actualiza la Quotation poniendo LinkedSaleId y LinkedSaleFolio a NULL
-    /// 6. Commit de transacción
+    /// 6. Elimina el registro completo de la tabla Sales
+    /// 7. Commit de transacción
     /// 
     /// VALIDACIONES:
     /// - La venta debe existir
     /// - La cotización debe existir
     /// - Debe existir la relación SaleQuotation entre ambos
     /// </summary>
-    /// <param name="saleId">ID de la venta a desvincular</param>
+    /// <param name="saleId">ID de la venta a desvincular y eliminar</param>
     /// <param name="quotationId">ID de la cotización a desvincular</param>
     /// <param name="requestedByUserId">Usuario que realiza la operación</param>
-    /// <returns>True si se desvinculó exitosamente, false en caso contrario</returns>
+    /// <returns>True si se desvinculó y eliminó exitosamente, false en caso contrario</returns>
     Task<bool> UnlinkSaleFromQuotationAsync(int saleId, int quotationId, string requestedByUserId);
 
     /// <summary>

@@ -353,8 +353,12 @@ namespace AVASphere.WebApi.Sale.Controllers
         }
 
         /// <summary>
-        /// Desvincula una venta de una cotización existente.
+        /// Desvincula una venta de una cotización existente y elimina completamente el registro de la venta.
+        /// Elimina la relación en SaleQuotations, actualiza la Quotation removiendo referencias y elimina la Sale.
         /// </summary>
+        /// <param name="saleId">ID de la venta a desvincular y eliminar</param>
+        /// <param name="quotationId">ID de la cotización a desvincular</param>
+        /// <returns>Confirmación de la desvinculación y eliminación</returns>
         [HttpDelete("UnlinkSaleFromQuotation")]
         public async Task<IActionResult> UnlinkSaleFromQuotation(
             [FromQuery] int saleId,
@@ -371,18 +375,19 @@ namespace AVASphere.WebApi.Sale.Controllers
                     return NotFound(new
                     {
                         success = false,
-                        error = "No se pudo desvincular la venta de la cotización"
+                        error = "No se pudo desvincular y eliminar la venta de la cotización"
                     });
                 }
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Venta desvinculada de la cotización exitosamente",
+                    message = "Venta desvinculada y eliminada exitosamente",
+                    details = "La relación SaleQuotation fue eliminada, la cotización fue actualizada y el registro de la venta fue eliminado",
                     saleId = saleId,
                     quotationId = quotationId,
-                    unlinkedAt = DateTime.UtcNow,
-                    unlinkedBy = userName
+                    deletedAt = DateTime.UtcNow,
+                    deletedBy = userName
                 });
             }
             catch (InvalidOperationException ex)
@@ -398,7 +403,7 @@ namespace AVASphere.WebApi.Sale.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new
                 {
                     success = false,
-                    error = "Error al desvincular la venta de la cotización",
+                    error = "Error al desvincular y eliminar la venta de la cotización",
                     details = ex.Message
                 });
             }

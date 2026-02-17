@@ -262,8 +262,8 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Desvincula una venta de una cotización existente.
-    /// Elimina el registro de SaleQuotations y actualiza la Quotation removiendo la referencia a la venta.
+    /// Desvincula una venta de una cotización existente y elimina completamente la venta.
+    /// Elimina el registro de SaleQuotations, actualiza la Quotation removiendo la referencia y elimina la Sale.
     /// </summary>
     public async Task<bool> UnlinkSaleFromQuotationAsync(int saleId, int quotationId, string requestedByUserId)
     {
@@ -299,6 +299,11 @@ public class SaleService : ISaleService
             quotation.UpdatedAt = DateTime.UtcNow;
             await _quotationRepository.UpdateQuotationAsync(quotation);
 
+            // 6️⃣ ELIMINAR LA VENTA COMPLETAMENTE
+            var saleDeleted = await _saleRepository.DeleteSaleAsync(saleId);
+            if (!saleDeleted)
+                throw new InvalidOperationException($"Failed to delete Sale {saleId}");
+
             await tx.CommitAsync();
             return true;
         }
@@ -306,7 +311,7 @@ public class SaleService : ISaleService
         {
             await tx.RollbackAsync();
             throw new InvalidOperationException(
-                $"Error unlinking sale {saleId} from quotation {quotationId}: {ex.Message}",
+                $"Error unlinking and deleting sale {saleId} from quotation {quotationId}: {ex.Message}",
                 ex
             );
         }

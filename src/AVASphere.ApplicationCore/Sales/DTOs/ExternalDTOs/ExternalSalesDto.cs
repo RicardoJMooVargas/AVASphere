@@ -188,4 +188,19 @@ public class CombinedSalesDto
     /// { "IdQuotation": 123, "QuotationFolio": "Q00456", ... }
     /// </summary>
     public List<QuotationReference>? LinkedQuotations { get; set; }
+
+    /// <summary>
+    /// Indica si la venta interna tiene una o más relaciones en la tabla SaleQuotations.
+    /// MOTIVO: Permite identificar si una venta está vinculada a cotizaciones a través de SaleQuotations.
+    /// Solo aplica si IsLinked = true (si existe la venta internamente).
+    /// Será false si la venta no existe internamente o no tiene relaciones en SaleQuotations.
+    /// </summary>
+    public bool HasSaleQuotationLinks { get; set; }
+
+    /// <summary>
+    /// Número de relaciones en SaleQuotations para esta venta.
+    /// Solo disponible si la venta existe internamente (IsLinked = true).
+    /// Será 0 si la venta no existe internamente o no tiene relaciones.
+    /// </summary>
+    public int SaleQuotationCount { get; set; }
 }

@@ -2,6 +2,8 @@
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
+using ClosedXML.Excel;
+using System.Globalization;
 
 namespace AVASphere.Infrastructure.Common.Services
 {
@@ -34,7 +36,17 @@ namespace AVASphere.Infrastructure.Common.Services
                     Index = await _repository.GetNextIndexForSettingsAsync(),
                     Route = request.Settings.Route,
                     Type = request.Settings.Type,
-                    Discount = request.Settings.Discount
+                    Discount = request.Settings.Discount,
+                    Agente = request.Settings.Agente,
+                    TipoCliente = request.Settings.TipoCliente,
+                    TipoPrecio = request.Settings.TipoPrecio,
+                    Credito = request.Settings.Credito,
+                    LimiteCredito = request.Settings.LimiteCredito,
+                    DiasPP = request.Settings.DiasPP,
+                    PorcPP = request.Settings.PorcPP,
+                    RF = request.Settings.RF,
+                    Descripcion = request.Settings.Descripcion,
+                    Alta = request.Settings.Alta
                 };
             }
 
@@ -44,13 +56,15 @@ namespace AVASphere.Infrastructure.Common.Services
                 directionJson = new DirectionJson
                 {
                     Index = await _repository.GetNextIndexForDirectionAsync(),
+                    Street = request.Direction.Street,
                     InteriorNumber = request.Direction.InteriorNumber,
                     ExteriorNumber = request.Direction.ExteriorNumber,
                     NeighboringStreet = request.Direction.NeighboringStreet,
                     NeighboringStreet2 = request.Direction.NeighboringStreet2,
                     Colony = request.Direction.Colony,
                     City = request.Direction.City,
-                    Municipality = request.Direction.Municipality
+                    Municipality = request.Direction.Municipality,
+                    PostalCode = request.Direction.PostalCode
                 };
             }
             else
@@ -155,7 +169,17 @@ namespace AVASphere.Infrastructure.Common.Services
                     Index = await _repository.GetNextIndexForSettingsAsync(),
                     Route = request.Settings.Route,
                     Type = request.Settings.Type,
-                    Discount = request.Settings.Discount
+                    Discount = request.Settings.Discount,
+                    Agente = request.Settings.Agente,
+                    TipoCliente = request.Settings.TipoCliente,
+                    TipoPrecio = request.Settings.TipoPrecio,
+                    Credito = request.Settings.Credito,
+                    LimiteCredito = request.Settings.LimiteCredito,
+                    DiasPP = request.Settings.DiasPP,
+                    PorcPP = request.Settings.PorcPP,
+                    RF = request.Settings.RF,
+                    Descripcion = request.Settings.Descripcion,
+                    Alta = request.Settings.Alta
                 };
             }
 
@@ -164,13 +188,15 @@ namespace AVASphere.Infrastructure.Common.Services
                 existing.DirectionJson = new DirectionJson
                 {
                     Index = await _repository.GetNextIndexForDirectionAsync(),
+                    Street = request.Direction.Street,
                     InteriorNumber = request.Direction.InteriorNumber,
                     ExteriorNumber = request.Direction.ExteriorNumber,
                     NeighboringStreet = request.Direction.NeighboringStreet,
                     NeighboringStreet2 = request.Direction.NeighboringStreet2,
                     Colony = request.Direction.Colony,
                     City = request.Direction.City,
-                    Municipality = request.Direction.Municipality
+                    Municipality = request.Direction.Municipality,
+                    PostalCode = request.Direction.PostalCode
                 };
             }
             else
@@ -179,13 +205,15 @@ namespace AVASphere.Infrastructure.Common.Services
                 existing.DirectionJson = new DirectionJson
                 {
                     Index = await _repository.GetNextIndexForDirectionAsync(),
+                    Street = null,
                     InteriorNumber = "SIN DIRECCIÓN",
                     ExteriorNumber = null,
                     NeighboringStreet = null,
                     NeighboringStreet2 = null,
                     Colony = null,
                     City = null,
-                    Municipality = null
+                    Municipality = null,
+                    PostalCode = null
                 };
             }
 
@@ -230,6 +258,206 @@ namespace AVASphere.Infrastructure.Common.Services
 
             var customers = await _repository.SearchByFullNameAsync(searchText);
             return customers.Select(MapToDto);
+        }
+
+        public async Task<CustomerImportResultDto> ImportFromExcelAsync(Stream excelFileStream)
+        {
+            var result = new CustomerImportResultDto();
+            var importedCustomers = new List<CustomerDto>();
+
+            try
+            {
+                using var workbook = new XLWorkbook(excelFileStream);
+                var worksheet = workbook.Worksheet(1);
+                var rows = worksheet.RowsUsed().Skip(1); // Saltar la fila de encabezado
+
+                result.TotalRows = rows.Count();
+
+                foreach (var row in rows)
+                {
+                    try
+                    {
+                        // Mapeo de columnas según el Excel proporcionado
+                        // id, nombre, rfc, agente, nombreagt, calle, numero, interior, entre, colonia, 
+                        // poblacion, estado, pais, cp, telefono1, email, tipo, tipocliente, tipoprecio, 
+                        // credito, limitecredito, diaspp, porcpp, rf, descripcion, alta
+
+                        var externalId = ParseInt(row.Cell(1).GetString()) ?? 0;
+
+                        // Verificar si el cliente ya existe por ExternalId
+                        if (await _repository.ExistsByExternalIdAsync(externalId))
+                        {
+                            result.SkippedCount++;
+                            result.SkippedRecords.Add($"ID {externalId} (Fila {row.RowNumber()})");
+                            continue; // Saltar este registro, ya existe
+                        }
+
+                        var nombre = TruncateString(row.Cell(2).GetString(), 100); // Truncar a 100 caracteres
+                        var rfc = TruncateString(row.Cell(3).GetString(), 50); // Truncar a 50 caracteres
+                        var email = TruncateString(row.Cell(16).GetString(), 255); // Truncar a 255 caracteres
+                        var telefono1 = TruncateString(row.Cell(15).GetString(), 20); // Truncar a 20 caracteres
+
+                        // Datos de dirección
+                        var directionData = new CustomerDirectionExcelDto
+                        {
+                            Calle = row.Cell(6).GetString(),
+                            Numero = row.Cell(7).GetString(),
+                            Interior = row.Cell(8).GetString(),
+                            Entre = row.Cell(9).GetString(),
+                            Colonia = row.Cell(10).GetString(),
+                            Poblacion = row.Cell(11).GetString(),
+                            Estado = row.Cell(12).GetString(),
+                            Pais = row.Cell(13).GetString(),
+                            CP = row.Cell(14).GetString()
+                        };
+
+                        // Datos de configuración
+                        var settingsData = new CustomerSettingsExcelDto
+                        {
+                            Agente = row.Cell(4).GetString(),
+                            Tipo = row.Cell(17).GetString(),
+                            TipoCliente = row.Cell(18).GetString(),
+                            TipoPrecio = row.Cell(19).GetString(),
+                            Credito = row.Cell(20).GetString(),
+                            LimiteCredito = ParseDecimal(row.Cell(21).GetString()),
+                            DiasPP = ParseInt(row.Cell(22).GetString()),
+                            PorcPP = ParseDecimal(row.Cell(23).GetString()),
+                            RF = row.Cell(24).GetString(),
+                            Descripcion = row.Cell(25).GetString(),
+                            Alta = ParseDateTime(row.Cell(26).GetString())
+                        };
+
+                        // Crear DirectionJson
+                        var directionJson = new DirectionJson
+                        {
+                            Index = await _repository.GetNextIndexForDirectionAsync(),
+                            Street = directionData.Calle,
+                            InteriorNumber = directionData.Interior,
+                            ExteriorNumber = directionData.Numero,
+                            NeighboringStreet = directionData.Entre,
+                            Colony = directionData.Colonia,
+                            City = directionData.Poblacion,
+                            Municipality = directionData.Estado,
+                            PostalCode = directionData.CP
+                        };
+
+                        // Crear SettingsCustomerJson (almacenar todos los datos del Excel)
+                        var settingsJson = new SettingsCustomerJson
+                        {
+                            Index = await _repository.GetNextIndexForSettingsAsync(),
+                            Type = settingsData.Tipo ?? "General",
+                            Discount = 0.0,
+                            Agente = settingsData.Agente,
+                            TipoCliente = settingsData.TipoCliente,
+                            TipoPrecio = settingsData.TipoPrecio,
+                            Credito = settingsData.Credito,
+                            LimiteCredito = settingsData.LimiteCredito,
+                            DiasPP = settingsData.DiasPP,
+                            PorcPP = settingsData.PorcPP,
+                            RF = settingsData.RF,
+                            Descripcion = settingsData.Descripcion,
+                            Alta = settingsData.Alta
+                        };
+
+                        // Crear la entidad Customer
+                        var customer = new Customer
+                        {
+                            ExternalId = externalId,
+                            Name = nombre,
+                            LastName = "", // No viene en el Excel
+                            PhoneNumber = string.IsNullOrWhiteSpace(telefono1) ? "+00" : telefono1,
+                            Email = email,
+                            TaxId = rfc,
+                            SettingsCustomerJson = settingsJson,
+                            DirectionJson = directionJson,
+                            PaymentMethodsJson = null,
+                            PaymentTermsJson = null
+                        };
+
+                        var created = await _repository.InsertAsync(customer);
+                        importedCustomers.Add(MapToDto(created));
+                        result.SuccessCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        result.ErrorCount++;
+                        var errorMsg = $"Fila {row.RowNumber()} (ID: {row.Cell(1).GetString()}): {ex.InnerException?.Message ?? ex.Message}";
+                        result.Errors.Add(errorMsg);
+                    }
+                }
+
+                result.ImportedCustomers = importedCustomers;
+            }
+            catch (Exception ex)
+            {
+                result.Errors.Add($"Error general: {ex.Message}");
+            }
+
+            return result;
+        }
+
+        // Métodos auxiliares para parsear valores
+        private static int? ParseInt(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            // Remover comas y espacios
+            value = value.Replace(",", "").Trim();
+
+            if (int.TryParse(value, out int result))
+                return result;
+
+            return null;
+        }
+
+        private static decimal? ParseDecimal(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            // Remover comas y símbolos de moneda
+            value = value.Replace(",", "").Replace("$", "").Trim();
+
+            if (decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal result))
+                return result;
+
+            return null;
+        }
+
+        private static DateTime? ParseDateTime(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            // Intentar varios formatos
+            string[] formats = { "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd", "MM/dd/yyyy" };
+
+            if (DateTime.TryParseExact(value, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime result))
+                return result;
+
+            if (DateTime.TryParse(value, out result))
+                return result;
+
+            return null;
+        }
+
+        private static string? TruncateString(string? value, int maxLength)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return value;
+
+            value = value.Trim();
+
+            if (value.Length <= maxLength)
+                return value;
+
+            return value.Substring(0, maxLength);
+        }
+
+        public async Task<bool> ResetTableAsync()
+        {
+            return await _repository.ResetTableAsync();
         }
 
         private static CustomerDto MapToDto(Customer c)

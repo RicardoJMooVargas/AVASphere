@@ -57,4 +57,14 @@ public class SettingsCustomerJson
     public string? Route { get; set; }
     public string Type { get; set; } = "General"; // aluminiero , general, etc.
     public double Discount { get; set; } = 0.0;
+    public string? Agente { get; set; }
+    public string? TipoCliente { get; set; }
+    public string? TipoPrecio { get; set; }
+    public string? Credito { get; set; }
+    public decimal? LimiteCredito { get; set; }
+    public int? DiasPP { get; set; }
+    public decimal? PorcPP { get; set; }
+    public string? RF { get; set; }
+    public string? Descripcion { get; set; }
+    public DateTime? Alta { get; set; }
 }

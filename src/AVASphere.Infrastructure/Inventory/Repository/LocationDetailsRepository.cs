@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
 using AVASphere.ApplicationCore.Inventory.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -38,7 +38,6 @@ public class LocationDetailsRepository : ILocationDetailsRepository
     {
         return await _context.Set<LocationDetails>()
             .Include(ld => ld.Area)
-            .Include(ld => ld.StorageStructure)
             .AsNoTracking()
             .ToListAsync();
     }
@@ -48,7 +47,6 @@ public class LocationDetailsRepository : ILocationDetailsRepository
         return await _context.Set<LocationDetails>()
             .Where(ld => ld.IdArea == idArea)
             .Include(ld => ld.Area)
-            .Include(ld => ld.StorageStructure)
             .AsNoTracking()
             .ToListAsync();
     }
@@ -58,7 +56,6 @@ public class LocationDetailsRepository : ILocationDetailsRepository
         return await _context.Set<LocationDetails>()
             .Where(ld => ld.IdStorageStructure == idStorageStructure)
             .Include(ld => ld.Area)
-            .Include(ld => ld.StorageStructure)
             .AsNoTracking()
             .ToListAsync();
     }
@@ -70,7 +67,6 @@ public class LocationDetailsRepository : ILocationDetailsRepository
 
         return await _context.Set<LocationDetails>()
             .Include(ld => ld.Area)
-            .Include(ld => ld.StorageStructure)
             .AsNoTracking()
             .FirstOrDefaultAsync(ld => 
                 ld.IdArea == idArea && 

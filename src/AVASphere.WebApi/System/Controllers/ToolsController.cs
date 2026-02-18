@@ -1,4 +1,4 @@
-﻿﻿using AVASphere.ApplicationCore.Common.DTOs;
+﻿using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.Infrastructure.System.Services;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
@@ -154,6 +154,34 @@ public class ToolsController : ControllerBase
                 StatusCode = 400
             });
         }
+    }
+
+    [HttpPost("synchronize-migration-history")]
+    public async Task<IActionResult> SynchronizeMigrationHistory()
+    {
+        var result = await _dbMigrationService.SynchronizeMigrationHistoryAsync();
+        var response = new ApiResponse
+        {
+            Success = true,
+            Data = new { message = result },
+            Message = "Historial de migraciones sincronizado",
+            StatusCode = 200
+        };
+        return Ok(response);
+    }
+
+    [HttpGet("check-database-tables")]
+    public async Task<IActionResult> CheckDatabaseTables()
+    {
+        var result = await _dbMigrationService.CheckDatabaseTablesAsync();
+        var response = new ApiResponse
+        {
+            Success = true,
+            Data = new { message = result },
+            Message = "Verificación de tablas completada",
+            StatusCode = 200
+        };
+        return Ok(response);
     }
 
     private static string GetCleanupScript()

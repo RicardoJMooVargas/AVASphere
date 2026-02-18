@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace AVASphere.Infrastructure.System.Services
@@ -53,6 +53,11 @@ namespace AVASphere.Infrastructure.System.Services
                 }
 
                 _logger.LogInformation($"Usando contexto: {(usingFactory ? "IDesignTimeDbContextFactory" : "DI Container")}");
+                
+                // Log de la cadena de conexión que se está usando
+                var currentConnectionString = contextToUse.Database.GetConnectionString();
+                _logger.LogInformation($"📍 Cadena de conexión: {currentConnectionString}");
+                _logger.LogInformation($"🏗️ Base de datos destino: {ExtractDatabaseFromConnectionString(currentConnectionString)}");
 
                 // Obtener información de migraciones
                 var allMigrations = contextToUse.Database.GetMigrations();
@@ -282,5 +287,159 @@ namespace AVASphere.Infrastructure.System.Services
                 return $"❌ Error aplicando migraciones forzadas: {ex.Message}";
             }
         }
+
+        /// <summary>
+        /// Marca las migraciones existentes como aplicadas en __EFMigrationsHistory cuando las tablas ya existen
+        /// </summary>
+        public async Task<string> SynchronizeMigrationHistoryAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Iniciando sincronización de historial de migraciones...");
+                
+                var factory = new MasterDbContextFactory();
+                using var context = factory.CreateDbContext(Array.Empty<string>());
+                
+                // Verificar que podamos conectar
+                var canConnect = await context.Database.CanConnectAsync();
+                if (!canConnect)
+                {
+                    return "❌ No se puede conectar a la base de datos";
+                }
+
+                // Obtener todas las migraciones del assembly
+                var migrations = context.Database.GetMigrations().ToList();
+                _logger.LogInformation($"📋 Migraciones encontradas en el código: {migrations.Count}");
+                
+                // Obtener migraciones ya aplicadas
+                var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
+                _logger.LogInformation($"📋 Migraciones aplicadas en BD: {appliedMigrations.Count()}");
+
+                // Encontrar migraciones faltantes en el historial
+                var missingMigrations = migrations.Except(appliedMigrations).ToList();
+                
+                if (missingMigrations.Count == 0)
+                {
+                    return "✅ Todas las migraciones ya están sincronizadas";
+                }
+
+                _logger.LogInformation($"📝 Migraciones faltantes en historial: {missingMigrations.Count}");
+                
+                // Insertar manualmente las migraciones faltantes en __EFMigrationsHistory
+                using var connection = context.Database.GetDbConnection();
+                await connection.OpenAsync();
+                
+                foreach (var migrationId in missingMigrations)
+                {
+                    var command = connection.CreateCommand();
+                    command.CommandText = @"
+                        INSERT INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"") 
+                        VALUES (@migrationId, @productVersion)
+                        ON CONFLICT (""MigrationId"") DO NOTHING";
+                    
+                    var migrationParam = command.CreateParameter();
+                    migrationParam.ParameterName = "@migrationId";
+                    migrationParam.Value = migrationId;
+                    command.Parameters.Add(migrationParam);
+                    
+                    var versionParam = command.CreateParameter();
+                    versionParam.ParameterName = "@productVersion";
+                    versionParam.Value = "8.0.0"; // Versión de EF Core
+                    command.Parameters.Add(versionParam);
+                    
+                    await command.ExecuteNonQueryAsync();
+                    _logger.LogInformation($"✅ Migración {migrationId} marcada como aplicada");
+                }
+
+                return $"✅ {missingMigrations.Count} migraciones sincronizadas correctamente en __EFMigrationsHistory";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sincronizando historial de migraciones");
+                return $"❌ Error: {ex.Message}";
+            }
+        }
+
+        /// <summary>
+        /// Verifica qué tablas existen realmente en la base de datos
+        /// </summary>
+        public async Task<string> CheckDatabaseTablesAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Verificando tablas existentes en la base de datos...");
+                
+                var factory = new MasterDbContextFactory();
+                using var context = factory.CreateDbContext(Array.Empty<string>());
+                
+                // Verificar que podamos conectar
+                var canConnect = await context.Database.CanConnectAsync();
+                if (!canConnect)
+                {
+                    return "❌ No se puede conectar a la base de datos";
+                }
+
+                var connectionString = context.Database.GetConnectionString();
+                _logger.LogInformation($"🏗️ Verificando tablas en: {ExtractDatabaseFromConnectionString(connectionString)}");
+
+                using var connection = context.Database.GetDbConnection();
+                await connection.OpenAsync();
+                
+                var command = connection.CreateCommand();
+                command.CommandText = @"
+                    SELECT tablename 
+                    FROM pg_tables 
+                    WHERE schemaname = 'public'
+                    ORDER BY tablename";
+                
+                var tables = new List<string>();
+                using var reader = await command.ExecuteReaderAsync();
+                
+                while (await reader.ReadAsync())
+                {
+                    tables.Add(reader.GetString(0));
+                }
+
+                var result = $"📊 TABLAS EN BASE DE DATOS: {ExtractDatabaseFromConnectionString(connectionString)}\n";
+                result += $"🔢 Total de tablas: {tables.Count}\n\n";
+                
+                if (tables.Any())
+                {
+                    foreach (var table in tables)
+                    {
+                        result += $"  📋 {table}\n";
+                    }
+                }
+                else
+                {
+                    result += "  ⚠️ No hay tablas en la base de datos\n";
+                    result += "  💡 La base de datos está vacía\n";
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verificando tablas de la base de datos");
+                return $"❌ Error: {ex.Message}";
+            }
+        }
+
+        private static string ExtractDatabaseFromConnectionString(string? connectionString)
+        {
+            if (string.IsNullOrEmpty(connectionString))
+                return "UNKNOWN";
+                
+            var parts = connectionString.Split(';');
+            var dbPart = parts.FirstOrDefault(p => p.Trim().StartsWith("Database=", StringComparison.OrdinalIgnoreCase));
+            
+            if (dbPart != null)
+            {
+                return dbPart.Split('=')[1].Trim();
+            }
+            
+            return "NOT_FOUND";
+        }
     }
 }
+

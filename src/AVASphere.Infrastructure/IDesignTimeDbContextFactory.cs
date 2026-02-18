@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
 namespace AVASphere.Infrastructure;
@@ -9,8 +9,8 @@ public class MasterDbContextFactory : IDesignTimeDbContextFactory<MasterDbContex
     {
         var optionsBuilder = new DbContextOptionsBuilder<MasterDbContext>();
         
-        // Usar la misma cadena de conexión que está en appsettings.json
-        var connectionString = "Host=191.96.31.105;Port=5432;Database=avaspheredb;Username=adminvyaa;Password=xuWHDstwihFGW14;";
+        // Usar la cadena de conexión de la base de datos de testing
+        var connectionString = "Host=191.96.31.105;Port=5432;Database=avaspheredbtest;Username=adminvyaa;Password=xuWHDstwihFGW14;";
         
         optionsBuilder.UseNpgsql(connectionString);
 

@@ -1,4 +1,4 @@
-﻿﻿    using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿﻿﻿    using AVASphere.ApplicationCore.Inventory.Entities.General;
 using AVASphere.ApplicationCore.Inventory.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,7 +40,8 @@ public class PhysicalInventoryRepository : IPhysicalInventoryRepository
             .Include(pi => pi.PhysicalInventoryDetails)
                 .ThenInclude(pid => pid.Product)
             .Include(pi => pi.PhysicalInventoryDetails)
-                .ThenInclude(pid => pid.LocationDetails)
+                .ThenInclude(pid => pid.LocationDetails)!
+                    .ThenInclude(ld => ld.Area)
             .AsNoTracking()
             .FirstOrDefaultAsync(pi => pi.IdPhysicalInventory == idPhysicalInventory);
     }
@@ -94,8 +95,6 @@ public class PhysicalInventoryRepository : IPhysicalInventoryRepository
     {
         var query = _context.Set<PhysicalInventory>()
             .Include(pi => pi.Warehouse)
-            .Include(pi => pi.Inventories)
-            .Include(pi => pi.PhysicalInventoryDetails)
             .AsQueryable();
 
         if (idPhysicalInventory.HasValue)

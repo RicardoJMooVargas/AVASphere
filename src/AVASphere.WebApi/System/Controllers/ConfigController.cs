@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Common.DTOs;
+﻿﻿using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Enums;
 using AVASphere.ApplicationCore.Common.Interfaces;
@@ -25,17 +25,60 @@ public class ConfigController : ControllerBase
     private readonly MasterDbContext _dbContext;
     private readonly IEncryptionService _encryptionService;
     private readonly BackupService _backupService;
+    private readonly DbToolsServices _dbTools;
 
     public ConfigController(
         DatabaseMigrationService dbMigrationService,
         MasterDbContext dbContext,
         IEncryptionService encryptionService,
-        BackupService backupService)
+        BackupService backupService,
+        DbToolsServices dbTools)
     {
         _dbMigrationService = dbMigrationService;
         _dbContext = dbContext;
         _encryptionService = encryptionService;
         _backupService = backupService;
+        _dbTools = dbTools;
+    }
+
+    /// <summary>
+    /// 🚀 MIGRACIÓN INICIAL PARA INSTALACIÓN: Crea específicamente la migración "Initial" para nuevas instalaciones
+    /// </summary>
+    [HttpPost("prepare-initial-migration")]
+    public async Task<IActionResult> PrepareInitialMigration()
+    {
+        try
+        {
+            // Forzar que siempre se use "Initial" como nombre para instalaciones nuevas
+            var result = await _dbTools.FullMigrationAsync("Initial");
+            
+            var response = new ApiResponse
+            {
+                Success = !result.Contains("❌"),
+                Data = new 
+                { 
+                    Result = result,
+                    MigrationName = "Initial",
+                    Reason = "Migración principal requerida para instalaciones nuevas"
+                },
+                Message = !result.Contains("❌") ? 
+                    "Migración 'Initial' creada exitosamente para instalación nueva" : 
+                    "Error creando migración inicial",
+                StatusCode = !result.Contains("❌") ? 200 : 400
+            };
+
+            return !result.Contains("❌") ? Ok(response) : BadRequest(response);
+        }
+        catch (Exception ex)
+        {
+            var errorResponse = new ApiResponse
+            {
+                Success = false,
+                Message = $"Error preparando migración inicial: {ex.Message}",
+                StatusCode = 500
+            };
+            return StatusCode(500, errorResponse);
+        }
     }
 
     [HttpGet("check-initial-config")]

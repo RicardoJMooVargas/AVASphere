@@ -197,9 +197,10 @@ public static class DependencyInjection
         services.AddScoped<IPhysicalInventoryService, PhysicalInventoryService>();
         services.AddScoped<IPhysicalInventoryDetailService, PhysicalInventoryDetailService>();
 
-        // Storage Structure
+        // Storage Structure and Location Details
         services.AddScoped<IStorageStructureRepository, StorageStructureRepository>();
         services.AddScoped<ILocationDetailsRepository, LocationDetailsRepository>();
+        services.AddScoped<ILocationDetailsService, LocationDetailsService>();
 
         // Stock Movement
         services.AddScoped<IStockMovementRepository, StockMovementRepository>();

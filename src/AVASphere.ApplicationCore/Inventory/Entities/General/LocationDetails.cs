@@ -6,7 +6,7 @@ public class LocationDetails
 {
     public int IdLocationDetails { get; set; }
     public string TypeStorageSystem { get; set; } = null!;
-    public string Section { get; set; } = null!;
+    public string Section { get; set; } = null!; //A o B
     public int VerticalLevel { get; set; }
     
     // FK

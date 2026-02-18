@@ -199,6 +199,7 @@ public static class DependencyInjection
 
         // Storage Structure and Location Details
         services.AddScoped<IStorageStructureRepository, StorageStructureRepository>();
+        services.AddScoped<IStorageStructureService, StorageStructureService>();
         services.AddScoped<ILocationDetailsRepository, LocationDetailsRepository>();
         services.AddScoped<ILocationDetailsService, LocationDetailsService>();
 

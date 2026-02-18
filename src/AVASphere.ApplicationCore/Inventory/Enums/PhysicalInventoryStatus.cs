@@ -2,7 +2,8 @@ namespace AVASphere.ApplicationCore.Inventory.Enums;
 
 public enum PhysicalInventoryStatus
 {
-    NotStarted = 1,   // No iniciado
-    InProgress = 2,   // En progreso
-    Completed = 3     // Completado
+    Open = 1,        // Abierto
+    Processing = 2,  // En proceso
+    Closed = 3,      // Cerrado
+    Cancelled = 4    // Cancelado
 }

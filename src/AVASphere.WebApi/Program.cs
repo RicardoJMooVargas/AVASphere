@@ -11,13 +11,17 @@ var builder = WebApplication.CreateBuilder(args);
 // Configure Kestrel to use a specific port - Solo en Development
 if (builder.Environment.IsDevelopment())
 {
-    // Limpiar cualquier URL predefinida para evitar conflictos
-    builder.WebHost.UseUrls();
-    
-    builder.WebHost.ConfigureKestrel(options =>
+    // Solo usar configuración personalizada si no se especifica --urls
+    if (!args.Any(arg => arg.StartsWith("--urls")))
     {
-        options.ListenLocalhost(5001); // Solo HTTP en puerto 5001
-    });
+        // Limpiar cualquier URL predefinida para evitar conflictos
+        builder.WebHost.UseUrls();
+        
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.ListenLocalhost(5001); // Solo HTTP en puerto 5001
+        });
+    }
 }
 
 // Add services to the container.
@@ -176,6 +180,7 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/swagger/system/swagger.json", "System SystemModule - System Management");
         c.SwaggerEndpoint("/swagger/sales/swagger.json", "Sales SystemModule - Sales & Tracking");
         c.SwaggerEndpoint("/swagger/projects/swagger.json", "Projects SystemModule - Project Management");
+        c.SwaggerEndpoint("/swagger/inventory/swagger.json", "Inventory SystemModule - Inventory Management");
 
         c.RoutePrefix = "swagger";
         c.DefaultModelsExpandDepth(-1);

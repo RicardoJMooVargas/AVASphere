@@ -44,6 +44,11 @@ public class InventoryRepository : IInventoryRepository
     {
         return await _context.Inventories
             .Include(i => i.Product)
+                .ThenInclude(p => p.Supplier)
+            .Include(i => i.Product)
+                .ThenInclude(p => p.ProductProperties)
+                    .ThenInclude(pp => pp.PropertyValue)
+                        .ThenInclude(pv => pv.Property)
             .Include(i => i.Warehouse)
             .Include(i => i.PhysicalInventory)
             .Where(i => i.IdWarehouse == idWarehouse)

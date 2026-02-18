@@ -1,5 +1,4 @@
 using AVASphere.ApplicationCore.Common.Entities.General;
-using AVASphere.ApplicationCore.Inventory.Entities.General;
 
 namespace AVASphere.ApplicationCore.Common.Entities.Catalogs;
 
@@ -12,5 +11,7 @@ public class Area
 
     // RELACIONES
     public ICollection<Rol> Rol { get; set; } = new List<Rol>();
-    public ICollection<StorageStructure> StorageStructures { get; set; } = new List<StorageStructure>();
+    
+    // Nota: Las relaciones con StorageStructure y LocationDetails se manejan
+    // desde las entidades específicas para evitar configuraciones duplicadas
 }

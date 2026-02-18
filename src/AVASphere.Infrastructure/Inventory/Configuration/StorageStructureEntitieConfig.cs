@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -32,12 +32,13 @@ public class StorageStructureEntitieConfig : IEntityTypeConfiguration<StorageStr
             
         // Configurar relaciones explícitamente para evitar duplicados
         entity.HasOne(e => e.Warehouse)
-            .WithMany()
+            .WithMany(w => w.StorageStructures)
             .HasForeignKey(e => e.IdWarehouse)
             .OnDelete(DeleteBehavior.Restrict);
             
+        // Relación con Area - solo una configuración
         entity.HasOne(e => e.Area)
-            .WithMany()
+            .WithMany() // Sin especificar la navegación inversa para evitar duplicados
             .HasForeignKey(e => e.IdArea)
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);

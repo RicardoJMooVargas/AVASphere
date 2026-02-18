@@ -190,6 +190,7 @@ public static class DependencyInjection
 
         // Warehouse
         services.AddScoped<IWarehouseRepository, WarehouseRepository>();
+        services.AddScoped<IWarehouseService, WarehouseService>();
 
         // Physical Inventory
         services.AddScoped<IPhysicalInventoryRepository, PhysicalInventoryRepository>();

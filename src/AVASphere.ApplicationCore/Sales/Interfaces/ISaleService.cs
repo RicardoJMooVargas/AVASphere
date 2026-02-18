@@ -1,5 +1,6 @@
 using AVASphere.ApplicationCore.Sales.DTOs;
 using AVASphere.ApplicationCore.Sales.DTOs.ImportDTOs;
+using AVASphere.ApplicationCore.Sales.DTOs.SaleDTOs;
 using AVASphere.ApplicationCore.Sales.Entities;
 
 namespace AVASphere.ApplicationCore.Sales.Interfaces;
@@ -13,6 +14,51 @@ public interface ISaleService
 
     // Operación de negocio: crear venta a partir de cotizaciones (transaccional)
     Task<Sale> CreateSaleFromQuotationsAsync(IEnumerable<int> quotationIds, Sale saleData, string createdByUserId);
+
+    /// <summary>
+    /// Crea una venta y la vincula inmediatamente con una cotización existente.
+    /// Usado cuando desde el frontend se convierte una cotización en venta.
+    /// 
+    /// FLUJO TRANSACCIONAL:
+    /// 1. Valida que la cotización exista
+    /// 2. Valida que el cliente exista
+    /// 3. Crea el registro en la tabla Sales
+    /// 4. Crea el registro en la tabla SaleQuotations (vinculación)
+    /// 5. Opcionalmente marca la cotización como primaria
+    /// 6. Commit de transacción
+    /// 
+    /// VALIDACIONES:
+    /// - La cotización debe existir y estar activa
+    /// - El cliente debe existir
+    /// - El folio no debe estar duplicado
+    /// </summary>
+    /// <param name="dto">Datos para crear la venta y vincularla</param>
+    /// <param name="createdByUserId">Usuario que realiza la operación</param>
+    /// <returns>La venta creada con su vinculación</returns>
+    Task<Sale> CreateSaleAndLinkQuotationAsync(CreateSaleWithQuotationLinkDto dto, string createdByUserId);
+
+    /// <summary>
+    /// Desvincula una venta de una cotización existente y elimina completamente la venta.
+    /// 
+    /// FLUJO TRANSACCIONAL:
+    /// 1. Valida que la venta exista
+    /// 2. Valida que la cotización exista
+    /// 3. Valida que exista la relación en SaleQuotations
+    /// 4. Elimina el registro de la tabla SaleQuotations
+    /// 5. Actualiza la Quotation poniendo LinkedSaleId y LinkedSaleFolio a NULL
+    /// 6. Elimina el registro completo de la tabla Sales
+    /// 7. Commit de transacción
+    /// 
+    /// VALIDACIONES:
+    /// - La venta debe existir
+    /// - La cotización debe existir
+    /// - Debe existir la relación SaleQuotation entre ambos
+    /// </summary>
+    /// <param name="saleId">ID de la venta a desvincular y eliminar</param>
+    /// <param name="quotationId">ID de la cotización a desvincular</param>
+    /// <param name="requestedByUserId">Usuario que realiza la operación</param>
+    /// <returns>True si se desvinculó y eliminó exitosamente, false en caso contrario</returns>
+    Task<bool> UnlinkSaleFromQuotationAsync(int saleId, int quotationId, string requestedByUserId);
 
     /// <summary>
     /// Crea una venta a partir de datos del sistema externo (InforAVA)
@@ -74,10 +120,10 @@ public interface ISaleService
     /// <param name="batchSize">Tamaño del lote (por defecto 5 días)</param>
     /// <returns>Resultado de la importación con estadísticas</returns>
     Task<ImportSalesResult> ImportSalesForMonthAsync(
-        int year, 
-        int month, 
-        int idConfigSys, 
-        string createdByUserId, 
+        int year,
+        int month,
+        int idConfigSys,
+        string createdByUserId,
         int batchSize = 5
     );
 }

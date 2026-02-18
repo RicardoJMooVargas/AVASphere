@@ -54,7 +54,7 @@ public class SaleQuotationManagerController : ControllerBase
         return NoContent();
     }
 
-   
+
     // Inserta una venta desde el sistema externo (InforAVA) y la vincula automáticamente con una cotización.
     [HttpPost("InsertAndSaleQuotationExternal")]
     public async Task<IActionResult> InsertAndSaleQuotationExternal([FromBody] InsertExternalSaleAndQuotationRequest req)
@@ -96,7 +96,7 @@ public class SaleQuotationManagerController : ControllerBase
                 ProductCount = createdSale.HasProducts ? createdSale.ProductsJson?.Count ?? 0 : 0
             };
 
-            return CreatedAtAction(nameof(InsertAndSaleQuotationExternal), new { id = createdSale.IdSale }, responseDto);
+            return StatusCode(StatusCodes.Status201Created, responseDto);
         }
         catch (ArgumentNullException ex)
         {

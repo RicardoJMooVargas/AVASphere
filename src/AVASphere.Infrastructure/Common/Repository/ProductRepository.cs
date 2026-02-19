@@ -209,4 +209,20 @@ public class ProductRepository : IProductRepository
         _context.ProductProperties.Add(productProperty);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<Dictionary<string, Supplier>> GetAllSuppliersAsync()
+    {
+        return await _context.Suppliers
+            .Where(s => !string.IsNullOrEmpty(s.Name))
+            .ToDictionaryAsync(s => s.Name!.ToLower(), s => s);
+    }
+
+    public async Task<Dictionary<string, int>> GetPropertyValueIdsByPropertyNameAsync(string propertyName)
+    {
+        return await _context.PropertyValues
+            .Include(pv => pv.Property)
+            .Where(pv => pv.Property.Name!.ToLower() == propertyName.ToLower())
+            .Where(pv => !string.IsNullOrEmpty(pv.Value))
+            .ToDictionaryAsync(pv => pv.Value!.ToLower(), pv => pv.IdPropertyValue);
+    }
 }

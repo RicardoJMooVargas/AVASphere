@@ -19,7 +19,7 @@
 - hotfix/hotfix-name : para correcciones urgentes en produccion
 - release/release-name : para preparar una nueva version
 - chore/chore-name : para tareas de mantenimiento
-- docs/docs-name : para cambios en la documentacion
+  - docs/docs-name : para cambios en la documentacion
 - test/test-name : para agregar o modificar pruebas
 - refactor/refactor-name : para reestructurar codigo sin cambiar funcionalidad
 

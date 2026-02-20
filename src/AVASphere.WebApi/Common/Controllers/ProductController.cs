@@ -84,7 +84,7 @@ public class ProductController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene un producto por su ID o todos los productos si no se especifica ID
+    /// Obtiene un producto por su ID o todos los productos si no se especifica ID (con paginación)
     /// </summary>
     /// <param name="id">ID del producto (opcional). Si no se proporciona, devuelve todos los productos</param>
     /// <param name="mainName">Filtro por nombre del producto (opcional)</param>
@@ -94,6 +94,8 @@ public class ProductController : ControllerBase
     /// <param name="propertyName">Filtro por nombre de propiedad: Familia, Clase, Línea (opcional)</param>
     /// <param name="idPropertyValue">Filtro por ID de valor de propiedad (opcional)</param>
     /// <param name="propertyValue">Filtro por valor de propiedad: ACRILICOS, CORTE, etc (opcional)</param>
+    /// <param name="pageNumber">Número de página (base 1, por defecto 1)</param>
+    /// <param name="pageSize">Tamaño de página (por defecto 20, máximo 10000)</param>
     [HttpGet("GetProduct")]
     public async Task<ActionResult> GetProductById(
         [FromQuery] int? id = null,
@@ -105,7 +107,7 @@ public class ProductController : ControllerBase
         [FromQuery] int? idPropertyValue = null,
         [FromQuery] string? propertyValue = null,
         [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
+        [FromQuery] int pageSize = 20)
     {
         try
         {
@@ -128,16 +130,15 @@ public class ProductController : ControllerBase
                 };
             }
 
-            // Si no se proporciona ID, devolver todos los productos (con filtros opcionales)
+            // Si no se proporciona ID, devolver todos los productos (con filtros opcionales y paginación)
             if (!id.HasValue || id.Value == 0)
             {
-                var pagination = new PaginationDto
-                {
-                    PageNumber = pageNumber > 0 ? pageNumber : 1,
-                    PageSize = pageSize > 0 ? pageSize : 10
-                };
-                var products = await _productService.GetAllProductsAsync(filters, pagination);
-                return Ok(new ApiResponse(products, "Productos obtenidos exitosamente", 200));
+                var paginatedResult = await _productService.GetAllProductsAsync(
+                    pageNumber,
+                    pageSize,
+                    filters);
+
+                return Ok(new ApiResponse(paginatedResult, "Productos obtenidos exitosamente", 200));
             }
 
             // Buscar producto por ID con filtros opcionales

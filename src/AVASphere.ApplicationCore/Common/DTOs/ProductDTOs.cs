@@ -89,3 +89,44 @@ public class PaginationDto
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
 }
+
+/// <summary>
+/// DTO para respuesta paginada de productos
+/// </summary>
+public class PaginatedProductResponseDto
+{
+    /// <summary>
+    /// Lista de productos en la página actual
+    /// </summary>
+    public IEnumerable<ProductResponseDto> Items { get; set; } = new List<ProductResponseDto>();
+
+    /// <summary>
+    /// Número de página actual (base 1)
+    /// </summary>
+    public int PageNumber { get; set; }
+
+    /// <summary>
+    /// Tamaño de página (cantidad de registros por página)
+    /// </summary>
+    public int PageSize { get; set; }
+
+    /// <summary>
+    /// Total de registros en la base de datos (considerando filtros)
+    /// </summary>
+    public int TotalCount { get; set; }
+
+    /// <summary>
+    /// Total de páginas disponibles
+    /// </summary>
+    public int TotalPages { get; set; }
+
+    /// <summary>
+    /// Indica si hay página anterior
+    /// </summary>
+    public bool HasPreviousPage { get; set; }
+
+    /// <summary>
+    /// Indica si hay página siguiente
+    /// </summary>
+    public bool HasNextPage { get; set; }
+}

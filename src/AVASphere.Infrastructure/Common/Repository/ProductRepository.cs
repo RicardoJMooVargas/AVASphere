@@ -121,6 +121,7 @@ public class ProductRepository : IProductRepository
     public async Task<IEnumerable<Product>> GetAllProductsAsync(ProductFilterDto? filters = null, PaginationDto? pagination = null)
     {
         var query = _context.Products
+            .AsNoTracking() // Optimización: No rastrear cambios para consultas de solo lectura
             .Include(p => p.Supplier)
             .Include(p => p.ProductProperties)
                 .ThenInclude(pp => pp.PropertyValue)
@@ -128,58 +129,79 @@ public class ProductRepository : IProductRepository
             .AsQueryable();
 
         // Aplicar filtros si existen
-        if (filters != null)
-        {
-            if (!string.IsNullOrEmpty(filters.MainName))
-                query = query.Where(p => p.MainName.Contains(filters.MainName));
+        query = ApplyFilters(query, filters);
 
-            if (filters.IdSupplier.HasValue && filters.IdSupplier.Value > 0)
-                query = query.Where(p => p.IdSupplier == filters.IdSupplier.Value);
-
-            if (!string.IsNullOrEmpty(filters.SupplierName))
-                query = query.Where(p => p.Supplier!.Name!.Contains(filters.SupplierName));
-
-            // Filtro por ID de Property
-            if (filters.IdProperty.HasValue && filters.IdProperty.Value > 0)
-                query = query.Where(p => p.ProductProperties.Any(pp => pp.PropertyValue.IdProperty == filters.IdProperty.Value));
-
-            // Filtro por nombre de Property
-            if (!string.IsNullOrEmpty(filters.PropertyName))
-                query = query.Where(p => p.ProductProperties.Any(pp => pp.PropertyValue.Property.Name!.Contains(filters.PropertyName)));
-
-            // Filtro por ID de PropertyValue
-            if (filters.IdPropertyValue.HasValue && filters.IdPropertyValue.Value > 0)
-                query = query.Where(p => p.ProductProperties.Any(pp => pp.IdPropertyValue == filters.IdPropertyValue.Value));
-
-            // Filtro por valor de PropertyValue
-            if (!string.IsNullOrEmpty(filters.PropertyValue))
-                query = query.Where(p => p.ProductProperties.Any(pp => pp.PropertyValue.Value!.Contains(filters.PropertyValue)));
-
-            // Filtros dinámicos por propiedades
-            if (filters.Properties != null && filters.Properties.Any())
-            {
-                foreach (var propertyFilter in filters.Properties)
-                {
-                    var propertyName = propertyFilter.Key;
-                    var propertyValue = propertyFilter.Value;
-
-                    query = query.Where(p =>
-                        p.ProductProperties.Any(pp =>
-                            pp.PropertyValue.Property.Name == propertyName &&
-                            (pp.PropertyValue.Value!.Contains(propertyValue) ||
-                             (pp.CustomValue != null && pp.CustomValue.Contains(propertyValue)))
-                        )
-                    );
-                }
-            }
-        }
-
+        // Aplicar paginación a nivel de base de datos
         if (pagination != null && pagination.PageSize > 0)
         {
             var skip = (pagination.PageNumber - 1) * pagination.PageSize;
             query = query.Skip(skip).Take(pagination.PageSize);
         }
+
         return await query.ToListAsync();
+    }
+
+    /// <summary>
+    /// Obtiene el total de productos con filtros (optimizado, sin cargar datos)
+    /// </summary>
+    public async Task<int> GetProductCountAsync(ProductFilterDto? filters = null)
+    {
+        var query = _context.Products.AsQueryable();
+        query = ApplyFilters(query, filters);
+        return await query.CountAsync();
+    }
+
+    /// <summary>
+    /// Método auxiliar para aplicar filtros (evita duplicación de código)
+    /// </summary>
+    private IQueryable<Product> ApplyFilters(IQueryable<Product> query, ProductFilterDto? filters)
+    {
+        if (filters == null) return query;
+
+        if (!string.IsNullOrEmpty(filters.MainName))
+            query = query.Where(p => p.MainName.Contains(filters.MainName));
+
+        if (filters.IdSupplier.HasValue && filters.IdSupplier.Value > 0)
+            query = query.Where(p => p.IdSupplier == filters.IdSupplier.Value);
+
+        if (!string.IsNullOrEmpty(filters.SupplierName))
+            query = query.Where(p => p.Supplier!.Name!.Contains(filters.SupplierName));
+
+        // Filtro por ID de Property
+        if (filters.IdProperty.HasValue && filters.IdProperty.Value > 0)
+            query = query.Where(p => p.ProductProperties.Any(pp => pp.PropertyValue.IdProperty == filters.IdProperty.Value));
+
+        // Filtro por nombre de Property
+        if (!string.IsNullOrEmpty(filters.PropertyName))
+            query = query.Where(p => p.ProductProperties.Any(pp => pp.PropertyValue.Property.Name!.Contains(filters.PropertyName)));
+
+        // Filtro por ID de PropertyValue
+        if (filters.IdPropertyValue.HasValue && filters.IdPropertyValue.Value > 0)
+            query = query.Where(p => p.ProductProperties.Any(pp => pp.IdPropertyValue == filters.IdPropertyValue.Value));
+
+        // Filtro por valor de PropertyValue
+        if (!string.IsNullOrEmpty(filters.PropertyValue))
+            query = query.Where(p => p.ProductProperties.Any(pp => pp.PropertyValue.Value!.Contains(filters.PropertyValue)));
+
+        // Filtros dinámicos por propiedades
+        if (filters.Properties != null && filters.Properties.Any())
+        {
+            foreach (var propertyFilter in filters.Properties)
+            {
+                var propertyName = propertyFilter.Key;
+                var propertyValue = propertyFilter.Value;
+
+                query = query.Where(p =>
+                    p.ProductProperties.Any(pp =>
+                        pp.PropertyValue.Property.Name == propertyName &&
+                        (pp.PropertyValue.Value!.Contains(propertyValue) ||
+                         (pp.CustomValue != null && pp.CustomValue.Contains(propertyValue)))
+                    )
+                );
+            }
+        }
+
+        return query;
     }
 
     public async Task<Supplier?> GetSupplierByNameAsync(string name)

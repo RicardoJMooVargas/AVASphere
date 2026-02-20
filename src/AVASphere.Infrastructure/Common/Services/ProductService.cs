@@ -116,10 +116,49 @@ public class ProductService : IProductService
 
         return MapToResponseDto(product);
     }
-    public async Task<IEnumerable<ProductResponseDto>> GetAllProductsAsync(ProductFilterDto? filters = null, PaginationDto? pagination = null)
+    /// <summary>
+    /// Obtiene todos los productos con filtros y paginación (OPTIMIZADO)
+    /// </summary>
+    public async Task<PaginatedProductResponseDto> GetAllProductsAsync(
+        int pageNumber = 1,
+        int pageSize = 20,
+        ProductFilterDto? filters = null)
     {
-        var products = await _productRepository.GetAllProductsAsync(filters, pagination);
-        return products.Select(MapToResponseDto);
+        // Validar parámetros de paginación
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageSize < 1) pageSize = 20;
+        if (pageSize > 10000) pageSize = 10000; // Límite máximo de 10000 registros por página
+
+        // Optimización 1: Obtener el total de registros SIN cargar los datos
+        var totalCount = await _productRepository.GetProductCountAsync(filters);
+
+        // Optimización 2: Calcular páginas antes de cargar datos
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        // Optimización 3: Aplicar paginación en la base de datos (no en memoria)
+        var pagination = new PaginationDto
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
+
+        // Optimización 4: Solo cargar los productos de la página actual
+        var pagedProducts = await _productRepository.GetAllProductsAsync(filters, pagination);
+
+        // Mapear a DTOs
+        var productDtos = pagedProducts.Select(MapToResponseDto).ToList();
+
+        // Crear respuesta paginada
+        return new PaginatedProductResponseDto
+        {
+            Items = productDtos,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages,
+            HasPreviousPage = pageNumber > 1,
+            HasNextPage = pageNumber < totalPages
+        };
     }
     private ProductResponseDto MapToResponseDto(Product product)
     {
@@ -151,6 +190,9 @@ public class ProductService : IProductService
         };
     }
 
+    /// <summary>
+    /// Importa productos desde un archivo Excel. El archivo debe tener las siguientes columnas:
+    /// </summary>
     public async Task<ImportProductResultDto> ImportProductsFromExcelAsync(Stream excelStream)
     {
         var result = new ImportProductResultDto();

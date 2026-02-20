@@ -25,24 +25,47 @@ public class InventoryRepository : IInventoryRepository
     public async Task<InventoryEntity?> GetByIdAsync(int idInventory)
     {
         return await _context.Inventories
+            .AsNoTracking()
             .Include(i => i.Product)
             .Include(i => i.Warehouse)
             .Include(i => i.PhysicalInventory)
             .FirstOrDefaultAsync(i => i.IdInventory == idInventory);
     }
 
-    public async Task<IEnumerable<InventoryEntity>> GetAllAsync()
+    public async Task<IEnumerable<InventoryEntity>> GetAllAsync(
+        int? pageNumber = null,
+        int? pageSize = null,
+        int? idInventory = null,
+        int? idWarehouse = null,
+        string? warehouseCode = null,
+        int? idProduct = null,
+        string? productName = null)
     {
-        return await _context.Inventories
+        var query = _context.Inventories
+            .AsNoTracking()
             .Include(i => i.Product)
             .Include(i => i.Warehouse)
             .Include(i => i.PhysicalInventory)
-            .ToListAsync();
+            .AsQueryable();
+
+        // Aplicar filtros
+        query = ApplyFilters(query, idInventory, idWarehouse, warehouseCode, idProduct, productName);
+
+        // Aplicar paginación si se especifica
+        if (pageNumber.HasValue && pageSize.HasValue)
+        {
+            query = query
+                .Skip((pageNumber.Value - 1) * pageSize.Value)
+                .Take(pageSize.Value);
+        }
+
+        return await query.ToListAsync();
     }
 
     public async Task<IEnumerable<InventoryEntity>> GetByWarehouseIdAsync(int idWarehouse)
     {
         return await _context.Inventories
+            .AsNoTracking()
             .Include(i => i.Product)
                 .ThenInclude(p => p.Supplier)
             .Include(i => i.Product)
@@ -58,6 +81,7 @@ public class InventoryRepository : IInventoryRepository
     public async Task<IEnumerable<InventoryEntity>> GetByProductIdAsync(int idProduct)
     {
         return await _context.Inventories
+            .AsNoTracking()
             .Include(i => i.Product)
             .Include(i => i.Warehouse)
             .Include(i => i.PhysicalInventory)
@@ -68,6 +92,7 @@ public class InventoryRepository : IInventoryRepository
     public async Task<InventoryEntity?> GetByWarehouseAndProductAsync(int idWarehouse, int idProduct)
     {
         return await _context.Inventories
+            .AsNoTracking()
             .Include(i => i.Product)
             .Include(i => i.Warehouse)
             .Include(i => i.PhysicalInventory)
@@ -77,11 +102,59 @@ public class InventoryRepository : IInventoryRepository
     public async Task<IEnumerable<InventoryEntity>> GetLowStockItemsAsync()
     {
         return await _context.Inventories
+            .AsNoTracking()
             .Include(i => i.Product)
             .Include(i => i.Warehouse)
             .Include(i => i.PhysicalInventory)
             .Where(i => i.Stock <= i.StockMin)
             .ToListAsync();
+    }
+
+    /// <summary>
+    /// Método helper para aplicar filtros comunes a las queries de inventario
+    /// </summary>
+    private IQueryable<InventoryEntity> ApplyFilters(
+        IQueryable<InventoryEntity> query,
+        int? idInventory = null,
+        int? idWarehouse = null,
+        string? warehouseCode = null,
+        int? idProduct = null,
+        string? productName = null)
+    {
+        if (idInventory.HasValue)
+            query = query.Where(i => i.IdInventory == idInventory.Value);
+
+        if (idWarehouse.HasValue)
+            query = query.Where(i => i.IdWarehouse == idWarehouse.Value);
+
+        if (!string.IsNullOrWhiteSpace(warehouseCode))
+            query = query.Where(i => i.Warehouse != null && i.Warehouse.Code == warehouseCode);
+
+        if (idProduct.HasValue)
+            query = query.Where(i => i.IdProduct == idProduct.Value);
+
+        if (!string.IsNullOrWhiteSpace(productName))
+            query = query.Where(i => i.Product != null && i.Product.MainName.Contains(productName));
+
+        return query;
+    }
+
+    public async Task<int> GetInventoryCountAsync(
+        int? idInventory = null,
+        int? idWarehouse = null,
+        string? warehouseCode = null,
+        int? idProduct = null,
+        string? productName = null)
+    {
+        var query = _context.Inventories
+            .Include(i => i.Product)
+            .Include(i => i.Warehouse)
+            .AsQueryable();
+
+        // Aplicar filtros
+        query = ApplyFilters(query, idInventory, idWarehouse, warehouseCode, idProduct, productName);
+
+        return await query.CountAsync();
     }
 
     public async Task<IEnumerable<InventoryEntity>> GetFilteredAsync(
@@ -98,6 +171,7 @@ public class InventoryRepository : IInventoryRepository
         int? idWarehouse = null)
     {
         var query = _context.Inventories
+            .AsNoTracking()
             .Include(i => i.Product)
             .Include(i => i.Warehouse)
             .Include(i => i.PhysicalInventory)

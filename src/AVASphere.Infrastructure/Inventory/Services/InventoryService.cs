@@ -1,8 +1,13 @@
 using AVASphere.ApplicationCore.Inventory.DTOs;
 using AVASphere.ApplicationCore.Inventory.Interfaces;
 using AVASphere.ApplicationCore.Common.Interfaces;
+using AVASphere.ApplicationCore.Common.DTOs.ProductDTOs;
+using AVASphere.ApplicationCore.Common.Entities.Products;
+using AVASphere.ApplicationCore.Projects.Entities.jsons;
 using InventoryEntity = AVASphere.ApplicationCore.Inventory.Entities.General.Inventory;
 using PhysicalInventoryEntity = AVASphere.ApplicationCore.Inventory.Entities.General.PhysicalInventory;
+using LocationDetailsEntity = AVASphere.ApplicationCore.Inventory.Entities.General.LocationDetails;
+using StorageStructureEntity = AVASphere.ApplicationCore.Inventory.Entities.General.StorageStructure;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +22,9 @@ public class InventoryService : IInventoryService
     private readonly IWarehouseRepository _warehouseRepository;
     private readonly IProductRepository _productRepository;
     private readonly IPhysicalInventoryRepository _physicalInventoryRepository;
+    private readonly ILocationDetailsRepository _locationDetailsRepository;
+    private readonly IStorageStructureRepository _storageStructureRepository;
+    private readonly IProductService _productService;
     private readonly MasterDbContext _context;
 
     public InventoryService(
@@ -24,12 +32,18 @@ public class InventoryService : IInventoryService
         IWarehouseRepository warehouseRepository,
         IProductRepository productRepository,
         IPhysicalInventoryRepository physicalInventoryRepository,
+        ILocationDetailsRepository locationDetailsRepository,
+        IStorageStructureRepository storageStructureRepository,
+        IProductService productService,
         MasterDbContext context)
     {
         _inventoryRepository = inventoryRepository;
         _warehouseRepository = warehouseRepository;
         _productRepository = productRepository;
         _physicalInventoryRepository = physicalInventoryRepository;
+        _locationDetailsRepository = locationDetailsRepository;
+        _storageStructureRepository = storageStructureRepository;
+        _productService = productService;
         _context = context;
     }
 
@@ -258,6 +272,264 @@ public class InventoryService : IInventoryService
     }
 
     /// <summary>
+    /// Importa inventario de ubicación desde un archivo Excel
+    /// </summary>
+    public async Task<ImportInventoryResultDto> ImportInventoryUbicationFromExcelAsync(Stream excelStream)
+    {
+        var result = new ImportInventoryResultDto();
+
+        // Pre-cargar todos los productos con su código y descripción en memoria
+        var allProducts = await _context.Products.ToListAsync();
+        var productsByCode = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var productsByDescription = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var product in allProducts)
+        {
+            // Intentar obtener el código desde CodeJson
+            if (product.CodeJson != null && product.CodeJson.Any())
+            {
+                var firstCode = product.CodeJson.FirstOrDefault()?.Code;
+                if (!string.IsNullOrWhiteSpace(firstCode))
+                {
+                    var trimmedCode = firstCode.Trim();
+
+                    // Agregar el código completo
+                    productsByCode[trimmedCode] = product.IdProduct;
+
+                    // Si el código contiene guiones, agregar también la parte después del último guion
+                    // Para manejar casos como "320-2220000BL" donde el Excel solo trae "2220000BL"
+                    if (trimmedCode.Contains("-"))
+                    {
+                        var codeParts = trimmedCode.Split('-');
+                        var lastPart = codeParts[codeParts.Length - 1].Trim();
+                        if (!string.IsNullOrWhiteSpace(lastPart) && !productsByCode.ContainsKey(lastPart))
+                        {
+                            productsByCode[lastPart] = product.IdProduct;
+                        }
+                    }
+                }
+            }
+
+            // Usar MainName como clave (case-insensitive para mejor matching)
+            if (!string.IsNullOrWhiteSpace(product.MainName))
+            {
+                productsByDescription[product.MainName.Trim()] = product.IdProduct;
+            }
+        }
+
+        using (var workbook = new XLWorkbook(excelStream))
+        {
+            var worksheet = workbook.Worksheet(1);
+            var rowCount = worksheet.LastRowUsed()?.RowNumber() ?? 0;
+
+            if (rowCount < 2)
+            {
+                result.Errors.Add("El archivo Excel está vacío o no tiene datos");
+                return result;
+            }
+
+            // Procesar cada fila
+            for (int row = 2; row <= rowCount; row++)
+            {
+                try
+                {
+                    // Columna A: Código
+                    var codigo = worksheet.Cell(row, 1).GetValue<string>()?.Trim();
+
+                    // Columna B: Descripción
+                    var descripcion = worksheet.Cell(row, 2).GetValue<string>()?.Trim();
+
+                    // Columna M (13): Ubicación (ej: "HERRAJES HERRALUM 1 RACK 1")
+                    var ubicacion = worksheet.Cell(row, 13).GetValue<string>()?.Trim();
+
+                    // Columna N (14): Nivel (ej: "A")
+                    var nivelStr = worksheet.Cell(row, 14).GetValue<string>()?.Trim();
+
+                    // Validar que tenga al menos código o descripción
+                    if (string.IsNullOrWhiteSpace(codigo) && string.IsNullOrWhiteSpace(descripcion))
+                    {
+                        result.Warnings.Add($"Fila {row}: No tiene código ni descripción, se omite");
+                        result.TotalRows++;
+                        continue;
+                    }
+
+                    // Buscar el producto por código O descripción
+                    int? idProduct = null;
+
+                    // Intentar buscar por código primero
+                    if (!string.IsNullOrWhiteSpace(codigo) && productsByCode.TryGetValue(codigo, out int idByCode))
+                    {
+                        idProduct = idByCode;
+                    }
+                    // Si no encontró por código, intentar por descripción
+                    else if (!string.IsNullOrWhiteSpace(descripcion) && productsByDescription.TryGetValue(descripcion, out int idByDesc))
+                    {
+                        idProduct = idByDesc;
+                    }
+
+                    // Si no se encontró el producto, crearlo automáticamente
+                    if (!idProduct.HasValue)
+                    {
+                        try
+                        {
+                            var createProductDto = new CreateProductDto
+                            {
+                                MainName = descripcion ?? "Producto generado automáticamente",
+                                Unit = "Otro",
+                                Description = descripcion ?? "Producto generado automáticamente",
+                                Quantity = 0,
+                                Taxes = 16,
+                                IdSupplier = 37,
+                                CodeJson = new List<CodeJson>
+                                {
+                                    new CodeJson
+                                    {
+                                        Index = 0,
+                                        Type = "Principal",
+                                        Code = codigo ?? "Sin código"
+                                    }
+                                },
+                                CostsJson = new List<CostsJson>(),
+                                CategoriesJsons = new List<CategoriesJson>(),
+                                SolutionsJsons = new List<SolutionsJson>()
+                            };
+
+                            var createdProduct = await _productService.CreateProductAsync(createProductDto);
+                            idProduct = createdProduct.IdProduct;
+
+                            // Agregar el nuevo producto a los diccionarios para búsquedas futuras
+                            if (!string.IsNullOrWhiteSpace(codigo))
+                            {
+                                productsByCode[codigo] = idProduct.Value;
+
+                                // Si contiene guiones, agregar también la parte final
+                                if (codigo.Contains("-"))
+                                {
+                                    var codeParts = codigo.Split('-');
+                                    var lastPart = codeParts[codeParts.Length - 1].Trim();
+                                    if (!string.IsNullOrWhiteSpace(lastPart) && !productsByCode.ContainsKey(lastPart))
+                                    {
+                                        productsByCode[lastPart] = idProduct.Value;
+                                    }
+                                }
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(descripcion))
+                            {
+                                productsByDescription[descripcion] = idProduct.Value;
+                            }
+
+                            result.Warnings.Add($"Fila {row}: Producto no encontrado, se creó automáticamente (ID: {idProduct.Value})");
+                        }
+                        catch (Exception ex)
+                        {
+                            result.ProductsNotFound++;
+                            result.Errors.Add($"Fila {row}: No se pudo crear el producto automáticamente - {ex.Message}");
+                            result.FailedImports++;
+                            result.TotalRows++;
+                            continue;
+                        }
+                    }
+
+                    // Validar que tenga ubicación
+                    if (string.IsNullOrWhiteSpace(ubicacion))
+                    {
+                        result.Warnings.Add($"Fila {row}: Producto encontrado pero sin ubicación, se omite");
+                        result.TotalRows++;
+                        continue;
+                    }
+
+                    // Si no tiene nivel, usar "S/N" y buscar el StorageStructure correspondiente
+                    StorageStructureEntity storageStructure;
+
+                    if (string.IsNullOrWhiteSpace(nivelStr))
+                    {
+                        nivelStr = "S/N";
+                        // Buscar StorageStructure con CodeRack "S/N"
+                        storageStructure = await _storageStructureRepository.GetByCodeAsync("S/N");
+
+                        if (storageStructure == null)
+                        {
+                            result.Warnings.Add($"Fila {row}: No se encontró StorageStructure con CodeRack 'S/N', se omite");
+                            result.FailedImports++;
+                            result.TotalRows++;
+                            continue;
+                        }
+
+                        result.Warnings.Add($"Fila {row}: Sin nivel, se asignó 'S/N' automáticamente");
+                    }
+                    else
+                    {
+                        // Buscar StorageStructure por CodeRack que coincida con Ubicación
+                        storageStructure = await _storageStructureRepository.GetByCodeAsync(ubicacion);
+                    }
+
+                    if (storageStructure == null)
+                    {
+                        result.Warnings.Add($"Fila {row}: No se encontró StorageStructure con CodeRack '{ubicacion}'");
+                        result.FailedImports++;
+                        result.TotalRows++;
+                        continue;
+                    }
+
+                    // Crear nuevo LocationDetails (sin verificar duplicados)
+                    var locationDetails = new LocationDetailsEntity
+                    {
+                        TypeStorageSystem = "ESTANTERIA",
+                        Section = nivelStr, // Ahora Section es el Nivel (A, B, C, etc.)
+                        VerticalLevel = 0, // Siempre 0
+                        IdArea = 4, // Fijo según especificación
+                        IdStorageStructure = storageStructure.IdStorageStructure
+                    };
+
+                    await _locationDetailsRepository.CreateAsync(locationDetails);
+
+                    result.SuccessfulImports++;
+                    result.CreatedRecords.Add($"Producto: {descripcion ?? codigo} | Ubicación: {ubicacion} | Nivel: {nivelStr}");
+                    result.TotalRows++;
+                }
+                catch (Exception ex)
+                {
+                    var errorMessage = ex.InnerException != null
+                        ? $"{ex.Message} - Inner: {ex.InnerException.Message}"
+                        : ex.Message;
+
+                    result.Errors.Add($"Fila {row}: Error al procesar - {errorMessage}");
+                    result.FailedImports++;
+                    result.TotalRows++;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Convierte una letra de nivel a su equivalente numérico (A=1, B=2, etc.)
+    /// </summary>
+    private int ConvertLevelToNumber(string level)
+    {
+        if (string.IsNullOrWhiteSpace(level))
+            return 0;
+
+        level = level.Trim().ToUpper();
+
+        // Si es un solo carácter letra
+        if (level.Length == 1 && char.IsLetter(level[0]))
+        {
+            return level[0] - 'A' + 1; // A=1, B=2, C=3, etc.
+        }
+
+        // Si es un número directo
+        if (int.TryParse(level, out int numericLevel))
+        {
+            return numericLevel;
+        }
+
+        return 0;
+    }
+
+    /// <summary>
     /// Lee un valor double de una celda de Excel, retorna 0 si hay error
     /// </summary>
     private double ReadDoubleValue(IXLCell cell)
@@ -335,51 +607,57 @@ public class InventoryService : IInventoryService
     }
 
     /// <summary>
-    /// Obtiene todo el inventario con filtros opcionales
+    /// Obtiene todo el inventario con filtros opcionales y paginación
     /// </summary>
-    public async Task<IEnumerable<InventoryResponseDto>> GetAllInventoryAsync(
+    public async Task<PaginatedInventoryResponseDto> GetAllInventoryAsync(
+        int pageNumber = 1,
+        int pageSize = 20,
         int? idInventory = null,
         int? idWarehouse = null,
         string? warehouseCode = null,
         int? idProduct = null,
         string? productName = null)
     {
-        var inventories = await _inventoryRepository.GetAllAsync();
-        var query = inventories.AsQueryable();
+        // Validar parámetros de paginación
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageSize < 1) pageSize = 20;
+        if (pageSize > 10000) pageSize = 10000; // Límite máximo de 10000 registros por página
 
-        // Filtrar por ID de inventario
-        if (idInventory.HasValue)
+        // Obtener el total de registros (solo cuenta, no carga datos)
+        var totalCount = await _inventoryRepository.GetInventoryCountAsync(
+            idInventory,
+            idWarehouse,
+            warehouseCode,
+            idProduct,
+            productName);
+
+        // Calcular el total de páginas
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        // Obtener los datos paginados directamente desde la base de datos
+        var inventories = await _inventoryRepository.GetAllAsync(
+            pageNumber,
+            pageSize,
+            idInventory,
+            idWarehouse,
+            warehouseCode,
+            idProduct,
+            productName);
+
+        // Mapear a DTOs
+        var items = inventories.Select(MapToResponseDto).ToList();
+
+        // Crear respuesta paginada
+        return new PaginatedInventoryResponseDto
         {
-            query = query.Where(i => i.IdInventory == idInventory.Value);
-        }
-
-        // Filtrar por ID de bodega
-        if (idWarehouse.HasValue)
-        {
-            query = query.Where(i => i.IdWarehouse == idWarehouse.Value);
-        }
-
-        // Filtrar por código de bodega
-        if (!string.IsNullOrWhiteSpace(warehouseCode))
-        {
-            query = query.Where(i => i.Warehouse != null &&
-                i.Warehouse.Code.Equals(warehouseCode, StringComparison.OrdinalIgnoreCase));
-        }
-
-        // Filtrar por ID de producto
-        if (idProduct.HasValue)
-        {
-            query = query.Where(i => i.IdProduct == idProduct.Value);
-        }
-
-        // Buscar por nombre/descripción del producto
-        if (!string.IsNullOrWhiteSpace(productName))
-        {
-            query = query.Where(i => i.Product != null &&
-                i.Product.MainName.Contains(productName, StringComparison.OrdinalIgnoreCase));
-        }
-
-        return query.Select(MapToResponseDto).ToList();
+            Items = items,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages,
+            HasPreviousPage = pageNumber > 1,
+            HasNextPage = pageNumber < totalPages
+        };
     }
 
     /// <summary>

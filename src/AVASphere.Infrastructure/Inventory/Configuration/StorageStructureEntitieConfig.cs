@@ -1,4 +1,4 @@
-﻿﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -12,6 +12,10 @@ public class StorageStructureEntitieConfig : IEntityTypeConfiguration<StorageStr
         entity.HasKey(e => e.IdStorageStructure);
         
         entity.Property(e => e.CodeRack)
+            .IsRequired()
+            .HasMaxLength(100);
+        
+        entity.Property(e => e.TypeStorageSystem)
             .IsRequired()
             .HasMaxLength(100);
         

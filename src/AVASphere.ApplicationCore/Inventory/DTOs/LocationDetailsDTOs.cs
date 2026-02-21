@@ -4,10 +4,6 @@
 
     public class LocationDetailsRequestDto
     {
-        [Required(ErrorMessage = "El tipo de sistema de almacenamiento es requerido")]
-        [StringLength(100, ErrorMessage = "El tipo de sistema de almacenamiento no puede exceder 100 caracteres")]
-        public string TypeStorageSystem { get; set; } = null!;
-        
         [Required(ErrorMessage = "La sección es requerida")]
         [StringLength(100, ErrorMessage = "La sección no puede exceder 100 caracteres")]
         public string Section { get; set; } = null!;
@@ -24,10 +20,6 @@
 
     public class LocationDetailsUpdateDto
     {
-        [Required(ErrorMessage = "El tipo de sistema de almacenamiento es requerido")]
-        [StringLength(100, ErrorMessage = "El tipo de sistema de almacenamiento no puede exceder 100 caracteres")]
-        public string TypeStorageSystem { get; set; } = null!;
-        
         [Required(ErrorMessage = "La sección es requerida")]
         [StringLength(100, ErrorMessage = "La sección no puede exceder 100 caracteres")]
         public string Section { get; set; } = null!;
@@ -46,7 +38,6 @@
     public class LocationDetailsResponseDto
     {
         public int IdLocationDetails { get; set; }
-        public string TypeStorageSystem { get; set; } = null!;
         public string Section { get; set; } = null!;
         public int VerticalLevel { get; set; }
         public int IdArea { get; set; }
@@ -54,4 +45,5 @@
         public string? AreaNormalizedName { get; set; }
         public int IdStorageStructure { get; set; }
         public string? CodeRack { get; set; }
+        public string? TypeStorageSystem { get; set; } // Viene de StorageStructure
     }

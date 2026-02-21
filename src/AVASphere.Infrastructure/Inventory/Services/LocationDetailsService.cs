@@ -51,7 +51,6 @@ public class LocationDetailsService : ILocationDetailsService
 
             var locationDetails = new LocationDetails
             {
-                TypeStorageSystem = request.TypeStorageSystem,
                 Section = request.Section,
                 VerticalLevel = request.VerticalLevel,
                 IdArea = areaId,
@@ -184,7 +183,6 @@ public class LocationDetailsService : ILocationDetailsService
                 throw new InvalidOperationException($"Ya existe otra ubicación con los mismos parámetros: Área={request.IdArea}, Estructura={request.IdStorageStructure}, Sección={request.Section}, Nivel={request.VerticalLevel}");
             }
 
-            existing.TypeStorageSystem = request.TypeStorageSystem;
             existing.Section = request.Section;
             existing.VerticalLevel = request.VerticalLevel;
             existing.IdArea = request.IdArea;
@@ -237,14 +235,14 @@ public class LocationDetailsService : ILocationDetailsService
         return new LocationDetailsResponseDto
         {
             IdLocationDetails = entity.IdLocationDetails,
-            TypeStorageSystem = entity.TypeStorageSystem,
             Section = entity.Section,
             VerticalLevel = entity.VerticalLevel,
             IdArea = entity.IdArea,
             AreaName = entity.Area?.Name,
             AreaNormalizedName = entity.Area?.NormalizedName,
             IdStorageStructure = entity.IdStorageStructure,
-            CodeRack = entity.StorageStructure?.CodeRack
+            CodeRack = entity.StorageStructure?.CodeRack,
+            TypeStorageSystem = entity.StorageStructure?.TypeStorageSystem
         };
     }
 }

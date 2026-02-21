@@ -20,4 +20,8 @@ public interface IProductRepository
     Task<Supplier?> GetSupplierByNameAsync(string name);
     Task<int?> FindPropertyValueIdAsync(string propertyName, string propertyValue);
     Task CreateProductPropertyAsync(int idProduct, int idPropertyValue);
+    
+    // Métodos para optimización de importación masiva
+    Task<Dictionary<string, Supplier>> GetAllSuppliersAsync();
+    Task<Dictionary<string, int>> GetPropertyValueIdsByPropertyNameAsync(string propertyName);
 }

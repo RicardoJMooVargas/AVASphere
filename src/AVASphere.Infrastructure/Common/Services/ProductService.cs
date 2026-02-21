@@ -197,6 +197,12 @@ public class ProductService : IProductService
     {
         var result = new ImportProductResultDto();
 
+        // PRE-CARGAR TODOS LOS DATOS NECESARIOS ANTES DEL BUCLE
+        var suppliersDict = await _productRepository.GetAllSuppliersAsync();
+        var familiaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Familia");
+        var claseValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Clase");
+        var lineaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Línea");
+
         using (var workbook = new XLWorkbook(excelStream))
         {
             var worksheet = workbook.Worksheet(1);
@@ -209,10 +215,8 @@ public class ProductService : IProductService
                     // Columna D: Proveedor
                     var supplierName = worksheet.Cell(row, 4).GetValue<string>().Trim();
 
-                    // Buscar proveedor por nombre
-                    var supplier = await _productRepository.GetSupplierByNameAsync(supplierName);
-
-                    if (supplier == null)
+                    // Buscar proveedor en el diccionario precargado
+                    if (!suppliersDict.TryGetValue(supplierName.ToLower(), out var supplier))
                     {
                         result.Errors.Add($"Fila {row}: Proveedor '{supplierName}' no encontrado");
                         result.FailedImports++;
@@ -253,16 +257,15 @@ public class ProductService : IProductService
 
                     var productResponse = await CreateProductAsync(createDto);
 
-                    // Columna E: Familia
+                    // Columna E: Familia - buscar en diccionario precargado
                     var familia = worksheet.Cell(row, 5).GetValue<string>().Trim();
                     if (!string.IsNullOrWhiteSpace(familia))
                     {
                         try
                         {
-                            var familiaId = await _productRepository.FindPropertyValueIdAsync("Familia", familia);
-                            if (familiaId.HasValue)
+                            if (familiaValuesDict.TryGetValue(familia.ToLower(), out var familiaId))
                             {
-                                await _productRepository.CreateProductPropertyAsync(productResponse.IdProduct, familiaId.Value);
+                                await _productRepository.CreateProductPropertyAsync(productResponse.IdProduct, familiaId);
                             }
                             else
                             {
@@ -275,16 +278,15 @@ public class ProductService : IProductService
                         }
                     }
 
-                    // Columna F: Clase
+                    // Columna F: Clase - buscar en diccionario precargado
                     var clase = worksheet.Cell(row, 6).GetValue<string>().Trim();
                     if (!string.IsNullOrWhiteSpace(clase))
                     {
                         try
                         {
-                            var claseId = await _productRepository.FindPropertyValueIdAsync("Clase", clase);
-                            if (claseId.HasValue)
+                            if (claseValuesDict.TryGetValue(clase.ToLower(), out var claseId))
                             {
-                                await _productRepository.CreateProductPropertyAsync(productResponse.IdProduct, claseId.Value);
+                                await _productRepository.CreateProductPropertyAsync(productResponse.IdProduct, claseId);
                             }
                             else
                             {
@@ -297,16 +299,15 @@ public class ProductService : IProductService
                         }
                     }
 
-                    // Columna G: Línea
+                    // Columna G: Línea - buscar en diccionario precargado
                     var linea = worksheet.Cell(row, 7).GetValue<string>().Trim();
                     if (!string.IsNullOrWhiteSpace(linea))
                     {
                         try
                         {
-                            var lineaId = await _productRepository.FindPropertyValueIdAsync("Línea", linea);
-                            if (lineaId.HasValue)
+                            if (lineaValuesDict.TryGetValue(linea.ToLower(), out var lineaId))
                             {
-                                await _productRepository.CreateProductPropertyAsync(productResponse.IdProduct, lineaId.Value);
+                                await _productRepository.CreateProductPropertyAsync(productResponse.IdProduct, lineaId);
                             }
                             else
                             {

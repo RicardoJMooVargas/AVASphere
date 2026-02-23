@@ -165,6 +165,9 @@ public static class DependencyInjection
         // Servicios de seguridad
         services.AddScoped<IEncryptionService, EncryptionService>();
 
+        // Servicio de almacenamiento de archivos (MinIO)
+        services.AddScoped<IFileStorageService, MinioFileStorageService>();
+
         // Project Category
         services.AddScoped<IProjectCategoryService, ProjectCategoryService>();
         services.AddScoped<IProjectCategoryRepository, ProjectCategoryRepository>();

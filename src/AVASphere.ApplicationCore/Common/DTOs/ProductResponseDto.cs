@@ -13,6 +13,7 @@ public class ProductResponseDto
     public double Quantity { get; set; }
     public double Taxes { get; set; }
     public int IdSupplier { get; set; }
+    public List<string> ImageUrls { get; set; } = new List<string>();
     public List<CodeJson> CodeJson { get; set; } = new();
     public List<CostsJson> CostsJson { get; set; } = new();
     public List<CategoriesJson> CategoriesJsons { get; set; } = new();

@@ -107,6 +107,53 @@ public class ProductService : IProductService
     {
         return await _productRepository.DeleteProductsAsync(id);
     }
+
+    /// <summary>
+    /// Agrega una URL de imagen al array de imágenes del producto
+    /// </summary>
+    public async Task<bool> AddProductImageAsync(int idProduct, string imageUrl)
+    {
+        var product = await _productRepository.GetByIdProductsAsync(idProduct);
+        if (product == null)
+        {
+            throw new KeyNotFoundException($"Producto con ID {idProduct} no encontrado.");
+        }
+
+        if (product.ImageUrls == null)
+        {
+            product.ImageUrls = new List<string>();
+        }
+
+        // Evitar duplicados
+        if (!product.ImageUrls.Contains(imageUrl))
+        {
+            product.ImageUrls.Add(imageUrl);
+            await _productRepository.UpdateProductsAsync(product);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Elimina una URL de imagen del array de imágenes del producto
+    /// </summary>
+    public async Task<bool> RemoveProductImageAsync(int idProduct, string imageUrl)
+    {
+        var product = await _productRepository.GetByIdProductsAsync(idProduct);
+        if (product == null)
+        {
+            throw new KeyNotFoundException($"Producto con ID {idProduct} no encontrado.");
+        }
+
+        if (product.ImageUrls != null && product.ImageUrls.Contains(imageUrl))
+        {
+            product.ImageUrls.Remove(imageUrl);
+            await _productRepository.UpdateProductsAsync(product);
+        }
+
+        return true;
+    }
+
     public async Task<ProductResponseDto?> GetProductByIdAsync(int id, ProductFilterDto? filters = null)
     {
         var product = await _productRepository.GetByIdProductsAsync(id, filters);
@@ -172,6 +219,7 @@ public class ProductService : IProductService
             Quantity = product.Quantity,
             Taxes = product.Taxes,
             IdSupplier = product.IdSupplier,
+            ImageUrls = product.ImageUrls ?? new List<string>(),
             CodeJson = product.CodeJson?.ToList() ?? new(),
             CostsJson = product.CostsJson?.ToList() ?? new(),
             CategoriesJsons = product.CategoriesJsons?.ToList() ?? new(),

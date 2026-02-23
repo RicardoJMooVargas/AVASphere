@@ -1,5 +1,4 @@
-﻿﻿// //ACTUALIZADO A LA VERSION 0.2 DE LA DB
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Projects.Entities.General;
@@ -15,27 +14,37 @@ public class Product
     public string? Description { get; set; }
     public double Quantity { get; set; }
     public double Taxes { get; set; }
-    
+
+    // 🔹 NUEVO CAMPO JSON PARA IMÁGENES
+    public ICollection<ProductImageJson> ImageUrls { get; set; } = new List<ProductImageJson>();
+
     // FK
     public int IdSupplier { get; set; }
     public Supplier Supplier { get; set; } = null!;
-    
+
     // RELACIONES
     public ICollection<ProductProperties> ProductProperties { get; set; } = new List<ProductProperties>();
     public ICollection<ListOfProductsToQuot> ProductImages { get; set; } = new List<ListOfProductsToQuot>();
-    // Las siguientes propiedades de navegación fueron eliminadas para evitar campos duplicados:
-    // - Inventories, PhysicalInventoryDetails, StockMovements, WarehouseTransferDetails
-    // Las relaciones se configuran usando WithMany() sin especificar la propiedad inversa
-    
-    //JSON
+
+    // JSON
     public ICollection<CodeJson> CodeJson { get; set; } = new List<CodeJson>();
     public ICollection<CostsJson> CostsJson { get; set; } = new List<CostsJson>();
     public ICollection<CategoriesJson> CategoriesJsons { get; set; } = new List<CategoriesJson>();
+
     [NotMapped]
     public ICollection<SolutionsJson> SolutionsJsons { get; set; } = new List<SolutionsJson>();
-    
+
     // GETTERS
     public string FirstCode => CodeJson?.FirstOrDefault()?.Code ?? string.Empty;
+}
+
+public class ProductImageJson
+{
+    public int Index { get; set; }
+    public string? Url { get; set; }
+    public string? FileName { get; set; }
+    public string? ContentType { get; set; }   // image/png, image/jpeg, etc.
+    public bool IsMain { get; set; }           // Imagen principal
 }
 
 public class CodeJson

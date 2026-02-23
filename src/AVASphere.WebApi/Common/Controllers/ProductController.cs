@@ -13,10 +13,12 @@ namespace AVASphere.WebApi.Common.Controllers;
 public class ProductController : ControllerBase
 {
     private readonly IProductService _productService;
+    private readonly IFileStorageService _fileStorageService;
 
-    public ProductController(IProductService productService)
+    public ProductController(IProductService productService, IFileStorageService fileStorageService)
     {
         _productService = productService;
+        _fileStorageService = fileStorageService;
     }
 
     /// <summary>
@@ -211,6 +213,101 @@ public class ProductController : ControllerBase
         catch (Exception)
         {
             return StatusCode(500, new ApiResponse("Error al eliminar el producto", 500));
+        }
+    }
+
+    /// <summary>
+    /// Agrega una imagen al producto (permite múltiples imágenes)
+    /// </summary>
+    /// <param name="id">ID del producto</param>
+    /// <param name="file">Archivo de imagen a subir (jpg, jpeg, png, gif, webp)</param>
+    [HttpPost("{id:int}/upload-image")]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult> UploadProductImage([FromRoute] int id, IFormFile file)
+    {
+        try
+        {
+            // Validar que el producto exista
+            var product = await _productService.GetProductByIdAsync(id);
+            if (product == null)
+            {
+                return NotFound(new ApiResponse($"Producto con ID {id} no encontrado", 404));
+            }
+
+            // Validar archivo
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new ApiResponse("No se proporcionó ningún archivo", 400));
+            }
+
+            // Generar nombre único para el archivo
+            var fileExtension = Path.GetExtension(file.FileName);
+            var uniqueFileName = $"product_{id}_{DateTime.UtcNow.Ticks}{fileExtension}";
+
+            // Subir nueva imagen
+            using var stream = file.OpenReadStream();
+            var imageUrl = await _fileStorageService.UploadFileAsync(
+                stream,
+                uniqueFileName,
+                "products",
+                file.ContentType,
+                file.Length);
+
+            // Agregar URL al array de imágenes del producto
+            await _productService.AddProductImageAsync(id, imageUrl);
+
+            return Ok(new ApiResponse(new { imageUrl, totalImages = product.ImageUrls.Count + 1 }, "Imagen agregada exitosamente", 200));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ApiResponse(ex.Message, 400));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse($"Error al subir la imagen: {ex.Message}", 500));
+        }
+    }
+
+    /// <summary>
+    /// Elimina una imagen específica del producto por su URL
+    /// </summary>
+    /// <param name="id">ID del producto</param>
+    /// <param name="imageUrl">URL de la imagen a eliminar</param>
+    [HttpDelete("{id:int}/delete-image")]
+    public async Task<ActionResult> DeleteProductImage([FromRoute] int id, [FromQuery] string imageUrl)
+    {
+        try
+        {
+            // Validar que el producto exista
+            var product = await _productService.GetProductByIdAsync(id);
+            if (product == null)
+            {
+                return NotFound(new ApiResponse($"Producto con ID {id} no encontrado", 404));
+            }
+
+            // Validar que tenga imágenes
+            if (product.ImageUrls == null || !product.ImageUrls.Any())
+            {
+                return BadRequest(new ApiResponse("El producto no tiene imágenes asociadas", 400));
+            }
+
+            // Validar que la URL exista en el producto
+            if (!product.ImageUrls.Any(img => img.Url == imageUrl))
+            {
+                return BadRequest(new ApiResponse("La imagen especificada no pertenece a este producto", 400));
+            }
+
+            // Eliminar imagen de MinIO
+            await _fileStorageService.DeleteFileAsync(imageUrl);
+
+            // Remover URL del array de imágenes
+            await _productService.RemoveProductImageAsync(id, imageUrl);
+
+            return Ok(new ApiResponse(null, "Imagen eliminada exitosamente", 200));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse($"Error al eliminar la imagen: {ex.Message}", 500));
         }
     }
 

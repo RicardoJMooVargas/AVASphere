@@ -9,6 +9,8 @@ public interface IProductService
     Task<ProductResponseDto> UpdateProductAsync(int idProduct, UpdateProductDto updateProductDto);
     Task<bool> DeleteProductAsync(int idProduct);
     Task<ProductResponseDto?> GetProductByIdAsync(int idProduct, ProductFilterDto? filters = null);
+    Task<bool> AddProductImageAsync(int idProduct, string imageUrl);
+    Task<bool> RemoveProductImageAsync(int idProduct, string imageUrl);
 
     /// <summary>
     /// Obtiene todos los productos con filtros y paginación

@@ -107,6 +107,77 @@ public class ProductService : IProductService
     {
         return await _productRepository.DeleteProductsAsync(id);
     }
+
+    /// <summary>
+    /// Agrega una URL de imagen al array de imágenes del producto
+    /// </summary>
+    public async Task<bool> AddProductImageAsync(int idProduct, string imageUrl)
+    {
+        var product = await _productRepository.GetByIdProductsAsync(idProduct);
+        if (product == null)
+        {
+            throw new KeyNotFoundException($"Producto con ID {idProduct} no encontrado.");
+        }
+
+        if (product.ImageUrls == null)
+        {
+            product.ImageUrls = new List<ProductImageJson>();
+        }
+
+        // Obtener el índice más alto actual
+        var maxIndex = product.ImageUrls.Any() ? product.ImageUrls.Max(i => i.Index) : -1;
+
+        // Evitar duplicados por URL
+        if (!product.ImageUrls.Any(i => i.Url == imageUrl))
+        {
+            var imageExtension = Path.GetExtension(imageUrl);
+            var contentType = imageExtension.ToLower() switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "image/jpeg"
+            };
+
+            product.ImageUrls.Add(new ProductImageJson
+            {
+                Index = maxIndex + 1,
+                Url = imageUrl,
+                FileName = Path.GetFileName(imageUrl),
+                ContentType = contentType,
+                IsMain = !product.ImageUrls.Any() // Primera imagen es la principal
+            });
+            await _productRepository.UpdateProductsAsync(product);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Elimina una URL de imagen del array de imágenes del producto
+    /// </summary>
+    public async Task<bool> RemoveProductImageAsync(int idProduct, string imageUrl)
+    {
+        var product = await _productRepository.GetByIdProductsAsync(idProduct);
+        if (product == null)
+        {
+            throw new KeyNotFoundException($"Producto con ID {idProduct} no encontrado.");
+        }
+
+        if (product.ImageUrls != null)
+        {
+            var imageToRemove = product.ImageUrls.FirstOrDefault(i => i.Url == imageUrl);
+            if (imageToRemove != null)
+            {
+                product.ImageUrls.Remove(imageToRemove);
+                await _productRepository.UpdateProductsAsync(product);
+            }
+        }
+
+        return true;
+    }
+
     public async Task<ProductResponseDto?> GetProductByIdAsync(int id, ProductFilterDto? filters = null)
     {
         var product = await _productRepository.GetByIdProductsAsync(id, filters);
@@ -172,6 +243,7 @@ public class ProductService : IProductService
             Quantity = product.Quantity,
             Taxes = product.Taxes,
             IdSupplier = product.IdSupplier,
+            ImageUrls = product.ImageUrls?.ToList() ?? new List<ProductImageJson>(),
             CodeJson = product.CodeJson?.ToList() ?? new(),
             CostsJson = product.CostsJson?.ToList() ?? new(),
             CategoriesJsons = product.CategoriesJsons?.ToList() ?? new(),

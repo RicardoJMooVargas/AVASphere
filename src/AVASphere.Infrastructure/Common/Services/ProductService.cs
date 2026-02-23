@@ -121,13 +121,33 @@ public class ProductService : IProductService
 
         if (product.ImageUrls == null)
         {
-            product.ImageUrls = new List<string>();
+            product.ImageUrls = new List<ProductImageJson>();
         }
 
-        // Evitar duplicados
-        if (!product.ImageUrls.Contains(imageUrl))
+        // Obtener el índice más alto actual
+        var maxIndex = product.ImageUrls.Any() ? product.ImageUrls.Max(i => i.Index) : -1;
+
+        // Evitar duplicados por URL
+        if (!product.ImageUrls.Any(i => i.Url == imageUrl))
         {
-            product.ImageUrls.Add(imageUrl);
+            var imageExtension = Path.GetExtension(imageUrl);
+            var contentType = imageExtension.ToLower() switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "image/jpeg"
+            };
+
+            product.ImageUrls.Add(new ProductImageJson
+            {
+                Index = maxIndex + 1,
+                Url = imageUrl,
+                FileName = Path.GetFileName(imageUrl),
+                ContentType = contentType,
+                IsMain = !product.ImageUrls.Any() // Primera imagen es la principal
+            });
             await _productRepository.UpdateProductsAsync(product);
         }
 
@@ -145,10 +165,14 @@ public class ProductService : IProductService
             throw new KeyNotFoundException($"Producto con ID {idProduct} no encontrado.");
         }
 
-        if (product.ImageUrls != null && product.ImageUrls.Contains(imageUrl))
+        if (product.ImageUrls != null)
         {
-            product.ImageUrls.Remove(imageUrl);
-            await _productRepository.UpdateProductsAsync(product);
+            var imageToRemove = product.ImageUrls.FirstOrDefault(i => i.Url == imageUrl);
+            if (imageToRemove != null)
+            {
+                product.ImageUrls.Remove(imageToRemove);
+                await _productRepository.UpdateProductsAsync(product);
+            }
         }
 
         return true;
@@ -219,7 +243,7 @@ public class ProductService : IProductService
             Quantity = product.Quantity,
             Taxes = product.Taxes,
             IdSupplier = product.IdSupplier,
-            ImageUrls = product.ImageUrls ?? new List<string>(),
+            ImageUrls = product.ImageUrls?.ToList() ?? new List<ProductImageJson>(),
             CodeJson = product.CodeJson?.ToList() ?? new(),
             CostsJson = product.CostsJson?.ToList() ?? new(),
             CategoriesJsons = product.CategoriesJsons?.ToList() ?? new(),

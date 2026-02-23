@@ -292,7 +292,7 @@ public class ProductController : ControllerBase
             }
 
             // Validar que la URL exista en el producto
-            if (!product.ImageUrls.Contains(imageUrl))
+            if (!product.ImageUrls.Any(img => img.Url == imageUrl))
             {
                 return BadRequest(new ApiResponse("La imagen especificada no pertenece a este producto", 400));
             }

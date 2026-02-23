@@ -32,6 +32,7 @@ public class StorageStructureService : IStorageStructureService
             var storageStructure = new StorageStructure
             {
                 CodeRack = storageStructureRequest.CodeRack,
+                TypeStorageSystem = storageStructureRequest.TypeStorageSystem,
                 OneSection = storageStructureRequest.OneSection,
                 HasLevel = storageStructureRequest.HasLevel,
                 HasSubLevel = storageStructureRequest.HasSubLevel,
@@ -45,6 +46,7 @@ public class StorageStructureService : IStorageStructureService
             {
                 IdStorageStructure = createdStorageStructure.IdStorageStructure,
                 CodeRack = createdStorageStructure.CodeRack,
+                TypeStorageSystem = createdStorageStructure.TypeStorageSystem,
                 OneSection = createdStorageStructure.OneSection,
                 HasLevel = createdStorageStructure.HasLevel,
                 HasSubLevel = createdStorageStructure.HasSubLevel,
@@ -73,6 +75,7 @@ public class StorageStructureService : IStorageStructureService
             {
                 IdStorageStructure = storageStructure.IdStorageStructure,
                 CodeRack = storageStructure.CodeRack,
+                TypeStorageSystem = storageStructure.TypeStorageSystem,
                 OneSection = storageStructure.OneSection,
                 HasLevel = storageStructure.HasLevel,
                 HasSubLevel = storageStructure.HasSubLevel,
@@ -101,6 +104,7 @@ public class StorageStructureService : IStorageStructureService
             {
                 IdStorageStructure = storageStructure.IdStorageStructure,
                 CodeRack = storageStructure.CodeRack,
+                TypeStorageSystem = storageStructure.TypeStorageSystem,
                 OneSection = storageStructure.OneSection,
                 HasLevel = storageStructure.HasLevel,
                 HasSubLevel = storageStructure.HasSubLevel,
@@ -128,6 +132,7 @@ public class StorageStructureService : IStorageStructureService
             {
                 IdStorageStructure = storageStructure.IdStorageStructure,
                 CodeRack = storageStructure.CodeRack,
+                TypeStorageSystem = storageStructure.TypeStorageSystem,
                 OneSection = storageStructure.OneSection,
                 HasLevel = storageStructure.HasLevel,
                 HasSubLevel = storageStructure.HasSubLevel,

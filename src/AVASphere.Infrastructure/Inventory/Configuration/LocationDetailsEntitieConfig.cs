@@ -1,4 +1,4 @@
-﻿﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -10,10 +10,6 @@ public class LocationDetailsEntitieConfig : IEntityTypeConfiguration<LocationDet
     {
         entity.ToTable("LocationDetails");
         entity.HasKey(e => e.IdLocationDetails);
-        
-        entity.Property(e => e.TypeStorageSystem)
-            .IsRequired()
-            .HasMaxLength(100);
         
         entity.Property(e => e.Section)
             .IsRequired()

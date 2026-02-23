@@ -1,8 +1,15 @@
-﻿namespace AVASphere.ApplicationCore.Inventory.DTOs;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace AVASphere.ApplicationCore.Inventory.DTOs;
 
 public class StorageStructureRequestDto
 {
     public string CodeRack { get; set; } = null!;
+    
+    [Required(ErrorMessage = "El tipo de sistema de almacenamiento es requerido")]
+    [StringLength(100, ErrorMessage = "El tipo de sistema de almacenamiento no puede exceder 100 caracteres")]
+    public string TypeStorageSystem { get; set; } = null!;
+    
     public bool OneSection { get; set; }
     public bool HasLevel { get; set; }
     public bool HasSubLevel { get; set; }
@@ -14,6 +21,7 @@ public class StorageStructureResponseDto
 {
     public int IdStorageStructure { get; set; }
     public string CodeRack { get; set; } = null!;
+    public string TypeStorageSystem { get; set; } = null!;
     public bool OneSection { get; set; }
     public bool HasLevel { get; set; }
     public bool HasSubLevel { get; set; }

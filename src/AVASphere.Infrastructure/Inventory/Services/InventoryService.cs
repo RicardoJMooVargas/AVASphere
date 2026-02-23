@@ -475,7 +475,6 @@ public class InventoryService : IInventoryService
                     // Crear nuevo LocationDetails (sin verificar duplicados)
                     var locationDetails = new LocationDetailsEntity
                     {
-                        TypeStorageSystem = "ESTANTERIA",
                         Section = nivelStr, // Ahora Section es el Nivel (A, B, C, etc.)
                         VerticalLevel = 0, // Siempre 0
                         IdArea = 4, // Fijo según especificación

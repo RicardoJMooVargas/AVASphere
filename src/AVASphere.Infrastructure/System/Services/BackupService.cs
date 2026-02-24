@@ -1549,7 +1549,7 @@ public class BackupService
 -- =========================================
 -- WAREHOUSE
 -- =========================================
-INSERT INTO ""Warehouse"" (""Name"", ""Code"", ""Location"", ""IsMain"", ""Active"") VALUES ('ARMANDO VIDRIOS Y ALUMINIOS', 'AVA01', NULL, 1, 1);
+INSERT INTO ""Warehouse"" (""Name"", ""Code"", ""Location"", ""IsMain"", ""Active"") VALUES ('PRINCIPAL ARMANDO VIDRIOS Y ALUMINIOS', 'AVA01', NULL, 1, 1);
 INSERT INTO ""Warehouse"" (""Name"", ""Code"", ""Location"", ""IsMain"", ""Active"") VALUES ('BODEGA SECUNDARIA', 'AVA02', NULL, 0, 1);
 INSERT INTO ""Warehouse"" (""Name"", ""Code"", ""Location"", ""IsMain"", ""Active"") VALUES ('BODEGA MADERA', 'AVA03', NULL, 0, 1);
 INSERT INTO ""Warehouse"" (""Name"", ""Code"", ""Location"", ""IsMain"", ""Active"") VALUES ('BODEGA VINILOS', 'AVA04', NULL, 0, 1);
@@ -1600,7 +1600,7 @@ INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('MERIK, S.A. DE 
 INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('DISTRIBUIDORA MAYORISTA DE TORNILLOS DE YUCATAN S.A. DE C.V.','2026-02-04');
 INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('ARGENTUM MEXICANA S DE RL DE CV','2026-02-04');
 INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('CUPRUM CAMPECHE','2026-02-04');
-
+INSERT INTO ""Supplier""(""Name"",""RegistrationDate"") VALUES ('OTROS','2026-02-24');
 -- =========================================
 -- PROPERTY VALUES - FAMILIAS (IdProperty = 1)
 -- =========================================
@@ -1810,6 +1810,47 @@ INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty
 INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTAL PAVIA', NULL, NULL, 3);
 INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('10000 ESPAÑOLA', NULL, NULL, 3);
 INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('1400 ESPAÑOLA', NULL, NULL, 3);
+
+-- =========================================
+-- AREA
+-- =========================================
+INSERT INTO ""Area"" (""Name"", ""NormalizedName"") VALUES ('LOCAL', 'LOCAL');
+INSERT INTO ""Area"" (""Name"", ""NormalizedName"") VALUES ('FORANEA', 'FORANEA');
+INSERT INTO ""Area"" (""Name"", ""NormalizedName"") VALUES ('HERRAJE', 'HERRAJE');
+
+-- =========================================
+-- STORAGE STRUCTURE
+-- =========================================
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('HERRAJES HERRALUM 1 RACK 1', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('HERRAJES HERRALUM 1 RACK 2', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('HERRAJES HERRALUM 1 RACK 3', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('HERRAJES HERRALUM 1 RACK SUPERIOR', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('HERRAJES HERRALUM 2 RACK 1', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('HERRAJES HERRALUM 2 RACK 2', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('HERRAJES HERRALUM 2 RACK 3', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('HERRAJES HERRALUM 2 MURO', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('PERFILES Y VINILES', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('JAULA RACK 1', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('JAULA RACK 2', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('JAULA RACK 3', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('PLASTICOS HERRALUM , PANELES', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('BODEGA', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('S/N', 'ESTANTERIA', true, true, true, 1, 4);
 ";
     }
 

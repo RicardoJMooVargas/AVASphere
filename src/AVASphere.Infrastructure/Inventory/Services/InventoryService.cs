@@ -23,6 +23,7 @@ public class InventoryService : IInventoryService
     private readonly IProductRepository _productRepository;
     private readonly IPhysicalInventoryRepository _physicalInventoryRepository;
     private readonly ILocationDetailsRepository _locationDetailsRepository;
+    private readonly ILocationDetailsService _locationDetailsService;
     private readonly IStorageStructureRepository _storageStructureRepository;
     private readonly IProductService _productService;
     private readonly MasterDbContext _context;
@@ -33,6 +34,7 @@ public class InventoryService : IInventoryService
         IProductRepository productRepository,
         IPhysicalInventoryRepository physicalInventoryRepository,
         ILocationDetailsRepository locationDetailsRepository,
+        ILocationDetailsService locationDetailsService,
         IStorageStructureRepository storageStructureRepository,
         IProductService productService,
         MasterDbContext context)
@@ -42,6 +44,7 @@ public class InventoryService : IInventoryService
         _productRepository = productRepository;
         _physicalInventoryRepository = physicalInventoryRepository;
         _locationDetailsRepository = locationDetailsRepository;
+        _locationDetailsService = locationDetailsService;
         _storageStructureRepository = storageStructureRepository;
         _productService = productService;
         _context = context;
@@ -229,15 +232,67 @@ public class InventoryService : IInventoryService
 
                     if (existingInventory != null)
                     {
+                        // Si LocationDetail = 0, crear ubicación por defecto
+                        double locationDetail = group.LocationDetail.GetValueOrDefault();
+                        if (locationDetail == 0)
+                        {
+                            try
+                            {
+                                // Obtener el área a través de StorageStructure del warehouse
+                                var storageStructures = await _storageStructureRepository.GetByWarehouseAsync(group.IdWarehouse);
+                                var firstStorageStructure = storageStructures.FirstOrDefault();
+                                
+                                if (firstStorageStructure?.IdArea.HasValue == true)
+                                {
+                                    var defaultLocation = await _locationDetailsService.GetOrCreateDefaultLocationAsync(firstStorageStructure.IdArea.Value);
+                                    locationDetail = defaultLocation.IdLocationDetails;
+                                }
+                                else
+                                {
+                                    result.Warnings.Add($"No se encontró área para warehouse {group.WarehouseCode}, usando ubicación 0 para {group.ProductDescription}");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                result.Warnings.Add($"No se pudo crear ubicación por defecto para {group.ProductDescription}: {ex.Message}");
+                            }
+                        }
+
                         // Actualizar el stock y ubicación existente
                         existingInventory.Stock = group.TotalStock.GetValueOrDefault();
-                        existingInventory.LocationDetail = group.LocationDetail.GetValueOrDefault();
+                        existingInventory.LocationDetail = locationDetail;
                         await _inventoryRepository.UpdateAsync(existingInventory);
 
-                        result.Warnings.Add($"Actualizado: {group.ProductDescription} en {group.WarehouseCode}, Ubicación {group.LocationDetail}, Stock: {group.TotalStock}");
+                        result.Warnings.Add($"Actualizado: {group.ProductDescription} en {group.WarehouseCode}, Ubicación {locationDetail}, Stock: {group.TotalStock}");
                     }
                     else
                     {
+                        // Si LocationDetail = 0, crear ubicación por defecto
+                        double locationDetail = group.LocationDetail.GetValueOrDefault();
+                        if (locationDetail == 0)
+                        {
+                            try
+                            {
+                                // Obtener el área a través de StorageStructure del warehouse
+                                var storageStructures = await _storageStructureRepository.GetByWarehouseAsync(group.IdWarehouse);
+                                var firstStorageStructure = storageStructures.FirstOrDefault();
+                                
+                                if (firstStorageStructure?.IdArea.HasValue == true)
+                                {
+                                    var defaultLocation = await _locationDetailsService.GetOrCreateDefaultLocationAsync(firstStorageStructure.IdArea.Value);
+                                    locationDetail = defaultLocation.IdLocationDetails;
+                                }
+                                else
+                                {
+                                    result.Warnings.Add($"No se encontró área para warehouse {group.WarehouseCode}, usando ubicación 0 para {group.ProductDescription}");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                result.Warnings.Add($"No se pudo crear ubicación por defecto para {group.ProductDescription}: {ex.Message}");
+                            }
+                        }
+
                         // Crear nuevo registro de inventario
                         var inventory = new InventoryEntity
                         {
@@ -246,14 +301,14 @@ public class InventoryService : IInventoryService
                             Stock = group.TotalStock.GetValueOrDefault(),
                             StockMin = 0,
                             StockMax = group.TotalStock.GetValueOrDefault() * 2,
-                            LocationDetail = group.LocationDetail.GetValueOrDefault(),
+                            LocationDetail = locationDetail,
                             IdPhysicalInventory = physicalInventoryCache[group.IdWarehouse]
                         };
 
                         await _inventoryRepository.CreateAsync(inventory);
 
                         result.SuccessfulImports++;
-                        result.CreatedRecords.Add($"{group.ProductDescription} | {group.WarehouseCode} | Ubicación: {group.LocationDetail} | Stock: {group.TotalStock}");
+                        result.CreatedRecords.Add($"{group.ProductDescription} | {group.WarehouseCode} | Ubicación: {locationDetail} | Stock: {group.TotalStock}");
                     }
                 }
                 catch (Exception ex)

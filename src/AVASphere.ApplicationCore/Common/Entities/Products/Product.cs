@@ -1,4 +1,4 @@
-﻿﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Projects.Entities.General;
@@ -28,7 +28,7 @@ public class Product
     // Las siguientes propiedades de navegación fueron eliminadas para evitar campos duplicados:
     // - Inventories, PhysicalInventoryDetails, StockMovements, WarehouseTransferDetails
     // Las relaciones se configuran usando WithMany() sin especificar la propiedad inversa
-    
+
     //JSON
     public ICollection<CodeJson> CodeJson { get; set; } = new List<CodeJson>();
     public ICollection<CostsJson> CostsJson { get; set; } = new List<CostsJson>();

@@ -1,4 +1,5 @@
-﻿using AVASphere.ApplicationCore.Inventory.DTOs;
+﻿using AVASphere.ApplicationCore.Common.Interfaces;
+using AVASphere.ApplicationCore.Inventory.DTOs;
 using AVASphere.ApplicationCore.Inventory.Entities.General;
 using AVASphere.ApplicationCore.Inventory.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -8,13 +9,19 @@ namespace AVASphere.Infrastructure.Inventory.Services;
 public class StorageStructureService : IStorageStructureService
 {
     private readonly IStorageStructureRepository _storageStructureRepository;
+    private readonly IAreaRepository _areaRepository;
+    private readonly IWarehouseRepository _warehouseRepository;
     private readonly ILogger<StorageStructureService> _logger;
 
     public StorageStructureService(
-        IStorageStructureRepository storageStructureRepository, 
+        IStorageStructureRepository storageStructureRepository,
+        IAreaRepository areaRepository,
+        IWarehouseRepository warehouseRepository,
         ILogger<StorageStructureService> logger)
     {
         _storageStructureRepository = storageStructureRepository;
+        _areaRepository = areaRepository;
+        _warehouseRepository = warehouseRepository;
         _logger = logger;
     }
 
@@ -27,6 +34,23 @@ public class StorageStructureService : IStorageStructureService
             if (existingStorageStructure != null)
             {
                 throw new InvalidOperationException($"Ya existe una estructura de almacenamiento con el código: {storageStructureRequest.CodeRack}");
+            }
+
+            // Validar que el Warehouse existe
+            var warehouse = await _warehouseRepository.GetByIdAsync(storageStructureRequest.IdWarehouse);
+            if (warehouse == null)
+            {
+                throw new KeyNotFoundException($"El almacén con ID {storageStructureRequest.IdWarehouse} no existe");
+            }
+
+            // Validar que el Area existe si se proporciona
+            if (storageStructureRequest.IdArea.HasValue)
+            {
+                var area = await _areaRepository.GetByIdAsync(storageStructureRequest.IdArea.Value);
+                if (area == null)
+                {
+                    throw new KeyNotFoundException($"El área con ID {storageStructureRequest.IdArea.Value} no existe");
+                }
             }
 
             var storageStructure = new StorageStructure
@@ -220,6 +244,23 @@ public class StorageStructureService : IStorageStructureService
             if (storageStructureWithSameCode != null && storageStructureWithSameCode.IdStorageStructure != id)
             {
                 throw new InvalidOperationException($"Ya existe otra estructura de almacenamiento con el código: {storageStructureRequest.CodeRack}");
+            }
+
+            // Validar que el Warehouse existe
+            var warehouse = await _warehouseRepository.GetByIdAsync(storageStructureRequest.IdWarehouse);
+            if (warehouse == null)
+            {
+                throw new KeyNotFoundException($"El almacén con ID {storageStructureRequest.IdWarehouse} no existe");
+            }
+
+            // Validar que el Area existe si se proporciona
+            if (storageStructureRequest.IdArea.HasValue)
+            {
+                var area = await _areaRepository.GetByIdAsync(storageStructureRequest.IdArea.Value);
+                if (area == null)
+                {
+                    throw new KeyNotFoundException($"El área con ID {storageStructureRequest.IdArea.Value} no existe");
+                }
             }
 
             existingStorageStructure.CodeRack = storageStructureRequest.CodeRack;

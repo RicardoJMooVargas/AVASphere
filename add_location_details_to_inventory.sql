@@ -1,0 +1,1 @@
+-- No se necesita agregar columnas adicionales, ya que Inventory usa LocationDetail y PhysicalInventoryDetail ya tiene IdLocationDetails

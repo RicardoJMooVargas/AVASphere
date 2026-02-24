@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
 
 namespace AVASphere.ApplicationCore.Inventory.Interfaces;
 
@@ -12,6 +12,7 @@ public interface IStorageStructureRepository
     Task<StorageStructure?> GetByCodeAsync(string codeRack);
     Task<IEnumerable<StorageStructure>> GetAllAsync();
     Task<IEnumerable<StorageStructure>> GetByWarehouseAsync(int idWarehouse);
+    Task<IEnumerable<StorageStructure>> GetByAreaIdAsync(int idArea);
     Task<IEnumerable<StorageStructure>> GetByWarehouseAndAreaAsync(int idWarehouse, int idArea);
     Task<IEnumerable<StorageStructure>> GetFilteredAsync(
         int? idStorageStructure = null,

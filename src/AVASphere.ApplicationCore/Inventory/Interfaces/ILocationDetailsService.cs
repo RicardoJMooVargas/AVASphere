@@ -21,4 +21,7 @@ public interface ILocationDetailsService
     
     // Delete
     Task<bool> DeleteAsync(int id);
+    
+    // Utility
+    Task<LocationDetails> GetOrCreateDefaultLocationAsync(int idArea);
 }

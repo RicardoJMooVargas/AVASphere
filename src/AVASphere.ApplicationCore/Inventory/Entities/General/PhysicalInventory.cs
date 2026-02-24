@@ -1,4 +1,6 @@
-﻿namespace AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿using AVASphere.ApplicationCore.Common.Entities.Products;
+
+namespace AVASphere.ApplicationCore.Inventory.Entities.General;
 
 public class PhysicalInventory
 {

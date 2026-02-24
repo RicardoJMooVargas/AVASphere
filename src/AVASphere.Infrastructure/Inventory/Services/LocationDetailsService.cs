@@ -10,15 +10,27 @@ public class LocationDetailsService : ILocationDetailsService
 {
     private readonly ILocationDetailsRepository _locationDetailsRepository;
     private readonly IAreaRepository _areaRepository;
+    private readonly IInventoryRepository _inventoryRepository;
+    private readonly IPhysicalInventoryRepository _physicalInventoryRepository;
+    private readonly IPhysicalInventoryDetailRepository _physicalInventoryDetailRepository;
+    private readonly IStorageStructureRepository _storageStructureRepository;
     private readonly ILogger<LocationDetailsService> _logger;
 
     public LocationDetailsService(
         ILocationDetailsRepository locationDetailsRepository,
         IAreaRepository areaRepository,
+        IInventoryRepository inventoryRepository,
+        IPhysicalInventoryRepository physicalInventoryRepository,
+        IPhysicalInventoryDetailRepository physicalInventoryDetailRepository,
+        IStorageStructureRepository storageStructureRepository,
         ILogger<LocationDetailsService> logger)
     {
         _locationDetailsRepository = locationDetailsRepository;
         _areaRepository = areaRepository;
+        _inventoryRepository = inventoryRepository;
+        _physicalInventoryRepository = physicalInventoryRepository;
+        _physicalInventoryDetailRepository = physicalInventoryDetailRepository;
+        _storageStructureRepository = storageStructureRepository;
         _logger = logger;
     }
 
@@ -44,22 +56,58 @@ public class LocationDetailsService : ILocationDetailsService
                 request.Section, 
                 request.VerticalLevel);
                 
+            LocationDetails created;
             if (existingLocation != null)
             {
-                throw new InvalidOperationException($"Ya existe una ubicación con los mismos parámetros: Área={areaId}, Estructura={request.IdStorageStructure}, Sección={request.Section}, Nivel={request.VerticalLevel}");
+                // Si ya existe, usar la ubicación existente
+                created = existingLocation;
+                _logger.LogInformation("Usando ubicación existente con ID: {Id}", created.IdLocationDetails);
+            }
+            else
+            {
+                // Si no existe, crear nueva ubicación
+                var locationDetails = new LocationDetails
+                {
+                    Section = request.Section,
+                    VerticalLevel = request.VerticalLevel,
+                    IdArea = areaId,
+                    IdStorageStructure = request.IdStorageStructure
+                };
+
+                created = await _locationDetailsRepository.CreateAsync(locationDetails);
+                _logger.LogInformation("LocationDetail creada exitosamente con ID: {Id}", created.IdLocationDetails);
             }
 
-            var locationDetails = new LocationDetails
-            {
-                Section = request.Section,
-                VerticalLevel = request.VerticalLevel,
-                IdArea = areaId,
-                IdStorageStructure = request.IdStorageStructure
-            };
-
-            var created = await _locationDetailsRepository.CreateAsync(locationDetails);
             
-            _logger.LogInformation("LocationDetail creada exitosamente con ID: {Id}", created.IdLocationDetails);
+            // Si se proporciona IdInventory, actualizar el registro de Inventory
+            if (request.IdInventory.HasValue)
+            {
+                var inventory = await _inventoryRepository.GetByIdAsync(request.IdInventory.Value);
+                if (inventory == null)
+                {
+                    throw new KeyNotFoundException($"Inventory con ID {request.IdInventory.Value} no encontrado");
+                }
+                inventory.LocationDetail = created.IdLocationDetails;
+                await _inventoryRepository.UpdateAsync(inventory);
+            }
+            
+            // Si se proporciona IdPhysicalInventoryDetail, actualizar el registro específico
+            if (request.IdPhysicalInventoryDetail.HasValue)
+            {
+                var physicalInventoryDetail = await _physicalInventoryDetailRepository.GetByIdAsync(request.IdPhysicalInventoryDetail.Value);
+                if (physicalInventoryDetail == null)
+                {
+                    throw new KeyNotFoundException($"PhysicalInventoryDetail con ID {request.IdPhysicalInventoryDetail.Value} no encontrado");
+                }
+                
+                // Actualizar la ubicación del detalle de inventario físico
+                physicalInventoryDetail.IdLocationDetails = created.IdLocationDetails;
+                await _physicalInventoryDetailRepository.UpdateAsync(physicalInventoryDetail);
+                _logger.LogInformation("PhysicalInventoryDetail actualizado con nueva ubicación. ID: {IdPhysicalInventoryDetail}, Nueva ubicación: {IdLocationDetails}", 
+                    physicalInventoryDetail.IdPhysicalInventoryDetail, created.IdLocationDetails);
+            }
+            
+            _logger.LogInformation("Operación completada para LocationDetail con ID: {Id}", created.IdLocationDetails);
             return MapToResponseDto(created);
         }
         catch (Exception ex)
@@ -171,6 +219,18 @@ public class LocationDetailsService : ILocationDetailsService
                 throw new KeyNotFoundException($"Área con ID {request.IdArea} no encontrada");
             }
 
+            // Validar que el StorageStructure existe y pertenece al mismo Area
+            var storageStructure = await _storageStructureRepository.GetByIdAsync(request.IdStorageStructure);
+            if (storageStructure == null)
+            {
+                throw new KeyNotFoundException($"Estructura de almacenamiento con ID {request.IdStorageStructure} no encontrada");
+            }
+            
+            if (storageStructure.IdArea.HasValue && storageStructure.IdArea.Value != request.IdArea)
+            {
+                throw new InvalidOperationException($"La estructura de almacenamiento {request.IdStorageStructure} pertenece al área {storageStructure.IdArea}, pero se está intentando actualizar para el área {request.IdArea}");
+            }
+
             // Verificar si ya existe otra ubicación con los mismos parámetros (excluyendo la actual)
             var existingLocation = await _locationDetailsRepository.GetByLocationParametersAsync(
                 request.IdArea, 
@@ -226,6 +286,67 @@ public class LocationDetailsService : ILocationDetailsService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error al eliminar LocationDetail con ID: {Id}", id);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Crea o obtiene una ubicación "SIN_ASIGNAR" para un área específica
+    /// </summary>
+    public async Task<LocationDetails> GetOrCreateDefaultLocationAsync(int idArea)
+    {
+        try
+        {
+            const string defaultSection = "SIN_ASIGNAR";
+            const int defaultVerticalLevel = 0;
+
+            // Buscar si ya existe una ubicación "SIN_ASIGNAR" en el área
+            var existingDefault = await _locationDetailsRepository.GetByLocationParametersAsync(
+                idArea, 
+                0, // Usaremos 0 como indicador temporal
+                defaultSection, 
+                defaultVerticalLevel);
+
+            if (existingDefault != null)
+            {
+                return existingDefault;
+            }
+
+            // Buscar una estructura de almacenamiento en el área o crear una genérica
+            var storageStructures = await _storageStructureRepository.GetByAreaIdAsync(idArea);
+            var defaultStorageStructureId = storageStructures?.FirstOrDefault()?.IdStorageStructure;
+
+            if (!defaultStorageStructureId.HasValue)
+            {
+                _logger.LogWarning("No se encontró StorageStructure para área {IdArea}, creando ubicación sin estructura específica", idArea);
+                // Si no hay estructura de almacenamiento, buscar cualquiera del sistema
+                var anyStorageStructure = await _storageStructureRepository.GetAllAsync();
+                defaultStorageStructureId = anyStorageStructure?.FirstOrDefault()?.IdStorageStructure;
+                
+                if (!defaultStorageStructureId.HasValue)
+                {
+                    throw new InvalidOperationException($"No hay estructuras de almacenamiento disponibles en el sistema para crear ubicación por defecto en área {idArea}");
+                }
+            }
+
+            // Crear nueva ubicación "SIN_ASIGNAR"
+            var defaultLocation = new LocationDetails
+            {
+                Section = defaultSection,
+                VerticalLevel = defaultVerticalLevel,
+                IdArea = idArea,
+                IdStorageStructure = defaultStorageStructureId.Value
+            };
+
+            var created = await _locationDetailsRepository.CreateAsync(defaultLocation);
+            _logger.LogInformation("Ubicación por defecto 'SIN_ASIGNAR' creada para área {IdArea} con ID {IdLocationDetails}", 
+                idArea, created.IdLocationDetails);
+
+            return created;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear ubicación por defecto para área {IdArea}", idArea);
             throw;
         }
     }

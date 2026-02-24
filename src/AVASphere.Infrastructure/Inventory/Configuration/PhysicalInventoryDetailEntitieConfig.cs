@@ -1,4 +1,4 @@
-﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
+﻿﻿using AVASphere.ApplicationCore.Inventory.Entities.General;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -40,4 +40,3 @@ public class PhysicalInventoryDetailEntitieConfig : IEntityTypeConfiguration<Phy
             .IsRequired(false);
     }
 }
-

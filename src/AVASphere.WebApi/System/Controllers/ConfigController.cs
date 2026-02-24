@@ -51,18 +51,18 @@ public class ConfigController : ControllerBase
         {
             // Forzar que siempre se use "Initial" como nombre para instalaciones nuevas
             var result = await _dbTools.FullMigrationAsync("Initial");
-            
+
             var response = new ApiResponse
             {
                 Success = !result.Contains("❌"),
-                Data = new 
-                { 
+                Data = new
+                {
                     Result = result,
                     MigrationName = "Initial",
                     Reason = "Migración principal requerida para instalaciones nuevas"
                 },
-                Message = !result.Contains("❌") ? 
-                    "Migración 'Initial' creada exitosamente para instalación nueva" : 
+                Message = !result.Contains("❌") ?
+                    "Migración 'Initial' creada exitosamente para instalación nueva" :
                     "Error creando migración inicial",
                 StatusCode = !result.Contains("❌") ? 200 : 400
             };
@@ -642,6 +642,7 @@ public class ConfigController : ControllerBase
     /// - 3 Properties (Familia, Clase, Línea)
     /// - 36 Suppliers (La Viga, Casa Fernández, Herralum, etc.)
     /// - 150+ PropertyValues organizados por categorías
+    /// - 15 Storage Structure
     /// </remarks>
     [HttpPost("load-default-catalogs")]
     public async Task<IActionResult> LoadDefaultCatalogs([FromQuery] bool overwrite = false)
@@ -670,7 +671,22 @@ public class ConfigController : ControllerBase
     #region Delete Catalog Data
 
     /// <summary>
-    /// Elimina todos los datos de las 6 tablas de catálogos base y todas sus dependencias, reiniciando las secuencias
+    /// ELIMINA LAS TABLAS DE:
+    /// - PhysicalInventoryDetail
+    /// - WarehouseTransferDetail
+    /// - PhysicalInventory
+    /// - WarehouseTransfer
+    /// - StockMovement
+    /// - Inventory
+    /// - LocationDetails
+    /// - StorageStructure
+    /// - ProductProperties
+    /// - PropertyValue
+    /// - Product
+    /// - Property
+    /// - Supplier
+    /// - Warehouse
+    /// - Area
     /// </summary>
     /// <returns>Resultado de la operación</returns>
 
@@ -683,7 +699,7 @@ public class ConfigController : ControllerBase
 
             try
             {
-                // Eliminar TODAS las tablas dependientes primero, luego las 6 tablas base
+                // Eliminar TODAS las tablas dependientes primero, luego las tablas base
                 var deleteCommands = new[]
                 {
                     // ========================================
@@ -745,7 +761,13 @@ public class ConfigController : ControllerBase
                     
                     // Warehouse (tabla independiente)
                     "DELETE FROM \"Warehouse\";",
-                    "ALTER SEQUENCE IF EXISTS \"Warehouse_IdWarehouse_seq\" RESTART WITH 1;"
+                    "ALTER SEQUENCE IF EXISTS \"Warehouse_IdWarehouse_seq\" RESTART WITH 1;",
+                    
+                    // Area (tabla independiente)
+                    "DELETE FROM \"Area\";",
+                    "ALTER SEQUENCE IF EXISTS \"Area_IdArea_seq\" RESTART WITH 1;"
+
+
                 };
 
                 foreach (var command in deleteCommands)
@@ -780,9 +802,10 @@ public class ConfigController : ControllerBase
                             "Product",
                             "Property",
                             "Supplier",
-                            "Warehouse"
+                            "Warehouse",
+                            "Area"
                         },
-                        TotalTablesCleared = 14,
+                        TotalTablesCleared = 15,
                         SequencesReset = true
                     }
                 };

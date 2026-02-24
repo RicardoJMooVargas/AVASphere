@@ -80,34 +80,6 @@ public class InventoryService : IInventoryService
             }
         }
 
-        // Obtener o crear PhysicalInventory por cada bodega
-        var physicalInventoryCache = new Dictionary<int, int>(); // IdWarehouse -> IdPhysicalInventory
-
-        foreach (var warehouse in warehouses)
-        {
-            // Buscar un PhysicalInventory activo para esta bodega
-            var physicalInventories = await _physicalInventoryRepository.GetByWarehouseIdAsync(warehouse.IdWarehouse);
-            var activePhysicalInventory = physicalInventories
-                .FirstOrDefault(pi => pi.Status == "Open");
-
-            if (activePhysicalInventory == null)
-            {
-                // Crear un PhysicalInventory por defecto para esta bodega
-                var newPhysicalInventory = new PhysicalInventoryEntity
-                {
-                    IdWarehouse = warehouse.IdWarehouse,
-                    InventoryDate = DateTime.UtcNow,
-                    Status = "Open",
-                    CreatedBy = 1, // Usuario sistema por defecto
-                    Observations = "Inventario generado automáticamente por importación Excel"
-                };
-
-                activePhysicalInventory = await _physicalInventoryRepository.CreateAsync(newPhysicalInventory);
-            }
-
-            physicalInventoryCache[warehouse.IdWarehouse] = activePhysicalInventory.IdPhysicalInventory;
-        }
-
         using (var workbook = new XLWorkbook(excelStream))
         {
             var worksheet = workbook.Worksheet(1);
@@ -232,31 +204,8 @@ public class InventoryService : IInventoryService
 
                     if (existingInventory != null)
                     {
-                        // Si LocationDetail = 0, crear ubicación por defecto
-                        double locationDetail = group.LocationDetail.GetValueOrDefault();
-                        if (locationDetail == 0)
-                        {
-                            try
-                            {
-                                // Obtener el área a través de StorageStructure del warehouse
-                                var storageStructures = await _storageStructureRepository.GetByWarehouseAsync(group.IdWarehouse);
-                                var firstStorageStructure = storageStructures.FirstOrDefault();
-                                
-                                if (firstStorageStructure?.IdArea.HasValue == true)
-                                {
-                                    var defaultLocation = await _locationDetailsService.GetOrCreateDefaultLocationAsync(firstStorageStructure.IdArea.Value);
-                                    locationDetail = defaultLocation.IdLocationDetails;
-                                }
-                                else
-                                {
-                                    result.Warnings.Add($"No se encontró área para warehouse {group.WarehouseCode}, usando ubicación 0 para {group.ProductDescription}");
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                result.Warnings.Add($"No se pudo crear ubicación por defecto para {group.ProductDescription}: {ex.Message}");
-                            }
-                        }
+                        // Siempre usar 0 como ubicación (ignorar Excel)
+                        double locationDetail = 0;
 
                         // Actualizar el stock y ubicación existente
                         existingInventory.Stock = group.TotalStock.GetValueOrDefault();
@@ -267,31 +216,8 @@ public class InventoryService : IInventoryService
                     }
                     else
                     {
-                        // Si LocationDetail = 0, crear ubicación por defecto
-                        double locationDetail = group.LocationDetail.GetValueOrDefault();
-                        if (locationDetail == 0)
-                        {
-                            try
-                            {
-                                // Obtener el área a través de StorageStructure del warehouse
-                                var storageStructures = await _storageStructureRepository.GetByWarehouseAsync(group.IdWarehouse);
-                                var firstStorageStructure = storageStructures.FirstOrDefault();
-                                
-                                if (firstStorageStructure?.IdArea.HasValue == true)
-                                {
-                                    var defaultLocation = await _locationDetailsService.GetOrCreateDefaultLocationAsync(firstStorageStructure.IdArea.Value);
-                                    locationDetail = defaultLocation.IdLocationDetails;
-                                }
-                                else
-                                {
-                                    result.Warnings.Add($"No se encontró área para warehouse {group.WarehouseCode}, usando ubicación 0 para {group.ProductDescription}");
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                result.Warnings.Add($"No se pudo crear ubicación por defecto para {group.ProductDescription}: {ex.Message}");
-                            }
-                        }
+                        // Siempre usar 0 como ubicación (ignorar Excel)
+                        double locationDetail = 0;
 
                         // Crear nuevo registro de inventario
                         var inventory = new InventoryEntity
@@ -302,7 +228,7 @@ public class InventoryService : IInventoryService
                             StockMin = 0,
                             StockMax = group.TotalStock.GetValueOrDefault() * 2,
                             LocationDetail = locationDetail,
-                            IdPhysicalInventory = physicalInventoryCache[group.IdWarehouse]
+                            IdPhysicalInventory = null
                         };
 
                         await _inventoryRepository.CreateAsync(inventory);

@@ -479,6 +479,112 @@ public class PhysicalInventoryService : IPhysicalInventoryService
         }
     }
 
+    public async Task<ApiResponse<ProductInventoryListPaginatedResponseDto>> GetProductInventoryListPaginatedAsync(
+        int idPhysicalInventory, 
+        int userId, 
+        ProductInventoryListPaginationDto pagination, 
+        ProductInventoryListFiltersDto? filters = null)
+    {
+        try
+        {
+            _logger.LogInformation("Getting paginated product inventory list for PhysicalInventory {PhysicalInventoryId}, user {UserId}, page {PageNumber}, size {PageSize}", 
+                idPhysicalInventory, userId, pagination.PageNumber, pagination.PageSize);
+
+            // Validaciones iniciales
+            var physicalInventory = await _physicalInventoryRepository.GetByIdAsync(idPhysicalInventory);
+            if (physicalInventory == null)
+            {
+                return new ApiResponse<ProductInventoryListPaginatedResponseDto>
+                {
+                    Success = false,
+                    Message = "El inventario físico especificado no existe",
+                    StatusCode = 404
+                };
+            }
+
+            var user = await _userRepository.SelectByIdAsync(userId);
+            if (user == null)
+            {
+                return new ApiResponse<ProductInventoryListPaginatedResponseDto>
+                {
+                    Success = false,
+                    Message = "El usuario especificado no existe",
+                    StatusCode = 404
+                };
+            }
+
+            var userAreaName = user.Rol?.Area?.Name ?? "Sin área";
+
+            // Obtener todos los detalles del inventario físico
+            var inventoryDetails = await _physicalInventoryDetailRepository.GetByPhysicalInventoryIdAsync(idPhysicalInventory);
+            var allDetailsList = inventoryDetails.ToList();
+
+            // Generar catálogos para filtros
+            var catalogs = GenerateInventoryCatalogsAsync(allDetailsList);
+
+            // Aplicar filtros
+            var filteredDetails = ApplyInventoryFilters(allDetailsList, filters);
+            var totalFilteredCount = filteredDetails.Count;
+
+            // Aplicar paginación
+            var paginatedDetails = filteredDetails
+                .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+                .Take(pagination.PageSize)
+                .ToList();
+
+            // Mapear a DTOs
+            var productList = await MapPhysicalInventoryDetailsToProductListAsync(paginatedDetails);
+
+            // Calcular metadatos de paginación
+            var totalPages = (int)Math.Ceiling((double)totalFilteredCount / pagination.PageSize);
+
+            var paginationMetadata = new PaginationMetadataDto
+            {
+                CurrentPage = pagination.PageNumber,
+                PageSize = pagination.PageSize,
+                TotalCount = totalFilteredCount,
+                TotalPages = totalPages,
+                HasPrevious = pagination.PageNumber > 1,
+                HasNext = pagination.PageNumber < totalPages
+            };
+
+            var inventoryInfo = new ProductInventoryInfoDto
+            {
+                HasInventoryRecords = allDetailsList.Any(),
+                WarehouseName = physicalInventory.Warehouse?.Name ?? "Sin nombre",
+                UserAreaName = userAreaName,
+                TotalProductsInInventory = allDetailsList.Count,
+                FilteredProductsCount = totalFilteredCount
+            };
+
+            var response = new ProductInventoryListPaginatedResponseDto
+            {
+                Products = productList,
+                Pagination = paginationMetadata,
+                Catalogs = catalogs,
+                InventoryInfo = inventoryInfo
+            };
+
+            return new ApiResponse<ProductInventoryListPaginatedResponseDto>
+            {
+                Success = true,
+                Data = response,
+                Message = $"Se encontraron {totalFilteredCount} productos (página {pagination.PageNumber} de {totalPages})",
+                StatusCode = 200
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting paginated product inventory list for PhysicalInventory {PhysicalInventoryId}", idPhysicalInventory);
+            return new ApiResponse<ProductInventoryListPaginatedResponseDto>
+            {
+                Success = false,
+                Message = $"Error al obtener la lista paginada de productos: {ex.Message}",
+                StatusCode = 500
+            };
+        }
+    }
+
     public async Task<ApiResponse<PhysicalInventoryCountResponseDto>> CreateOrUpdatePhysicalCountAsync(CreateOrUpdatePhysicalCountDto countDto)
     {
         try
@@ -716,6 +822,152 @@ public class PhysicalInventoryService : IPhysicalInventoryService
             _logger.LogError(ex, "Error building location details code for ID: {LocationDetailId}", locationDetailId);
             return "DESCONOCIDO ER";
         }
+    }
+
+    /// <summary>
+    /// Genera los catálogos de proveedores, familia, clase y línea para los filtros
+    /// </summary>
+    private ProductInventoryCatalogsDto GenerateInventoryCatalogsAsync(List<PhysicalInventoryDetail> details)
+    {
+        try
+        {
+            var catalogs = new ProductInventoryCatalogsDto();
+
+            if (!details.Any())
+            {
+                return catalogs;
+            }
+
+            // Obtener proveedores únicos
+            var suppliers = details
+                .Where(d => d.Product?.Supplier != null)
+                .Select(d => new AVASphere.ApplicationCore.Inventory.DTOs.SupplierFilterDto
+                {
+                    IdSupplier = d.Product!.Supplier!.IdSupplier,
+                    Name = d.Product.Supplier.Name ?? "Sin nombre",
+                    CompanyName = d.Product.Supplier.CompanyName ?? "Sin empresa"
+                })
+                .GroupBy(s => s.IdSupplier)
+                .Select(g => g.First())
+                .OrderBy(s => s.Name)
+                .ToList();
+
+            catalogs.Suppliers = suppliers;
+
+            // Obtener propiedades únicas (Familia, Clase, Línea)
+            var allProperties = details
+                .Where(d => d.Product?.ProductProperties != null)
+                .SelectMany(d => d.Product!.ProductProperties)
+                .Where(pp => pp.PropertyValue?.Property != null)
+                .ToList();
+
+            // Familia
+            var familias = allProperties
+                .Where(pp => string.Equals(pp.PropertyValue!.Property!.Name, "Familia", StringComparison.OrdinalIgnoreCase))
+                .Select(pp => pp.CustomValue ?? pp.PropertyValue!.Value ?? "Sin valor")
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(v => v)
+                .ToList();
+
+            catalogs.Familias = familias;
+
+            // Clase
+            var clases = allProperties
+                .Where(pp => string.Equals(pp.PropertyValue!.Property!.Name, "Clase", StringComparison.OrdinalIgnoreCase))
+                .Select(pp => pp.CustomValue ?? pp.PropertyValue!.Value ?? "Sin valor")
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(v => v)
+                .ToList();
+
+            catalogs.Clases = clases;
+
+            // Línea
+            var lineas = allProperties
+                .Where(pp => string.Equals(pp.PropertyValue!.Property!.Name, "Línea", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(pp.PropertyValue!.Property!.Name, "Linea", StringComparison.OrdinalIgnoreCase))
+                .Select(pp => pp.CustomValue ?? pp.PropertyValue!.Value ?? "Sin valor")
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(v => v)
+                .ToList();
+
+            catalogs.Lineas = lineas;
+
+            return catalogs;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating inventory catalogs");
+            return new ProductInventoryCatalogsDto();
+        }
+    }
+
+    /// <summary>
+    /// Aplica filtros a la lista de detalles de inventario físico
+    /// </summary>
+    private List<PhysicalInventoryDetail> ApplyInventoryFilters(
+        List<PhysicalInventoryDetail> details, 
+        ProductInventoryListFiltersDto? filters)
+    {
+        if (filters == null)
+        {
+            return details;
+        }
+
+        var filtered = details.AsEnumerable();
+
+        // Filtro por texto de búsqueda (nombre o descripción del producto)
+        if (!string.IsNullOrWhiteSpace(filters.SearchText))
+        {
+            var searchText = filters.SearchText.Trim().ToLowerInvariant();
+            filtered = filtered.Where(d =>
+                (d.Product?.MainName?.ToLowerInvariant().Contains(searchText) == true) ||
+                (d.Product?.Description?.ToLowerInvariant().Contains(searchText) == true));
+        }
+
+        // Filtro por proveedor
+        if (filters.IdSupplier.HasValue)
+        {
+            filtered = filtered.Where(d => d.Product?.IdSupplier == filters.IdSupplier.Value);
+        }
+
+        // Filtro por familia
+        if (!string.IsNullOrWhiteSpace(filters.Familia))
+        {
+            var familiaFilter = filters.Familia.Trim();
+            filtered = filtered.Where(d =>
+                d.Product?.ProductProperties?.Any(pp =>
+                    string.Equals(pp.PropertyValue?.Property?.Name, "Familia", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(pp.CustomValue ?? pp.PropertyValue?.Value, familiaFilter, StringComparison.OrdinalIgnoreCase)
+                ) == true);
+        }
+
+        // Filtro por clase
+        if (!string.IsNullOrWhiteSpace(filters.Clase))
+        {
+            var claseFilter = filters.Clase.Trim();
+            filtered = filtered.Where(d =>
+                d.Product?.ProductProperties?.Any(pp =>
+                    string.Equals(pp.PropertyValue?.Property?.Name, "Clase", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(pp.CustomValue ?? pp.PropertyValue?.Value, claseFilter, StringComparison.OrdinalIgnoreCase)
+                ) == true);
+        }
+
+        // Filtro por línea
+        if (!string.IsNullOrWhiteSpace(filters.Linea))
+        {
+            var lineaFilter = filters.Linea.Trim();
+            filtered = filtered.Where(d =>
+                d.Product?.ProductProperties?.Any(pp =>
+                    (string.Equals(pp.PropertyValue?.Property?.Name, "Línea", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(pp.PropertyValue?.Property?.Name, "Linea", StringComparison.OrdinalIgnoreCase)) &&
+                    string.Equals(pp.CustomValue ?? pp.PropertyValue?.Value, lineaFilter, StringComparison.OrdinalIgnoreCase)
+                ) == true);
+        }
+
+        return filtered.ToList();
     }
 
     private async Task GeneratePhysicalInventoryDetailsAsync(int idPhysicalInventory, int idWarehouse, 

@@ -7,6 +7,7 @@ namespace AVASphere.ApplicationCore.Common.Interfaces;
 public interface IProductRepository
 {
     Task<Product> CreateProductsAsync(Product product);
+    Task CreateProductsBulkAsync(List<Product> products);
     Task<Product> UpdateProductsAsync(Product product);
     Task<bool> DeleteProductsAsync(int id);
     Task<Product?> GetByIdProductsAsync(int idProduct, ProductFilterDto? filters = null);

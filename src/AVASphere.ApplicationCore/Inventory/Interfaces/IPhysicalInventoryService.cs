@@ -67,6 +67,22 @@ public interface IPhysicalInventoryService
     Task<ApiResponse<ProductInventoryListResponseDto>> GetProductInventoryListAsync(int idPhysicalInventory, int userId);
     
     /// <summary>
+    /// Obtener lista paginada de productos para conteo físico con filtros y catálogos
+    /// Incluye paginación, filtros por texto, proveedor, familia, clase y línea,
+    /// además de las listas de catálogos para filtros en el frontend
+    /// </summary>
+    /// <param name="idPhysicalInventory">ID del inventario físico</param>
+    /// <param name="userId">ID del usuario (obtenido del token) para validación</param>
+    /// <param name="pagination">Parámetros de paginación</param>
+    /// <param name="filters">Filtros de búsqueda</param>
+    /// <returns>Lista paginada de productos con catálogos para filtros</returns>
+    Task<ApiResponse<ProductInventoryListPaginatedResponseDto>> GetProductInventoryListPaginatedAsync(
+        int idPhysicalInventory, 
+        int userId, 
+        ProductInventoryListPaginationDto pagination, 
+        ProductInventoryListFiltersDto? filters = null);
+    
+    /// <summary>
     /// Crea o actualiza un conteo específico de un producto en el inventario físico
     /// </summary>
     /// <param name="countDto">Datos del conteo a crear o actualizar</param>

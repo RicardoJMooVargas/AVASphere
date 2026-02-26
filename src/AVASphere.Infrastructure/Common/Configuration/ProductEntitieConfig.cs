@@ -81,6 +81,11 @@ public class ProductEntitieConfig : IEntityTypeConfiguration<Product>
             .HasDefaultValueSql("'[]'::jsonb")
             .IsRequired();
 
+        entity.Property(e => e.AuxDataJson)
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("'{}'::jsonb")
+            .IsRequired(false);
+
         // Array de URLs de imágenes
         entity.Property(e => e.ImageUrls)
             .HasColumnType("jsonb")

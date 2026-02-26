@@ -23,6 +23,11 @@ public class InventoryEntitieConfig : IEntityTypeConfiguration<InventoryEntity>
         entity.Property(e => e.LocationDetail)
             .IsRequired(false); // Opcional
         
+        entity.Property(e => e.StatusInventoryProduct)
+            .HasConversion<string>()
+            .HasColumnType("text")
+            .IsRequired(false);
+        
         // Relación con PhysicalInventory (opcional)
         entity.HasOne(i => i.PhysicalInventory)
             .WithMany(pi => pi.Inventories)

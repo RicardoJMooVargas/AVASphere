@@ -32,6 +32,34 @@ public class ProductRepository : IProductRepository
         return product;
     }
 
+    public async Task CreateProductsBulkAsync(List<Product> products)
+    {
+        if (products == null || products.Count == 0)
+        {
+            return;
+        }
+
+        var supplierIds = products
+            .Select(p => p.IdSupplier)
+            .Distinct()
+            .ToList();
+
+        var existingSupplierIds = await _context.Suppliers
+            .Where(s => supplierIds.Contains(s.IdSupplier))
+            .Select(s => s.IdSupplier)
+            .ToListAsync();
+
+        var missingSupplierIds = supplierIds.Except(existingSupplierIds).ToList();
+        if (missingSupplierIds.Count > 0)
+        {
+            throw new KeyNotFoundException(
+                $"No existen los proveedores con ID: {string.Join(", ", missingSupplierIds)}");
+        }
+
+        await _context.Products.AddRangeAsync(products);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<Product> UpdateProductsAsync(Product product)
     {
         // Verificar si el proveedor existe usando el repositorio

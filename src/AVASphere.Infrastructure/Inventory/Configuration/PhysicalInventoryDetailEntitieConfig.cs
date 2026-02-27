@@ -19,6 +19,11 @@ public class PhysicalInventoryDetailEntitieConfig : IEntityTypeConfiguration<Phy
         
         entity.Property(e => e.Difference)
             .IsRequired();
+
+        entity.Property(e => e.StatusInventoryProduct)
+            .HasConversion<string>()
+            .HasColumnType("text")
+            .IsRequired(false);
         
         // Relación con PhysicalInventory
         entity.HasOne(pid => pid.PhysicalInventory)

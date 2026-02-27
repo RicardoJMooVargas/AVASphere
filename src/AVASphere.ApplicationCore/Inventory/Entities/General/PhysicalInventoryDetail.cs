@@ -1,4 +1,5 @@
 ﻿using AVASphere.ApplicationCore.Common.Entities.Products;
+using AVASphere.ApplicationCore.Projects.Enum;
 
 namespace AVASphere.ApplicationCore.Inventory.Entities.General;
 
@@ -8,6 +9,7 @@ public class PhysicalInventoryDetail
     public double SystemQuantity { get; set; }
     public double PhysicalQuantity { get; set; }
     public double Difference { get; set; }
+    public StatusInventoryProduct? StatusInventoryProduct { get; set; } // Opcional
     
     // FK
     public int IdPhysicalInventory { get; set; }

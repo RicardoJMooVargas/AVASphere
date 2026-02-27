@@ -241,8 +241,10 @@ app.Run();
 static void LoadEnvironmentVariables()
 {
     var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+    Console.WriteLine($"Loading .env from: {envPath}");
     if (File.Exists(envPath))
     {
+        Console.WriteLine(".env file found, loading...");
         var lines = File.ReadAllLines(envPath);
         foreach (var line in lines)
         {
@@ -255,7 +257,19 @@ static void LoadEnvironmentVariables()
                 var key = parts[0].Trim();
                 var value = parts[1].Trim();
                 Environment.SetEnvironmentVariable(key, value);
+                
+                // También agregar con prefijo ASPNETCORE_ si no lo tiene ya
+                if (!key.StartsWith("ASPNETCORE_") && !key.StartsWith("JWT_") && !key.StartsWith("POSTGRES_"))
+                {
+                    Environment.SetEnvironmentVariable($"ASPNETCORE_{key}", value);
+                }
+                
+                Console.WriteLine($"Set env var: {key} = {value}");
             }
         }
+    }
+    else
+    {
+        Console.WriteLine(".env file not found");
     }
 }

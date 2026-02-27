@@ -128,29 +128,6 @@ public class PhysicalInventoryController : ControllerBase
     }
 
     /// <summary>
-    /// Obtener un conteo físico por ID
-    /// </summary>
-    /// <param name="id">ID del conteo físico</param>
-    /// <returns>Conteo físico encontrado</returns>
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetPhysicalInventoryById(int id)
-    {
-        var result = await _physicalInventoryService.GetPhysicalInventoryByIdAsync(id);
-        
-        if (result.Success)
-        {
-            return Ok(result);
-        }
-        
-        return result.StatusCode switch
-        {
-            404 => NotFound(result),
-            500 => StatusCode(500, result),
-            _ => BadRequest(result)
-        };
-    }
-
-    /// <summary>
     /// Obtener todos los conteos físicos con filtros opcionales
     /// </summary>
     /// <param name="idWarehouse">Filtro por warehouse</param>
@@ -207,6 +184,105 @@ public class PhysicalInventoryController : ControllerBase
         return result.StatusCode switch
         {
             400 => BadRequest(result),
+            404 => NotFound(result),
+            500 => StatusCode(500, result),
+            _ => BadRequest(result)
+        };
+    }
+
+    /// <summary>
+    /// Obtener lista paginada de productos para conteo físico con filtros y catálogos
+    /// Incluye paginación, filtros por texto, proveedor, familia, clase y línea,
+    /// además de las listas de catálogos para filtros en el frontend
+    /// </summary>
+    /// <param name="idPhysicalInventory">ID del inventario físico</param>
+    /// <param name="pageNumber">Número de página (por defecto: 1)</param>
+    /// <param name="pageSize">Tamaño de página (por defecto: 50, máximo: 1000)</param>
+    /// <param name="searchText">Filtro por descripción o nombre del producto</param>
+    /// <param name="idSupplier">Filtro por ID del proveedor</param>
+    /// <param name="familia">Filtro por familia (propiedad del producto)</param>
+    /// <param name="clase">Filtro por clase (propiedad del producto)</param>
+    /// <param name="linea">Filtro por línea (propiedad del producto)</param>
+    /// <returns>Lista paginada de productos con catálogos para filtros</returns>
+    [HttpGet("get-product-inventory-list-paginated")]
+    [Authorize]
+    public async Task<IActionResult> GetProductInventoryListPaginated(
+        [FromQuery] int idPhysicalInventory,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? searchText = null,
+        [FromQuery] int? idSupplier = null,
+        [FromQuery] string? familia = null,
+        [FromQuery] string? clase = null,
+        [FromQuery] string? linea = null)
+    {
+        // Obtener el ID del usuario del token JWT
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+        {
+            return Unauthorized("Token de autorización inválido o usuario no encontrado.");
+        }
+
+        // Validar parámetros de paginación
+        if (pageNumber < 1)
+        {
+            return BadRequest("El número de página debe ser mayor a 0.");
+        }
+
+        if (pageSize < 1 || pageSize > 1000)
+        {
+            return BadRequest("El tamaño de página debe estar entre 1 y 1000.");
+        }
+
+        var pagination = new ProductInventoryListPaginationDto
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
+
+        var filters = new ProductInventoryListFiltersDto
+        {
+            SearchText = searchText,
+            IdSupplier = idSupplier,
+            Familia = familia,
+            Clase = clase,
+            Linea = linea
+        };
+
+        var result = await _physicalInventoryService.GetProductInventoryListPaginatedAsync(
+            idPhysicalInventory, userId, pagination, filters);
+        
+        if (result.Success)
+        {
+            return Ok(result);
+        }
+        
+        return result.StatusCode switch
+        {
+            400 => BadRequest(result),
+            404 => NotFound(result),
+            500 => StatusCode(500, result),
+            _ => BadRequest(result)
+        };
+    }
+
+    /// <summary>
+    /// Obtener un conteo físico por ID
+    /// </summary>
+    /// <param name="id">ID del conteo físico</param>
+    /// <returns>Conteo físico encontrado</returns>
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetPhysicalInventoryById(int id)
+    {
+        var result = await _physicalInventoryService.GetPhysicalInventoryByIdAsync(id);
+        
+        if (result.Success)
+        {
+            return Ok(result);
+        }
+        
+        return result.StatusCode switch
+        {
             404 => NotFound(result),
             500 => StatusCode(500, result),
             _ => BadRequest(result)

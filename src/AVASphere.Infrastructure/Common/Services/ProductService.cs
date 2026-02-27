@@ -268,12 +268,14 @@ public class ProductService : IProductService
     public async Task<ImportProductResultDto> ImportProductsFromExcelAsync(Stream excelStream)
     {
         var result = new ImportProductResultDto();
+        const int batchSize = 400;
 
         // PRE-CARGAR TODOS LOS DATOS NECESARIOS ANTES DEL BUCLE
         var suppliersDict = await _productRepository.GetAllSuppliersAsync();
         var familiaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Familia");
         var claseValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Clase");
         var lineaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Línea");
+        var batch = new List<(int Row, Product Product)>(batchSize);
 
         using (var workbook = new XLWorkbook(excelStream))
         {
@@ -304,10 +306,9 @@ public class ProductService : IProductService
                     // Columna C: Unidad
                     var unit = worksheet.Cell(row, 3).GetValue<string>().Trim();
 
-                    var createDto = new CreateProductDto
+                    var product = new Product
                     {
                         MainName = description,
-                        SupplierName = supplierName,
                         Unit = unit,
                         Description = description,
                         Quantity = 0,
@@ -324,29 +325,24 @@ public class ProductService : IProductService
                         },
                         CostsJson = new List<CostsJson>(),
                         CategoriesJsons = new List<CategoriesJson>(),
-                        SolutionsJsons = new List<SolutionsJson>()
+                        SolutionsJsons = new List<SolutionsJson>(),
+                        ProductProperties = new List<ProductProperties>()
                     };
-
-                    var productResponse = await CreateProductAsync(createDto);
 
                     // Columna E: Familia - buscar en diccionario precargado
                     var familia = worksheet.Cell(row, 5).GetValue<string>().Trim();
                     if (!string.IsNullOrWhiteSpace(familia))
                     {
-                        try
+                        if (familiaValuesDict.TryGetValue(familia.ToLower(), out var familiaId))
                         {
-                            if (familiaValuesDict.TryGetValue(familia.ToLower(), out var familiaId))
+                            product.ProductProperties.Add(new ProductProperties
                             {
-                                await _productRepository.CreateProductPropertyAsync(productResponse.IdProduct, familiaId);
-                            }
-                            else
-                            {
-                                result.Errors.Add($"Fila {row}: PropertyValue 'Familia' con valor '{familia}' no encontrado");
-                            }
+                                IdPropertyValue = familiaId
+                            });
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            result.Errors.Add($"Fila {row}: Error al crear ProductProperty Familia - {ex.Message}");
+                            result.Errors.Add($"Fila {row}: PropertyValue 'Familia' con valor '{familia}' no encontrado");
                         }
                     }
 
@@ -354,20 +350,16 @@ public class ProductService : IProductService
                     var clase = worksheet.Cell(row, 6).GetValue<string>().Trim();
                     if (!string.IsNullOrWhiteSpace(clase))
                     {
-                        try
+                        if (claseValuesDict.TryGetValue(clase.ToLower(), out var claseId))
                         {
-                            if (claseValuesDict.TryGetValue(clase.ToLower(), out var claseId))
+                            product.ProductProperties.Add(new ProductProperties
                             {
-                                await _productRepository.CreateProductPropertyAsync(productResponse.IdProduct, claseId);
-                            }
-                            else
-                            {
-                                result.Errors.Add($"Fila {row}: PropertyValue 'Clase' con valor '{clase}' no encontrado");
-                            }
+                                IdPropertyValue = claseId
+                            });
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            result.Errors.Add($"Fila {row}: Error al crear ProductProperty Clase - {ex.Message}");
+                            result.Errors.Add($"Fila {row}: PropertyValue 'Clase' con valor '{clase}' no encontrado");
                         }
                     }
 
@@ -375,24 +367,25 @@ public class ProductService : IProductService
                     var linea = worksheet.Cell(row, 7).GetValue<string>().Trim();
                     if (!string.IsNullOrWhiteSpace(linea))
                     {
-                        try
+                        if (lineaValuesDict.TryGetValue(linea.ToLower(), out var lineaId))
                         {
-                            if (lineaValuesDict.TryGetValue(linea.ToLower(), out var lineaId))
+                            product.ProductProperties.Add(new ProductProperties
                             {
-                                await _productRepository.CreateProductPropertyAsync(productResponse.IdProduct, lineaId);
-                            }
-                            else
-                            {
-                                result.Errors.Add($"Fila {row}: PropertyValue 'Línea' con valor '{linea}' no encontrado");
-                            }
+                                IdPropertyValue = lineaId
+                            });
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            result.Errors.Add($"Fila {row}: Error al crear ProductProperty Línea - {ex.Message}");
+                            result.Errors.Add($"Fila {row}: PropertyValue 'Línea' con valor '{linea}' no encontrado");
                         }
                     }
 
-                    result.SuccessfulImports++;
+                    batch.Add((row, product));
+                    if (batch.Count >= batchSize)
+                    {
+                        await PersistImportBatchAsync(batch, result);
+                        batch.Clear();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -401,10 +394,47 @@ public class ProductService : IProductService
                 }
             }
 
+            if (batch.Count > 0)
+            {
+                await PersistImportBatchAsync(batch, result);
+            }
+
             result.TotalRows = rowCount - 1;
         }
 
         return result;
+    }
+
+    private async Task PersistImportBatchAsync(List<(int Row, Product Product)> batch, ImportProductResultDto result)
+    {
+        if (batch.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await _productRepository.CreateProductsBulkAsync(batch.Select(x => x.Product).ToList());
+            result.SuccessfulImports += batch.Count;
+        }
+        catch (Exception ex)
+        {
+            result.Errors.Add($"Lote con {batch.Count} filas falló: {ex.Message}. Se reintentará fila por fila.");
+
+            foreach (var item in batch)
+            {
+                try
+                {
+                    await _productRepository.CreateProductsAsync(item.Product);
+                    result.SuccessfulImports++;
+                }
+                catch (Exception rowEx)
+                {
+                    result.Errors.Add($"Fila {item.Row}: {rowEx.Message}");
+                    result.FailedImports++;
+                }
+            }
+        }
     }
 
 

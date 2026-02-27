@@ -94,6 +94,7 @@ public class MasterDbContext : DbContext
         modelBuilder.Ignore<ColorsJson>();
         modelBuilder.Ignore<NotUseModuleJson>();
         modelBuilder.Ignore<SingleProductJson>();
+        modelBuilder.Ignore<AuxDataJson>();
         modelBuilder.Ignore<PriceSnapshotJson>();
         modelBuilder.Ignore<SaleJson>();
         modelBuilder.Ignore<AuxNoteDataJson>();

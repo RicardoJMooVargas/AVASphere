@@ -639,17 +639,17 @@ public class ConfigController : ControllerBase
     /// <returns>Resultado de la importación con estadísticas detalladas</returns>
     /// <remarks>
     /// Este endpoint importa:
-    /// - 3 Properties (Familia, Clase, Línea)
+    /// - 3 Properties (Familia, Clase, Línea)                                                                                                                                                                                                                                                                                                                                                                                                                  
     /// - 36 Suppliers (La Viga, Casa Fernández, Herralum, etc.)
     /// - 150+ PropertyValues organizados por categorías
     /// - 15 Storage Structure
     /// </remarks>
     [HttpPost("load-default-catalogs")]
-    public async Task<IActionResult> LoadDefaultCatalogs([FromQuery] bool overwrite = false)
+    public async Task<IActionResult> LoadDefaultCatalogs([FromQuery] bool overwrite = false)                                                                                                                            
     {
         try
         {
-            // SQL con datos por defecto desde BackupService
+            // SQL con datos por defecto desde BackupService                            
             var defaultSql = _backupService.GetDefaultCatalogsSql();
 
             var result = await _backupService.ImportFromSqlAsync(defaultSql, overwrite);

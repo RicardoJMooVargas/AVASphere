@@ -53,7 +53,7 @@ public static class DependencyInjection
     {
         var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING")
                                ?? configuration.GetSection("DbSettings:ConnectionString").Value
-                               ?? "Host=localhost;Port=5432;Database=AVASphereDB;Username=postgres;Password=postgres;";
+                               ?? "Host=localhost;Port=5432;Database=avaspheredbtest;Username=postgres;Password=postgres;";
 
         // Configurar Npgsql para JSON dinámico
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);

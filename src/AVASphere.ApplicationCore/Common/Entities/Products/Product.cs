@@ -36,6 +36,8 @@ public class Product
 
     [NotMapped]
     public ICollection<SolutionsJson> SolutionsJsons { get; set; } = new List<SolutionsJson>();
+
+    public AuxDataJson? AuxDataJson { get; set; } = new();
     
     // GETTERS
     public string FirstCode => CodeJson?.FirstOrDefault()?.Code ?? string.Empty;
@@ -69,4 +71,8 @@ public class CategoriesJson
     public int Index { get; set; }
     public string? Name { get; set; }
     public string? NormalizedName { get; set; }
+}
+
+public class AuxDataJson
+{
 }

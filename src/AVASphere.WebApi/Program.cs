@@ -57,7 +57,11 @@ builder.Services.AddCors(options =>
     options.AddPolicy("ProductionCorsPolicy", corsBuilder =>
     {
         corsBuilder
-            .WithOrigins("https://yourdomain.com") // Cambiar por tu dominio en producción
+            .WithOrigins(
+                "https://vyaainfor.systems", // Cambiar por tu dominio en producción
+                "https://vyaainfor.systems",
+                "http://vyaainfor.systems"
+            )
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();

@@ -286,25 +286,67 @@ public class ProductService : IProductService
             {
                 try
                 {
-                    // Columna D: Proveedor
-                    var supplierName = worksheet.Cell(row, 4).GetValue<string>().Trim();
-
-                    // Buscar proveedor en el diccionario precargado
-                    if (!suppliersDict.TryGetValue(supplierName.ToLower(), out var supplier))
-                    {
-                        result.Errors.Add($"Fila {row}: Proveedor '{supplierName}' no encontrado");
-                        result.FailedImports++;
-                        continue;
-                    }
-
                     // Columna A: Código
                     var code = worksheet.Cell(row, 1).GetValue<string>().Trim();
 
                     // Columna B: Descripción
                     var description = worksheet.Cell(row, 2).GetValue<string>().Trim();
 
-                    // Columna C: Unidad
+                    // ✅ VALIDACIÓN: Saltar filas de encabezado (títulos del Excel)
+                    var commonHeaders = new[] { "codigo", "código", "code", "descripcion", "descripción", "description", "unidad", "unit", "activo", "active", "proveedor", "supplier" };
+                    var isHeaderRow = (!string.IsNullOrWhiteSpace(code) && commonHeaders.Contains(code.ToLower())) ||
+                                     (!string.IsNullOrWhiteSpace(description) && commonHeaders.Contains(description.ToLower()));
+
+                    if (isHeaderRow)
+                    {
+                        // Saltar silenciosamente o registrar en errores si se desea tracking
+                        continue;
+                    }
+
+                    // Columna C: Unidad (por defecto "S/N" si está vacío)
                     var unit = worksheet.Cell(row, 3).GetValue<string>().Trim();
+                    if (string.IsNullOrWhiteSpace(unit))
+                    {
+                        unit = "S/U";
+                    }
+
+                    // Columna D: Activo (True/False) - VERIFICACIÓN OBLIGATORIA
+                    var activoCell = worksheet.Cell(row, 4);
+                    bool activo = false;
+
+                    // Intentar leer como booleano o como string
+                    try
+                    {
+                        activo = activoCell.GetValue<bool>();
+                    }
+                    catch
+                    {
+                        var activoString = activoCell.GetValue<string>().Trim();
+                        activo = activoString.Equals("True", StringComparison.OrdinalIgnoreCase) ||
+                                 activoString.Equals("1", StringComparison.OrdinalIgnoreCase);
+                    }
+
+                    // Si Activo es False, ignorar esta fila y continuar con la siguiente
+                    if (!activo)
+                    {
+                        result.Errors.Add($"Fila {row}: Producto '{code}' omitido (Activo = False)");
+                        continue;
+                    }
+
+                    // Columna I (9): Proveedor
+                    var supplierName = worksheet.Cell(row, 9).GetValue<string>().Trim();
+                    int supplierId;
+
+                    // Buscar proveedor en el diccionario precargado, si no existe usar ID 37 por defecto
+                    if (!suppliersDict.TryGetValue(supplierName.ToLower(), out var supplier))
+                    {
+                        result.Errors.Add($"Fila {row}: Proveedor '{supplierName}' no encontrado. Se usará Supplier ID 37 por defecto.");
+                        supplierId = 37;
+                    }
+                    else
+                    {
+                        supplierId = supplier.IdSupplier;
+                    }
 
                     var product = new Product
                     {
@@ -313,7 +355,7 @@ public class ProductService : IProductService
                         Description = description,
                         Quantity = 0,
                         Taxes = 16,
-                        IdSupplier = supplier.IdSupplier,
+                        IdSupplier = supplierId,
                         CodeJson = new List<CodeJson>
                         {
                             new CodeJson
@@ -329,8 +371,8 @@ public class ProductService : IProductService
                         ProductProperties = new List<ProductProperties>()
                     };
 
-                    // Columna E: Familia - buscar en diccionario precargado
-                    var familia = worksheet.Cell(row, 5).GetValue<string>().Trim();
+                    // Columna J (10): Familia - buscar en diccionario precargado
+                    var familia = worksheet.Cell(row, 10).GetValue<string>().Trim();
                     if (!string.IsNullOrWhiteSpace(familia))
                     {
                         if (familiaValuesDict.TryGetValue(familia.ToLower(), out var familiaId))
@@ -346,8 +388,8 @@ public class ProductService : IProductService
                         }
                     }
 
-                    // Columna F: Clase - buscar en diccionario precargado
-                    var clase = worksheet.Cell(row, 6).GetValue<string>().Trim();
+                    // Columna K (11): Clase - buscar en diccionario precargado
+                    var clase = worksheet.Cell(row, 11).GetValue<string>().Trim();
                     if (!string.IsNullOrWhiteSpace(clase))
                     {
                         if (claseValuesDict.TryGetValue(clase.ToLower(), out var claseId))
@@ -363,8 +405,8 @@ public class ProductService : IProductService
                         }
                     }
 
-                    // Columna G: Línea - buscar en diccionario precargado
-                    var linea = worksheet.Cell(row, 7).GetValue<string>().Trim();
+                    // Columna L (12): Línea - buscar en diccionario precargado
+                    var linea = worksheet.Cell(row, 12).GetValue<string>().Trim();
                     if (!string.IsNullOrWhiteSpace(linea))
                     {
                         if (lineaValuesDict.TryGetValue(linea.ToLower(), out var lineaId))
@@ -436,6 +478,5 @@ public class ProductService : IProductService
             }
         }
     }
-
 
 }

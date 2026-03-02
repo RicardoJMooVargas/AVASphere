@@ -645,7 +645,7 @@ public class ConfigController : ControllerBase
     /// - 15 Storage Structure
     /// </remarks>
     [HttpPost("load-default-catalogs")]
-    public async Task<IActionResult> LoadDefaultCatalogs([FromQuery] bool overwrite = false)                                                                                                                            
+    public async Task<IActionResult> LoadDefaultCatalogs([FromQuery] bool overwrite = false)
     {
         try
         {
@@ -671,6 +671,9 @@ public class ConfigController : ControllerBase
     #region Delete Catalog Data
 
     /// <summary>
+    /// Elimina todos los datos de inventario y catálogos, dejando las tablas vacías y reiniciando las secuencias.
+    /// </summary>
+    /// <remarks>
     /// ELIMINA LAS TABLAS DE:
     /// - PhysicalInventoryDetail
     /// - WarehouseTransferDetail
@@ -686,8 +689,13 @@ public class ConfigController : ControllerBase
     /// - Property
     /// - Supplier
     /// - Warehouse
-    /// - Area
-    /// </summary>
+    /// 
+    /// NO ELIMINA (se mantienen intactos):
+    /// - User (usuarios)
+    /// - Rol (roles)
+    /// - Area (áreas)
+    /// - ConfigSys (configuración del sistema)
+    /// </remarks>
     /// <returns>Resultado de la operación</returns>
 
     [HttpDelete("delete-catalog-data")]
@@ -736,7 +744,7 @@ public class ConfigController : ControllerBase
                     "ALTER SEQUENCE IF EXISTS \"StorageStructure_IdStorageStructure_seq\" RESTART WITH 1;",
                     
                     // ========================================
-                    // NIVEL 4: LAS 6 TABLAS DE CATÁLOGOS BASE
+                    // NIVEL 4: CATÁLOGOS BASE (6 TABLAS)
                     // ========================================
                     
                     // ProductProperties (depende de Product y Property)
@@ -761,13 +769,9 @@ public class ConfigController : ControllerBase
                     
                     // Warehouse (tabla independiente)
                     "DELETE FROM \"Warehouse\";",
-                    "ALTER SEQUENCE IF EXISTS \"Warehouse_IdWarehouse_seq\" RESTART WITH 1;",
+                    "ALTER SEQUENCE IF EXISTS \"Warehouse_IdWarehouse_seq\" RESTART WITH 1;"
                     
-                    // Area (tabla independiente)
-                    "DELETE FROM \"Area\";",
-                    "ALTER SEQUENCE IF EXISTS \"Area_IdArea_seq\" RESTART WITH 1;"
-
-
+                    // NOTA: Area NO se elimina porque Rol depende de ella, y User depende de Rol
                 };
 
                 foreach (var command in deleteCommands)
@@ -802,11 +806,11 @@ public class ConfigController : ControllerBase
                             "Product",
                             "Property",
                             "Supplier",
-                            "Warehouse",
-                            "Area"
+                            "Warehouse"
                         },
-                        TotalTablesCleared = 15,
-                        SequencesReset = true
+                        TotalTablesCleared = 14,
+                        SequencesReset = true,
+                        Note = "User, Rol, Area y ConfigSys se mantienen intactos"
                     }
                 };
 

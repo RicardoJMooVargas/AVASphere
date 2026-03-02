@@ -1560,7 +1560,7 @@ INSERT INTO ""Warehouse"" (""Name"", ""Code"", ""Location"", ""IsMain"", ""Activ
 INSERT INTO ""Property""(""Name"",""NormalizedName"") VALUES ('Familia','Family');
 INSERT INTO ""Property""(""Name"",""NormalizedName"") VALUES ('Clase','Class');
 INSERT INTO ""Property""(""Name"",""NormalizedName"") VALUES ('Línea','Line');
-
+INSERT INTO ""Property""(""Name"",""NormalizedName"") VALUES ('Otro','Other');
 -- =========================================
 -- SUPPLIERS
 -- =========================================
@@ -1665,7 +1665,7 @@ INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty
 INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VIDRIOS FLORENTINO', NULL, NULL, 1);
 INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VINIL HERRALUM', NULL, NULL, 1);
 INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VINIL MADISON', NULL, NULL, 1);
-
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('OTRO', NULL, NULL, 1);
 -- =========================================
 -- PROPERTY VALUES - CLASES (IdProperty = 2)
 -- =========================================
@@ -1704,6 +1704,7 @@ INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty
 INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TELAS MOSQUITERAS', NULL, NULL, 2);
 INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('TRABAJOS', NULL, NULL, 2);
 INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('VINILES', NULL, NULL, 2);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('OTRO', NULL, NULL, 2);
 
 -- =========================================
 -- PROPERTY VALUES - LÍNEAS (IdProperty = 3)
@@ -1810,13 +1811,15 @@ INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty
 INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('CRISTAL PAVIA', NULL, NULL, 3);
 INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('10000 ESPAÑOLA', NULL, NULL, 3);
 INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('1400 ESPAÑOLA', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('JALADERAS ESPECIALES', NULL, NULL, 3);
+INSERT INTO ""PropertyValue""(""Value"", ""FatherValue"", ""Type"", ""IdProperty"") VALUES ('OTRO', NULL, NULL, 3);
 
 -- =========================================
--- AREA
+-- AREA (COMENTADO - Area se crea automáticamente con configure-admin)
 -- =========================================
-INSERT INTO ""Area"" (""Name"", ""NormalizedName"") VALUES ('LOCAL', 'LOCAL');
-INSERT INTO ""Area"" (""Name"", ""NormalizedName"") VALUES ('FORANEA', 'FORANEA');
-INSERT INTO ""Area"" (""Name"", ""NormalizedName"") VALUES ('HERRAJE', 'HERRAJE');
+-- INSERT INTO ""Area"" (""Name"", ""NormalizedName"") VALUES ('LOCAL', 'LOCAL');
+-- INSERT INTO ""Area"" (""Name"", ""NormalizedName"") VALUES ('FORANEA', 'FORANEA');
+-- INSERT INTO ""Area"" (""Name"", ""NormalizedName"") VALUES ('HERRAJE', 'HERRAJE');
 
 -- =========================================
 -- STORAGE STRUCTURE
@@ -1851,6 +1854,22 @@ INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSect
 VALUES ('BODEGA', 'ESTANTERIA', true, true, true, 1, 4);
 INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
 VALUES ('S/N', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('HERRAJES HERRALUM 1 RACK 4', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('PELICULA, SILICONES, TELA MOSQUITERO, ENTRE OTROS', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('JAULA RACK 4', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('JAULA RACK 5', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('JAULA RACK 6', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('ANAQUEL METALICO', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('JAULA PARTE SUPERIOR', 'ESTANTERIA', true, true, true, 1, 4);
+INSERT INTO ""StorageStructure"" (""CodeRack"", ""TypeStorageSystem"", ""OneSection"", ""HasLevel"", ""HasSubLevel"", ""IdWarehouse"", ""IdArea"") 
+VALUES ('OTRO', 'OTRO', true, true, true, 1, 4);
 ";
     }
 

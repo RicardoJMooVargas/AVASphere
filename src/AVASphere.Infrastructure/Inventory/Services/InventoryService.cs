@@ -80,6 +80,19 @@ public class InventoryService : IInventoryService
             }
         }
 
+        // OPTIMIZACIÓN: Pre-cargar todos los inventarios existentes en memoria (sin tracking para evitar conflictos)
+        var allInventories = await _context.Inventories
+            .AsNoTracking() // Evita conflictos de tracking al actualizar después
+            .ToListAsync();
+
+        // Crear diccionario con clave: "IdWarehouse_IdProduct" → Entidad completa
+        var existingInventoriesDict = new Dictionary<string, InventoryEntity>();
+        foreach (var inv in allInventories)
+        {
+            var key = $"{inv.IdWarehouse}_{inv.IdProduct}";
+            existingInventoriesDict[key] = inv;
+        }
+
         using (var workbook = new XLWorkbook(excelStream))
         {
             var worksheet = workbook.Worksheet(1);
@@ -101,6 +114,15 @@ public class InventoryService : IInventoryService
                 {
                     // Columna B: Descripción del producto (para matching)
                     var descripcion = worksheet.Cell(row, 2).GetValue<string>()?.Trim();
+
+                    // ✅ VALIDACIÓN: Saltar filas de encabezado (títulos del Excel)
+                    var commonHeaders = new[] { "codigo", "código", "code", "descripcion", "descripción", "description", "ubicacion", "ubicación", "location", "product", "producto", "stock" };
+                    if (!string.IsNullOrWhiteSpace(descripcion) && commonHeaders.Contains(descripcion.ToLower()))
+                    {
+                        result.Warnings.Add($"Fila {row}: Detectada como encabezado, se omite");
+                        result.TotalRows++;
+                        continue;
+                    }
 
                     if (string.IsNullOrWhiteSpace(descripcion))
                     {
@@ -197,19 +219,20 @@ public class InventoryService : IInventoryService
             {
                 try
                 {
-                    // Verificar si ya existe inventario para este producto en esta bodega
-                    var existingInventory = await _inventoryRepository.GetByWarehouseAndProductAsync(
-                        group.IdWarehouse,
-                        group.IdProduct);
+                    // Buscar inventario existente en el diccionario (en memoria, sin consulta a DB)
+                    var inventoryKey = $"{group.IdWarehouse}_{group.IdProduct}";
+                    var existingInventory = existingInventoriesDict.GetValueOrDefault(inventoryKey);
 
                     if (existingInventory != null)
                     {
                         // Siempre usar 0 como ubicación (ignorar Excel)
                         double locationDetail = 0;
 
-                        // Actualizar el stock y ubicación existente
+                        // Actualizar propiedades de la entidad precargada (no está siendo rastreada por AsNoTracking)
                         existingInventory.Stock = group.TotalStock.GetValueOrDefault();
                         existingInventory.LocationDetail = locationDetail;
+
+                        // El repositorio adjuntará la entidad y marcará como modificada
                         await _inventoryRepository.UpdateAsync(existingInventory);
 
                         result.Warnings.Add($"Actualizado: {group.ProductDescription} en {group.WarehouseCode}, Ubicación {locationDetail}, Stock: {group.TotalStock}");
@@ -258,6 +281,7 @@ public class InventoryService : IInventoryService
     public async Task<ImportInventoryResultDto> ImportInventoryUbicationFromExcelAsync(Stream excelStream)
     {
         var result = new ImportInventoryResultDto();
+        var failedProducts = new List<string>(); // Lista para productos fallidos
 
         // Pre-cargar todos los productos con su código y descripción en memoria
         var allProducts = await _context.Products.ToListAsync();
@@ -298,6 +322,31 @@ public class InventoryService : IInventoryService
             }
         }
 
+        // OPTIMIZACIÓN 1: Pre-cargar todas las StorageStructures en memoria
+        var allStorageStructures = await _context.StorageStructures.AsNoTracking().ToListAsync();
+        var storageStructuresByCode = new Dictionary<string, StorageStructureEntity>(StringComparer.OrdinalIgnoreCase);
+        foreach (var ss in allStorageStructures)
+        {
+            if (!string.IsNullOrWhiteSpace(ss.CodeRack))
+            {
+                storageStructuresByCode[ss.CodeRack.Trim()] = ss;
+            }
+        }
+
+        // OPTIMIZACIÓN 2: Pre-cargar inventarios existentes en bodega 1
+        var existingInventories = await _context.Inventories
+            .AsNoTracking()
+            .Where(i => i.IdWarehouse == 1)
+            .ToListAsync();
+        var inventoriesByProduct = new HashSet<int>();
+        foreach (var inv in existingInventories)
+        {
+            inventoriesByProduct.Add(inv.IdProduct);
+        }
+
+        // Control de productos ya procesados en este import (evita duplicados en el mismo archivo)
+        var processedProductsInThisImport = new HashSet<int>();
+
         using (var workbook = new XLWorkbook(excelStream))
         {
             var worksheet = workbook.Worksheet(1);
@@ -326,10 +375,24 @@ public class InventoryService : IInventoryService
                     // Columna N (14): Nivel (ej: "A")
                     var nivelStr = worksheet.Cell(row, 14).GetValue<string>()?.Trim();
 
+                    // ✅ VALIDACIÓN: Saltar filas de encabezado (títulos del Excel)
+                    var commonHeaders = new[] { "codigo", "código", "code", "descripcion", "descripción", "description", "ubicacion", "ubicación", "location", "nivel", "level" };
+                    var isHeaderRow = (!string.IsNullOrWhiteSpace(codigo) && commonHeaders.Contains(codigo.ToLower())) ||
+                                     (!string.IsNullOrWhiteSpace(descripcion) && commonHeaders.Contains(descripcion.ToLower()));
+
+                    if (isHeaderRow)
+                    {
+                        result.Warnings.Add($"Fila {row}: Detectada como encabezado, se omite");
+                        result.TotalRows++;
+                        continue;
+                    }
+
                     // Validar que tenga al menos código o descripción
                     if (string.IsNullOrWhiteSpace(codigo) && string.IsNullOrWhiteSpace(descripcion))
                     {
-                        result.Warnings.Add($"Fila {row}: No tiene código ni descripción, se omite");
+                        var errorMsg = $"Fila {row}: No tiene código ni descripción";
+                        result.Warnings.Add(errorMsg + ", se omite");
+                        failedProducts.Add(errorMsg);
                         result.TotalRows++;
                         continue;
                     }
@@ -405,7 +468,9 @@ public class InventoryService : IInventoryService
                         catch (Exception ex)
                         {
                             result.ProductsNotFound++;
-                            result.Errors.Add($"Fila {row}: No se pudo crear el producto automáticamente - {ex.Message}");
+                            var errorMsg = $"Fila {row}: Código='{codigo}', Descripción='{descripcion}' - No se pudo crear el producto automáticamente - {ex.Message}";
+                            result.Errors.Add(errorMsg);
+                            failedProducts.Add(errorMsg);
                             result.FailedImports++;
                             result.TotalRows++;
                             continue;
@@ -415,23 +480,27 @@ public class InventoryService : IInventoryService
                     // Validar que tenga ubicación
                     if (string.IsNullOrWhiteSpace(ubicacion))
                     {
-                        result.Warnings.Add($"Fila {row}: Producto encontrado pero sin ubicación, se omite");
+                        var errorMsg = $"Fila {row}: Código='{codigo}', Descripción='{descripcion}' - Sin ubicación";
+                        result.Warnings.Add(errorMsg + ", se omite");
+                        failedProducts.Add(errorMsg);
                         result.TotalRows++;
                         continue;
                     }
 
-                    // Si no tiene nivel, usar "S/N" y buscar el StorageStructure correspondiente
-                    StorageStructureEntity storageStructure;
+                    // Buscar StorageStructure en el diccionario precargado (en memoria, sin consulta a DB)
+                    StorageStructureEntity? storageStructure = null;
 
                     if (string.IsNullOrWhiteSpace(nivelStr))
                     {
                         nivelStr = "S/N";
-                        // Buscar StorageStructure con CodeRack "S/N"
-                        storageStructure = await _storageStructureRepository.GetByCodeAsync("S/N");
+                        // Buscar StorageStructure con CodeRack "S/N" en memoria
+                        storageStructure = storageStructuresByCode.GetValueOrDefault("S/N");
 
                         if (storageStructure == null)
                         {
-                            result.Warnings.Add($"Fila {row}: No se encontró StorageStructure con CodeRack 'S/N', se omite");
+                            var errorMsg = $"Fila {row}: Código='{codigo}', Descripción='{descripcion}' - No se encontró StorageStructure con CodeRack 'S/N'";
+                            result.Warnings.Add(errorMsg + ", se omite");
+                            failedProducts.Add(errorMsg);
                             result.FailedImports++;
                             result.TotalRows++;
                             continue;
@@ -441,14 +510,33 @@ public class InventoryService : IInventoryService
                     }
                     else
                     {
-                        // Buscar StorageStructure por CodeRack que coincida con Ubicación
-                        storageStructure = await _storageStructureRepository.GetByCodeAsync(ubicacion);
+                        // Buscar StorageStructure por CodeRack que coincida con Ubicación en memoria
+                        storageStructure = storageStructuresByCode.GetValueOrDefault(ubicacion);
                     }
 
                     if (storageStructure == null)
                     {
-                        result.Warnings.Add($"Fila {row}: No se encontró StorageStructure con CodeRack '{ubicacion}'");
+                        var errorMsg = $"Fila {row}: Código='{codigo}', Descripción='{descripcion}' - No se encontró StorageStructure con CodeRack '{ubicacion}'";
+                        result.Warnings.Add(errorMsg);
+                        failedProducts.Add(errorMsg);
                         result.FailedImports++;
+                        result.TotalRows++;
+                        continue;
+                    }
+
+                    // Leer las cantidades de cada bodega (Columnas E-H: 5-8)
+                    var stockAVA01 = ReadDoubleValue(worksheet.Cell(row, 5));
+                    var stockAVA02 = ReadDoubleValue(worksheet.Cell(row, 6));
+                    var stockAVA03 = ReadDoubleValue(worksheet.Cell(row, 7));
+                    var stockAVA04 = ReadDoubleValue(worksheet.Cell(row, 8));
+
+                    // Sumar todas las cantidades de todas las bodegas
+                    var totalStock = stockAVA01 + stockAVA02 + stockAVA03 + stockAVA04;
+
+                    // ✅ VALIDACIÓN: Evitar procesar el mismo producto múltiples veces en el mismo import
+                    if (processedProductsInThisImport.Contains(idProduct.Value))
+                    {
+                        result.Warnings.Add($"Fila {row}: Producto '{descripcion ?? codigo}' duplicado en el archivo Excel (ya procesado anteriormente), se omite");
                         result.TotalRows++;
                         continue;
                     }
@@ -462,10 +550,58 @@ public class InventoryService : IInventoryService
                         IdStorageStructure = storageStructure.IdStorageStructure
                     };
 
-                    await _locationDetailsRepository.CreateAsync(locationDetails);
+                    var createdLocationDetails = await _locationDetailsRepository.CreateAsync(locationDetails);
 
-                    result.SuccessfulImports++;
-                    result.CreatedRecords.Add($"Producto: {descripcion ?? codigo} | Ubicación: {ubicacion} | Nivel: {nivelStr}");
+                    // Verificar si ya existe inventario para este producto en bodega 1 (verificación en memoria)
+                    var inventoryExists = inventoriesByProduct.Contains(idProduct.Value);
+
+                    if (inventoryExists)
+                    {
+                        // Cargar el inventario existente fresh para actualizar (evita conflictos de tracking)
+                        var existingInventory = await _inventoryRepository.GetByWarehouseAndProductAsync(1, idProduct.Value);
+
+                        if (existingInventory != null)
+                        {
+                            // Actualizar el inventario existente
+                            existingInventory.Stock = totalStock;
+                            existingInventory.LocationDetail = createdLocationDetails.IdLocationDetails;
+                            await _inventoryRepository.UpdateAsync(existingInventory);
+
+                            // Desacoplar la entidad del contexto para evitar conflictos en futuras iteraciones
+                            _context.Entry(existingInventory).State = EntityState.Detached;
+
+                            // Marcar como procesado en este import
+                            processedProductsInThisImport.Add(idProduct.Value);
+
+                            result.SuccessfulImports++;
+                            result.CreatedRecords.Add($"Producto: {descripcion ?? codigo} | Ubicación: {ubicacion} | Nivel: {nivelStr} | Stock: {totalStock} | Inventory ACTUALIZADO");
+                        }
+                    }
+                    else
+                    {
+                        // Crear nuevo registro en Inventory vinculado con LocationDetails
+                        var inventory = new InventoryEntity
+                        {
+                            IdProduct = idProduct.Value,
+                            IdWarehouse = 1, // Siempre bodega 1
+                            Stock = totalStock, // Suma de todas las bodegas
+                            StockMin = 0,
+                            StockMax = 0,
+                            LocationDetail = createdLocationDetails.IdLocationDetails, // Ligar con LocationDetails
+                            IdPhysicalInventory = null,
+                            StatusInventoryProduct = null
+                        };
+
+                        await _inventoryRepository.CreateAsync(inventory);
+
+                        // Agregar al HashSet para futuras verificaciones en el mismo import
+                        inventoriesByProduct.Add(idProduct.Value);
+                        processedProductsInThisImport.Add(idProduct.Value);
+
+                        result.SuccessfulImports++;
+                        result.CreatedRecords.Add($"Producto: {descripcion ?? codigo} | Ubicación: {ubicacion} | Nivel: {nivelStr} | Stock: {totalStock} | Inventory CREADO");
+                    }
+
                     result.TotalRows++;
                 }
                 catch (Exception ex)
@@ -474,7 +610,9 @@ public class InventoryService : IInventoryService
                         ? $"{ex.Message} - Inner: {ex.InnerException.Message}"
                         : ex.Message;
 
-                    result.Errors.Add($"Fila {row}: Error al procesar - {errorMessage}");
+                    var errorMsg = $"Fila {row}: Error al procesar - {errorMessage}";
+                    result.Errors.Add(errorMsg);
+                    failedProducts.Add(errorMsg);
                     result.FailedImports++;
                     result.TotalRows++;
                 }

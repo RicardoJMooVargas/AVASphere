@@ -31,6 +31,14 @@ public class QuotationFilterDto
     public int? ExternalId { get; set; } = 0;
 
     /// <summary>
+    /// Filtro por nombre de usuario en SalesExecutives (opcional).
+    /// Si se proporciona, solo devuelve cotizaciones que contengan este usuario en la lista SalesExecutives.
+    /// EXCEPCIÓN: Si el nombre de usuario es "Admin", "admin", "Administrador" o "administrador", 
+    /// se devuelven TODAS las cotizaciones sin aplicar este filtro.
+    /// </summary>
+    public string? SalesExecutive { get; set; }
+
+    /// <summary>
     /// Fecha de inicio para filtrar por rango (por defecto: primer día del mes actual).
     /// </summary>
     public DateTime StartDate { get; set; }

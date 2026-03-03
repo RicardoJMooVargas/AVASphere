@@ -20,13 +20,19 @@ public class QuotationService : IQuotationService
     private readonly IQuotationRepository _quotationRepository;
     private readonly IQuotationVersionRepository _versionRepository;
     private readonly ICustomerRepository _customerRepository;
+    private readonly IConfigSysRepository _configSysRepository;
 
 
-    public QuotationService(IQuotationRepository quotationRepository, IQuotationVersionRepository versionRepository, ICustomerRepository customerRepository)
+    public QuotationService(
+        IQuotationRepository quotationRepository, 
+        IQuotationVersionRepository versionRepository, 
+        ICustomerRepository customerRepository,
+        IConfigSysRepository configSysRepository)
     {
         _quotationRepository = quotationRepository;
         _versionRepository = versionRepository;
         _customerRepository = customerRepository;
+        _configSysRepository = configSysRepository;
     }
 
     public async Task<Quotation> CreateQuotationAsync(CreateQuotationDto dto, string createdByUserId)
@@ -79,6 +85,14 @@ public class QuotationService : IQuotationService
             customer = await _customerRepository.InsertAsync(customer);
         }
 
+        // 4️⃣ Validar y obtener IdConfigSys válido
+        int validIdConfigSys = dto.IdConfigSys;
+        if (validIdConfigSys <= 0)
+        {
+            // Si no se proporciona un IdConfigSys válido, obtener el primer registro disponible
+            validIdConfigSys = await GetValidConfigSysIdAsync();
+        }
+
         // 5️⃣ Crear Quotation
         var quotation = new Quotation
         {
@@ -90,7 +104,7 @@ public class QuotationService : IQuotationService
             SalesExecutives = dto.SalesExecutives ?? new List<string> { createdByUserId },
             FollowupsJson = new List<QuotationFollowupsJson>(),
             ProductsJson = dto.Products,
-            IdConfigSys = dto.IdConfigSys,
+            IdConfigSys = validIdConfigSys,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -197,6 +211,22 @@ public class QuotationService : IQuotationService
             if (filter.ExternalId.HasValue && filter.ExternalId.Value > 0)
             {
                 quotations = quotations.Where(q => q.Customer != null && q.Customer.ExternalId == filter.ExternalId.Value);
+            }
+
+            // 7Filtrar por SalesExecutive si se especifica
+            // EXCEPCIÓN: Si el usuario es administrador, no se aplica este filtro
+            if (!string.IsNullOrWhiteSpace(filter.SalesExecutive))
+            {
+                var salesExecutiveLower = filter.SalesExecutive.ToLowerInvariant();
+                bool isAdmin = salesExecutiveLower == "admin" || 
+                              salesExecutiveLower == "administrador";
+                
+                // Solo aplicar filtro si NO es administrador
+                if (!isAdmin)
+                {
+                    quotations = quotations.Where(q => q.SalesExecutives != null && 
+                        q.SalesExecutives.Any(se => se.Contains(filter.SalesExecutive, StringComparison.OrdinalIgnoreCase)));
+                }
             }
         }
 
@@ -383,6 +413,31 @@ public class QuotationService : IQuotationService
         quotation.UpdatedAt = DateTime.UtcNow;
         await _quotationRepository.UpdateQuotationAsync(quotation);
         return true;
+    }
+
+    /// <summary>
+    /// Obtiene un IdConfigSys válido. Si no hay ninguno configurado, devuelve 1 por defecto.
+    /// </summary>
+    /// <returns>Un IdConfigSys válido</returns>
+    private async Task<int> GetValidConfigSysIdAsync()
+    {
+        try
+        {
+            var configSys = await _configSysRepository.GetAsync();
+            if (configSys != null && configSys.IdConfigSys > 0)
+            {
+                return configSys.IdConfigSys;
+            }
+            
+            // Si no hay configuración, devolver 1 como valor por defecto
+            // (esto asume que siempre habrá al menos un registro con ID 1)
+            return 1;
+        }
+        catch
+        {
+            // En caso de error, devolver 1 como fallback
+            return 1;
+        }
     }
 
 }

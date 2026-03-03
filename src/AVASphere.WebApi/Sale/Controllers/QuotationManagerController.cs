@@ -43,8 +43,19 @@ public class QuotationManagerController : ControllerBase
     [HttpGet("GetAll/Quotations")]
     public async Task<ActionResult> GetAll([FromQuery] QuotationFilterDto? filter = null)
     {
-        var items = await _quotationService.GetQuotationsAsync(filter);
-        return Ok(items);
+        try
+        {
+            var items = await _quotationService.GetQuotationsAsync(filter);
+            return Ok(items);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                error = ex.Message,
+                type = ex.GetType().Name
+            });
+        }
     }
 
     [HttpPut("Update/{IdQuotation}")]

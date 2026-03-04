@@ -269,10 +269,33 @@ namespace AVASphere.Infrastructure.Common.Services
             {
                 using var workbook = new XLWorkbook(excelFileStream);
                 var worksheet = workbook.Worksheet(1);
-                var rows = worksheet.RowsUsed().Skip(1); // Saltar la fila de encabezado
+                var rows = worksheet.RowsUsed().Skip(1).ToList(); // Materializar las filas
 
-                result.TotalRows = rows.Count();
+                result.TotalRows = rows.Count;
 
+                // OPTIMIZACIÓN 1: Pre-cargar todos los ExternalIds existentes en una sola consulta
+                var allExternalIds = rows
+                    .Select(r => ParseInt(r.Cell(1).GetString()) ?? 0)
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .ToList();
+
+                var existingIds = await _repository.GetExistingExternalIdsAsync(allExternalIds);
+                var existingIdsSet = new HashSet<int>(existingIds);
+
+                // HashSet para detectar duplicados dentro del mismo archivo
+                var processedIdsInBatch = new HashSet<int>();
+
+                // OPTIMIZACIÓN 2: Pre-calcular los índices base para evitar múltiples llamadas a BD
+                var baseIndexDirection = await _repository.GetNextIndexForDirectionAsync();
+                var baseIndexSettings = await _repository.GetNextIndexForSettingsAsync();
+
+                // Lista para acumular clientes válidos y hacer inserción batch
+                var customersToInsert = new List<Customer>();
+                var currentDirectionIndex = baseIndexDirection;
+                var currentSettingsIndex = baseIndexSettings;
+
+                // OPTIMIZACIÓN 3: Procesar todas las filas sin await en el loop
                 foreach (var row in rows)
                 {
                     try
@@ -284,13 +307,24 @@ namespace AVASphere.Infrastructure.Common.Services
 
                         var externalId = ParseInt(row.Cell(1).GetString()) ?? 0;
 
-                        // Verificar si el cliente ya existe por ExternalId
-                        if (await _repository.ExistsByExternalIdAsync(externalId))
+                        // Verificar si el cliente ya existe en BD usando el HashSet pre-cargado
+                        if (existingIdsSet.Contains(externalId))
                         {
                             result.SkippedCount++;
-                            result.SkippedRecords.Add($"ID {externalId} (Fila {row.RowNumber()})");
+                            result.SkippedRecords.Add($"ID {externalId} (Fila {row.RowNumber()}) - Ya existe en BD");
                             continue; // Saltar este registro, ya existe
                         }
+
+                        // Verificar si el ExternalId ya fue procesado en este batch (duplicado en el archivo)
+                        if (processedIdsInBatch.Contains(externalId))
+                        {
+                            result.SkippedCount++;
+                            result.SkippedRecords.Add($"ID {externalId} (Fila {row.RowNumber()}) - Duplicado en el archivo");
+                            continue; // Saltar este registro, es duplicado
+                        }
+
+                        // Marcar este ExternalId como procesado
+                        processedIdsInBatch.Add(externalId);
 
                         var nombre = TruncateString(row.Cell(2).GetString(), 100); // Truncar a 100 caracteres
                         var rfc = TruncateString(row.Cell(3).GetString(), 50); // Truncar a 50 caracteres
@@ -327,10 +361,10 @@ namespace AVASphere.Infrastructure.Common.Services
                             Alta = ParseDateTime(row.Cell(26).GetString())
                         };
 
-                        // Crear DirectionJson
+                        // Crear DirectionJson con índice auto-incrementado localmente
                         var directionJson = new DirectionJson
                         {
-                            Index = await _repository.GetNextIndexForDirectionAsync(),
+                            Index = currentDirectionIndex++,
                             Street = directionData.Calle,
                             InteriorNumber = directionData.Interior,
                             ExteriorNumber = directionData.Numero,
@@ -341,10 +375,10 @@ namespace AVASphere.Infrastructure.Common.Services
                             PostalCode = directionData.CP
                         };
 
-                        // Crear SettingsCustomerJson (almacenar todos los datos del Excel)
+                        // Crear SettingsCustomerJson con índice auto-incrementado localmente
                         var settingsJson = new SettingsCustomerJson
                         {
-                            Index = await _repository.GetNextIndexForSettingsAsync(),
+                            Index = currentSettingsIndex++,
                             Type = settingsData.Tipo ?? "General",
                             Discount = 0.0,
                             Agente = settingsData.Agente,
@@ -374,9 +408,7 @@ namespace AVASphere.Infrastructure.Common.Services
                             PaymentTermsJson = null
                         };
 
-                        var created = await _repository.InsertAsync(customer);
-                        importedCustomers.Add(MapToDto(created));
-                        result.SuccessCount++;
+                        customersToInsert.Add(customer);
                     }
                     catch (Exception ex)
                     {
@@ -386,11 +418,47 @@ namespace AVASphere.Infrastructure.Common.Services
                     }
                 }
 
+                // OPTIMIZACIÓN 4: Inserción batch de todos los clientes válidos
+                if (customersToInsert.Any())
+                {
+                    try
+                    {
+                        var insertedCustomers = await _repository.InsertBatchAsync(customersToInsert);
+                        result.SuccessCount = insertedCustomers.Count();
+
+                        // No devolver clientes en la respuesta para optimizar rendimiento
+                    }
+                    catch (Exception batchEx)
+                    {
+                        // Mostrar error detallado de la inserción batch
+                        var errorMsg = $"Error en inserción batch: {batchEx.Message}";
+                        if (batchEx.InnerException != null)
+                        {
+                            errorMsg += $" | Inner: {batchEx.InnerException.Message}";
+                            if (batchEx.InnerException.InnerException != null)
+                            {
+                                errorMsg += $" | Inner2: {batchEx.InnerException.InnerException.Message}";
+                            }
+                        }
+                        result.Errors.Add(errorMsg);
+                        result.ErrorCount = customersToInsert.Count;
+                    }
+                }
+
                 result.ImportedCustomers = importedCustomers;
             }
             catch (Exception ex)
             {
-                result.Errors.Add($"Error general: {ex.Message}");
+                var errorMsg = $"Error general: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorMsg += $" | Inner: {ex.InnerException.Message}";
+                    if (ex.InnerException.InnerException != null)
+                    {
+                        errorMsg += $" | Inner2: {ex.InnerException.InnerException.Message}";
+                    }
+                }
+                result.Errors.Add(errorMsg);
             }
 
             return result;

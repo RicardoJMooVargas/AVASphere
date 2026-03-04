@@ -240,4 +240,44 @@ public class CustomerRepository : ICustomerRepository
             return false;
         }
     }
+
+    /// <summary>
+    /// Obtiene los ExternalIds existentes de una lista dada.
+    /// Optimizado para importación batch.
+    /// </summary>
+    public async Task<List<int>> GetExistingExternalIdsAsync(List<int> externalIds)
+    {
+        if (externalIds == null || !externalIds.Any())
+            return new List<int>();
+
+        return await _context.Customers
+            .AsNoTracking()
+            .Where(c => externalIds.Contains(c.ExternalId))
+            .Select(c => c.ExternalId)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Inserta múltiples clientes en una sola operación batch.
+    /// Optimizado para importación masiva.
+    /// </summary>
+    public async Task<IEnumerable<Customer>> InsertBatchAsync(List<Customer> customers)
+    {
+        if (customers == null || !customers.Any())
+            return new List<Customer>();
+
+        // Asegurar JSON requeridos
+        foreach (var customer in customers)
+        {
+            if (customer.DirectionJson is null)
+            {
+                customer.DirectionJson = new();
+            }
+        }
+
+        await _context.Customers.AddRangeAsync(customers);
+        await _context.SaveChangesAsync();
+
+        return customers;
+    }
 }

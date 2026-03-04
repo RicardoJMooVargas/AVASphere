@@ -40,4 +40,8 @@ public interface ICustomerRepository
 
     // Restablecer tabla Customers (eliminar todos los registros y reiniciar secuencia)
     Task<bool> ResetTableAsync();
+
+    // Métodos optimizados para importación batch
+    Task<List<int>> GetExistingExternalIdsAsync(List<int> externalIds);
+    Task<IEnumerable<Customer>> InsertBatchAsync(List<Customer> customers);
 }

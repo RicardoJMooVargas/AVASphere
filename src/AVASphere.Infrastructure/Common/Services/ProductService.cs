@@ -2,6 +2,7 @@ using AVASphere.ApplicationCore.Common.DTOs.ProductDTOs;
 using AVASphere.ApplicationCore.Common.Entities.Products;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Projects.Entities.jsons;
+using SolutionsJsonProject = AVASphere.ApplicationCore.Projects.Entities.jsons.SolutionsJson;
 using Microsoft.Extensions.Logging;
 using ClosedXML.Excel;
 
@@ -367,7 +368,7 @@ public class ProductService : IProductService
                         },
                         CostsJson = new List<CostsJson>(),
                         CategoriesJsons = new List<CategoriesJson>(),
-                        SolutionsJsons = new List<SolutionsJson>(),
+                        SolutionsJsons = new List<SolutionsJsonProject>(),
                         ProductProperties = new List<ProductProperties>()
                     };
 

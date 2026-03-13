@@ -3,6 +3,8 @@ using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.Products;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.Infrastructure;
+using SupplierGeneral = AVASphere.ApplicationCore.Common.Entities.General.Supplier;
+using SupplierCatalog = AVASphere.ApplicationCore.Common.Entities.Catalogs.Supplier;
 using Microsoft.EntityFrameworkCore;
 
 namespace AVASphere.Infrastructure.Common.Repository;
@@ -260,7 +262,7 @@ public class ProductRepository : IProductRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task<Dictionary<string, Supplier>> GetAllSuppliersAsync()
+    public async Task<Dictionary<string, SupplierCatalog>> GetAllSuppliersAsync()
     {
         return await _context.Suppliers
             .Where(s => !string.IsNullOrEmpty(s.Name))

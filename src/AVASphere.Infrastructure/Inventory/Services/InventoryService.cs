@@ -4,6 +4,7 @@ using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Common.DTOs.ProductDTOs;
 using AVASphere.ApplicationCore.Common.Entities.Products;
 using AVASphere.ApplicationCore.Projects.Entities.jsons;
+using SolutionsJsonProject = AVASphere.ApplicationCore.Projects.Entities.jsons.SolutionsJson;
 using InventoryEntity = AVASphere.ApplicationCore.Inventory.Entities.General.Inventory;
 using PhysicalInventoryEntity = AVASphere.ApplicationCore.Inventory.Entities.General.PhysicalInventory;
 using LocationDetailsEntity = AVASphere.ApplicationCore.Inventory.Entities.General.LocationDetails;
@@ -435,7 +436,7 @@ public class InventoryService : IInventoryService
                                 },
                                 CostsJson = new List<CostsJson>(),
                                 CategoriesJsons = new List<CategoriesJson>(),
-                                SolutionsJsons = new List<SolutionsJson>()
+                                SolutionsJsons = new List<SolutionsJsonProject>()
                             };
 
                             var createdProduct = await _productService.CreateProductAsync(createProductDto);

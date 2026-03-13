@@ -3,6 +3,7 @@ using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Projects.Entities.General;
 using AVASphere.ApplicationCore.Projects.Entities.jsons;
+using SolutionsJsonProject = AVASphere.ApplicationCore.Projects.Entities.jsons.SolutionsJson;
 
 namespace AVASphere.ApplicationCore.Common.Entities.Products;
 
@@ -35,7 +36,7 @@ public class Product
     public ICollection<CategoriesJson> CategoriesJsons { get; set; } = new List<CategoriesJson>();
 
     [NotMapped]
-    public ICollection<SolutionsJson> SolutionsJsons { get; set; } = new List<SolutionsJson>();
+    public ICollection<SolutionsJsonProject> SolutionsJsons { get; set; } = new List<SolutionsJsonProject>();
 
     public AuxDataJson? AuxDataJson { get; set; } = new();
     

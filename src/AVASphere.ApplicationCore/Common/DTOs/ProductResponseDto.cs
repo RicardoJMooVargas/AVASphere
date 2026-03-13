@@ -1,5 +1,6 @@
 using AVASphere.ApplicationCore.Common.Entities.Products;
 using AVASphere.ApplicationCore.Projects.Entities.jsons;
+using SolutionsJsonProject = AVASphere.ApplicationCore.Projects.Entities.jsons.SolutionsJson;
 
 namespace AVASphere.ApplicationCore.Common.DTOs.ProductDTOs;
 
@@ -17,6 +18,6 @@ public class ProductResponseDto
     public List<CodeJson> CodeJson { get; set; } = new();
     public List<CostsJson> CostsJson { get; set; } = new();
     public List<CategoriesJson> CategoriesJsons { get; set; } = new();
-    public List<SolutionsJson> SolutionsJsons { get; set; } = new();
+    public List<SolutionsJsonProject> SolutionsJsons { get; set; } = new();
     public List<ProductPropertyDto> ProductProperties { get; set; } = new();
 }

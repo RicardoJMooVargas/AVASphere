@@ -1,4 +1,4 @@
-﻿﻿using Microsoft.EntityFrameworkCore;
+﻿﻿﻿using Microsoft.EntityFrameworkCore;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Projects.Entities.Catalogs;
@@ -12,7 +12,8 @@ using AVASphere.ApplicationCore.Common.Entities.Products;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Projects.Entities.jsons;
 using AVASphere.ApplicationCore.Inventory.Entities.General;
-
+using SupplierGeneral = AVASphere.ApplicationCore.Common.Entities.General.Supplier;
+using SupplierCatalog = AVASphere.ApplicationCore.Common.Entities.Catalogs.Supplier;
 
 namespace AVASphere.Infrastructure;
 
@@ -30,7 +31,7 @@ public class MasterDbContext : DbContext
     public DbSet<Customer> Customers { get; set; } = null!;
     public DbSet<Property> Properties { get; set; } = null!;
     public DbSet<PropertyValue> PropertyValues { get; set; } = null!;
-    public DbSet<Supplier> Suppliers { get; set; } = null!;
+    public DbSet<SupplierGeneral> Suppliers { get; set; } = null!;
     public DbSet<Product> Products { get; set; } = null!;
     public DbSet<ProductProperties> ProductProperties { get; set; } = null!;
     public DbSet<StorageStructure> StorageStructures { get; set; } = null!;
@@ -89,7 +90,8 @@ public class MasterDbContext : DbContext
         modelBuilder.Ignore<CategoriesJson>();
         modelBuilder.Ignore<CodeJson>();
         modelBuilder.Ignore<CostsJson>();
-        modelBuilder.Ignore<SolutionsJson>();
+        modelBuilder.Ignore<AVASphere.ApplicationCore.Common.Entities.Jsons.SolutionsJson>();
+        modelBuilder.Ignore<AVASphere.ApplicationCore.Projects.Entities.jsons.SolutionsJson>();
         modelBuilder.Ignore<SettingsCustomerJson>();
         modelBuilder.Ignore<ColorsJson>();
         modelBuilder.Ignore<NotUseModuleJson>();

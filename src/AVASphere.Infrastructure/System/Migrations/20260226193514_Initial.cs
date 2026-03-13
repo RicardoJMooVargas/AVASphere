@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using AVASphere.ApplicationCore.Common.Entities.Catalogs;
 using AVASphere.ApplicationCore.Common.Entities.General;
@@ -9,6 +9,9 @@ using AVASphere.ApplicationCore.Projects.Entities.jsons;
 using AVASphere.ApplicationCore.Sales.Entities;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using ContactsJsonGeneral = AVASphere.ApplicationCore.Common.Entities.General.ContactsJson;
+using ContactsJsonCatalog = AVASphere.ApplicationCore.Common.Entities.Catalogs.ContactsJson;
+using SolutionsJsonProject = AVASphere.ApplicationCore.Projects.Entities.jsons.SolutionsJson;
 
 #nullable disable
 
@@ -103,7 +106,7 @@ namespace AVASphere.Infrastructure.System.Migrations
                     DeliveryDays = table.Column<double>(type: "double precision", nullable: true),
                     RegistrationDate = table.Column<DateOnly>(type: "date", nullable: false),
                     Observations = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
-                    ContactsJson = table.Column<ContactsJson>(type: "jsonb", nullable: true, defaultValueSql: "'{}'::jsonb"),
+                     ContactsJson = table.Column<ContactsJsonCatalog>(type: "jsonb", nullable: true, defaultValueSql: "'{}'::jsonb"),
                     PaymentTermsJson = table.Column<PaymentTermsJson>(type: "jsonb", nullable: true, defaultValueSql: "'{}'::jsonb"),
                     PaymentMethodsJson = table.Column<PaymentMethodsJson>(type: "jsonb", nullable: true, defaultValueSql: "'{}'::jsonb")
                 },
@@ -346,7 +349,7 @@ namespace AVASphere.Infrastructure.System.Migrations
                     CodeJson = table.Column<ICollection<CodeJson>>(type: "jsonb", nullable: false, defaultValueSql: "'[]'::jsonb"),
                     CostsJson = table.Column<ICollection<CostsJson>>(type: "jsonb", nullable: false, defaultValueSql: "'[]'::jsonb"),
                     CategoriesJsons = table.Column<ICollection<CategoriesJson>>(type: "jsonb", nullable: false, defaultValueSql: "'[]'::jsonb"),
-                    SolutionsJsons = table.Column<ICollection<SolutionsJson>>(type: "jsonb", nullable: false, defaultValueSql: "'[]'::jsonb"),
+                     SolutionsJsons = table.Column<ICollection<SolutionsJsonProject>>(type: "jsonb", nullable: false, defaultValueSql: "'[]'::jsonb"),
                     AuxDataJson = table.Column<AuxDataJson>(type: "jsonb", nullable: true, defaultValueSql: "'{}'::jsonb")
                 },
                 constraints: table =>
@@ -478,7 +481,7 @@ namespace AVASphere.Infrastructure.System.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     IdProject = table.Column<int>(type: "integer", nullable: false),
                     IdProjectCategory = table.Column<int>(type: "integer", nullable: false),
-                    SolutionsJson = table.Column<SolutionsJson>(type: "jsonb", nullable: false)
+                    SolutionsJson = table.Column<SolutionsJsonProject>(type: "jsonb", nullable: false)
                 },
                 constraints: table =>
                 {

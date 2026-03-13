@@ -86,5 +86,9 @@ public class AuxNoteDataJson
     public decimal Impuesto { get; set; }
     public decimal Total { get; set; }
     public bool ExisteEnDB { get; set; }
+    /// <summary>Monto efectivamente pagado (proveniente de PAGADOS.xlsx)</summary>
+    public decimal ImportePagado { get; set; }
+    /// <summary>Saldo pendiente (proveniente de PAGADOS.xlsx)</summary>
+    public decimal Saldo { get; set; }
 }
 

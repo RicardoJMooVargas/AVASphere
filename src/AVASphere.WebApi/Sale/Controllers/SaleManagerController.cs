@@ -5,6 +5,7 @@ using AVASphere.ApplicationCore.Sales.DTOs;
 using AVASphere.ApplicationCore.Sales.DTOs.SaleDTOs;
 using AVASphere.ApplicationCore.Sales.DTOs.ImportDTOs;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
+using System.Security.Claims;
 using System.Text.Json;
 using SaleEntity = AVASphere.ApplicationCore.Sales.Entities.Sale;
 using AVASphere.Infrastructure;
@@ -523,7 +524,89 @@ namespace AVASphere.WebApi.Sale.Controllers
             }
         }
 
-
+    
+        /// <summary>
+        /// POST: api/SaleManager/ImportSalesMonth
+        ///
+        /// PROPÓSITO:
+        /// Importa todas las ventas del sistema externo InforAVA (catálogo fijo <c>AVA01</c>)
+        /// correspondientes a un mes completo. El proceso se realiza por lotes de días
+        /// para no saturar la API externa ni la base de datos.
+        ///
+        /// FLUJO GENERAL:
+        /// <list type="number">
+        ///   <item>Validar los parámetros de entrada (año, mes, idConfigSys, batchSize).</item>
+        ///   <item>
+        ///     Dividir el mes en sub-rangos de <paramref name="batchSize"/> días
+        ///     (ej. batchSize=5 → lotes: 1-5, 6-10, 11-15 …).
+        ///   </item>
+        ///   <item>
+        ///     Para cada lote:
+        ///     <list type="bullet">
+        ///       <item>Consultar la API externa día a día y acumular las ventas encontradas.</item>
+        ///       <item>Filtrar ventas cuyos folios ya existen en la BD (duplicados → omitidas).</item>
+        ///       <item>
+        ///         Crear o recuperar los clientes necesarios usando un cache en memoria
+        ///         (<c>Dictionary&lt;string, Customer&gt;</c>) para evitar consultas repetidas a la BD.
+        ///       </item>
+        ///       <item>
+        ///         Para cada venta nueva: obtener sus productos desde el sistema externo,
+        ///         construir la entidad <c>Sale</c> con <c>AuxNoteDataJson</c> y persistirla.
+        ///       </item>
+        ///     </list>
+        ///   </item>
+        ///   <item>Esperar 2 segundos entre lotes para no sobrecargar la API externa.</item>
+        ///   <item>
+        ///     Devolver estadísticas detalladas: ventas importadas/omitidas/con error,
+        ///     clientes creados/reutilizados, tiempos de procesamiento y detalle por lote.
+        ///   </item>
+        /// </list>
+        ///
+        /// CÓDIGOS DE RESPUESTA HTTP:
+        /// <list type="table">
+        ///   <item><term>200 OK</term><description>Importación completada sin errores.</description></item>
+        ///   <item><term>207 Multi-Status</term><description>Al menos una venta importada, pero hubo errores parciales.</description></item>
+        ///   <item><term>400 Bad Request</term><description>Parámetros de entrada inválidos.</description></item>
+        ///   <item><term>422 Unprocessable Entity</term><description>Importación falló completamente (0 ventas importadas).</description></item>
+        ///   <item><term>500 Internal Server Error</term><description>Error inesperado del servidor.</description></item>
+        /// </list>
+        ///
+        /// RESTRICCIONES:
+        /// <list type="bullet">
+        ///   <item>Año mínimo: 2020 | Año máximo: año en curso.</item>
+        ///   <item>No se pueden importar períodos con fecha futura.</item>
+        ///   <item><paramref name="batchSize"/> debe estar entre 1 y 15 días.</item>
+        ///   <item><paramref name="idConfigSys"/> debe ser mayor a 0.</item>
+        /// </list>
+        ///
+        /// NOTAS DE IMPLEMENTACIÓN:
+        /// El campo <c>createdByUserId</c> se fija como <c>"system"</c> en esta versión.
+        /// Si se requiere trazabilidad por usuario, se debe obtener del claim JWT
+        /// <c>ClaimTypes.NameIdentifier</c> (ver <see cref="ImportFromPagados"/>).
+        /// </summary>
+        /// <param name="year">Año del período a importar, entre 2020 y el año actual.</param>
+        /// <param name="month">Mes del período a importar, de 1 a 12.</param>
+        /// <param name="idConfigSys">
+        ///   ID de la sucursal/configuración del sistema (<c>IdConfigSys</c>).
+        ///   Se usa para asociar cada venta importada a la sucursal correspondiente.
+        /// </param>
+        /// <param name="batchSize">
+        ///   Número de días agrupados por lote. Valor por defecto: 5.
+        ///   Valores menores reducen la carga por llamada pero aumentan el tiempo total.
+        ///   Rango permitido: 1 – 15.
+        /// </param>
+        /// <returns>
+        ///   Objeto JSON con las siguientes secciones:
+        ///   <list type="bullet">
+        ///     <item><c>ImportPeriod</c>: Rango de fechas del mes procesado.</item>
+        ///     <item><c>Statistics</c>: Totales de ventas encontradas, importadas, omitidas y con error.</item>
+        ///     <item><c>Customers</c>: Clientes encontrados, creados y reutilizados.</item>
+        ///     <item><c>Performance</c>: Tiempo total, lotes procesados y promedio por lote.</item>
+        ///     <item><c>BatchDetails</c>: Detalle por cada lote (período, ventas, tiempo).</item>
+        ///     <item><c>Errors</c>: Detalle de errores individuales con folio y tipo de error.</item>
+        ///     <item><c>SkippedSales</c>: Folios de ventas omitidas por ya existir en la BD.</item>
+        ///   </list>
+        /// </returns>
         [HttpPost("ImportSalesMonth")]
         public async Task<IActionResult> ImportSalesMonth(
             [FromQuery] int year,
@@ -690,6 +773,125 @@ namespace AVASphere.WebApi.Sale.Controllers
                     Message = "Error interno del servidor durante la importación.",
                     Error = "INTERNAL_SERVER_ERROR",
                     Details = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
+        /// POST: api/SaleManager/ImportFromPagados
+        ///
+        /// PROPÓSITO:
+        /// Importa o actualiza ventas de forma inteligente a partir del JSON generado
+        /// al pre-procesar el archivo <c>PAGADOS.xlsx</c> del sistema InforAVA.
+        /// Complementa a <see cref="ImportSalesMonth"/>: mientras ese endpoint importa los
+        /// datos de nota completos, éste se enfoca en los datos de pago (monto pagado y saldo).
+        ///
+        /// LÓGICA POR CADA REGISTRO:
+        /// <list type="table">
+        ///   <item>
+        ///     <term>COINCIDENCIA ENCONTRADA</term>
+        ///     <description>
+        ///       Existe una <c>Sale</c> con el mismo <c>Folio</c>, misma <c>SaleDate</c>
+        ///       y cuyo cliente tiene el mismo <c>ExternalId</c> extraído de <c>NombreCliente</c>.
+        ///       → Se actualizan <c>AuxNoteDataJson.ImportePagado</c> y <c>AuxNoteDataJson.Saldo</c>.
+        ///     </description>
+        ///   </item>
+        ///   <item>
+        ///     <term>SIN COINCIDENCIA</term>
+        ///     <description>
+        ///       No existe ninguna venta con esa combinación.
+        ///       → Se crea una nueva <c>Sale</c> con <c>Type="Imported-Pagados"</c>
+        ///       y los campos de nota (Serie, Caja, Agente, etc.) vacíos para completar
+        ///       con una importación posterior de notas completas.
+        ///     </description>
+        ///   </item>
+        /// </list>
+        ///
+        /// FORMATO DE NombreCliente:
+        /// El campo viene como <c>"000055 PUBLICO GENERAL"</c>, donde los primeros dígitos
+        /// (con ceros al frente) representan el <c>ExternalId</c> del cliente.
+        /// Es procesado por <c>SaleService.ParseNombreCliente()</c>.
+        ///
+        /// AUTENTICACIÓN:
+        /// Requiere JWT válido. El <c>IdUser</c> se extrae del claim <c>ClaimTypes.NameIdentifier</c>
+        /// y se usa como <c>SalesExecutive</c> en las ventas nuevas.
+        ///
+        /// CÓDIGOS DE RESPUESTA HTTP:
+        /// <list type="table">
+        ///   <item><term>200 OK</term><description>Importación completada (con o sin errores parciales). Ver <c>data.result</c>.</description></item>
+        ///   <item><term>400 Bad Request</term><description>Request nulo, idConfigSys inválido o sin bloques de datos.</description></item>
+        ///   <item><term>401 Unauthorized</term><description>No se pudo obtener el usuario del token JWT.</description></item>
+        ///   <item><term>500 Internal Server Error</term><description>Error inesperado del servidor.</description></item>
+        /// </list>
+        /// </summary>
+        /// <param name="request">
+        ///   JSON procesado del archivo PAGADOS.xlsx. Ver <see cref="ImportPagadosRequestDto"/>.
+        /// </param>
+        /// <param name="idConfigSys">
+        ///   ID de la sucursal/configuración del sistema. Se usa para filtrar ventas existentes
+        ///   y para asociar las ventas nuevas creadas.
+        /// </param>
+        /// <returns>
+        ///   200 OK con objeto que incluye metadatos del archivo y <see cref="ImportPagadosResultDto"/>
+        ///   con contadores de procesados/actualizados/creados/omitidos y detalle por registro.
+        /// </returns>
+        [HttpPost("ImportFromPagados")]
+        public async Task<IActionResult> ImportFromPagados(
+            [FromBody] ImportPagadosRequestDto request,
+            [FromQuery] int idConfigSys)
+        {
+            if (request == null)
+                return BadRequest(new { success = false, error = "El cuerpo de la solicitud no puede ser nulo." });
+
+            if (idConfigSys <= 0)
+                return BadRequest(new { success = false, error = "idConfigSys debe ser mayor a 0." });
+
+            if (request.Blocks == null || !request.Blocks.Any())
+                return BadRequest(new { success = false, error = "El JSON no contiene bloques de datos." });
+
+            try
+            {
+                // Obtener el ID del usuario desde el claim del token JWT (ClaimTypes.NameIdentifier = IdUser)
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null)
+                    return Unauthorized(new { success = false, error = "No se pudo obtener el usuario del token." });
+
+                var createdByUserId = userIdClaim.Value;
+
+                var result = await _saleService.ImportFromPagadosAsync(request, idConfigSys, createdByUserId);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Importación desde PAGADOS.xlsx completada",
+                    data = new
+                    {
+                        fileName = request.FileName,
+                        processedAt = request.ProcessedAt,
+                        totalRecords = request.TotalRecords,
+                        totalBlocks = request.TotalBlocks,
+                        totalImporte = request.TotalImporte,
+                        totalPagado = request.TotalPagado,
+                        totalSaldo = request.TotalSaldo,
+                        result = new
+                        {
+                            totalProcessed = result.TotalProcessed,
+                            totalUpdated = result.TotalUpdated,
+                            totalCreated = result.TotalCreated,
+                            totalSkipped = result.TotalSkipped,
+                            errorsCount = result.Errors.Count,
+                            errors = result.Errors,
+                            details = result.Details
+                        }
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    success = false,
+                    error = $"Error inesperado durante la importación: {ex.Message}"
                 });
             }
         }

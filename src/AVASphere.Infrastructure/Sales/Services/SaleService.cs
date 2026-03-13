@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Diagnostics;
+using System.Globalization;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Entities.Jsons;
 using AVASphere.ApplicationCore.Common.Extensions;
@@ -504,27 +505,48 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Importa ventas del sistema externo para un mes completo de forma optimizada.
-    /// 
-    /// ESTRATEGIA DE OPTIMIZACIÓN:
-    /// 1. Procesamiento por lotes de días para reducir llamadas a API
-    /// 2. Cache de clientes para evitar consultas repetitivas a BD
-    /// 3. Verificación previa de duplicados
-    /// 4. Inserción en lotes transaccionales
-    /// 5. Manejo de errores individuales sin afectar el lote completo
-    /// 6. Limitación de concurrencia para no saturar API externa
-    /// 
-    /// FLUJO:
-    /// 1. Validar parámetros (mes válido, no futuro)
-    /// 2. Dividir mes en lotes de días
-    /// 3. Para cada lote:
-    ///    a. Obtener ventas externas del lote
-    ///    b. Filtrar ventas ya importadas
-    ///    c. Crear/encontrar clientes necesarios
-    ///    d. Obtener detalles de productos en paralelo controlado
-    ///    e. Insertar ventas en transacción
-    /// 4. Compilar estadísticas de resultado
+    /// Importa ventas del sistema externo InforAVA para un mes completo de forma optimizada.
+    ///
+    /// ESTRATEGIAS DE OPTIMIZACIÓN:
+    /// <list type="number">
+    ///   <item>Procesamiento por lotes de días para reducir el número de llamadas a la API externa.</item>
+    ///   <item>Cache en memoria de clientes (<c>Dictionary&lt;string, Customer&gt;</c>) indexado por <c>ExternalId</c>
+    ///         para evitar consultas repetitivas a la BD durante el mismo proceso.</item>
+    ///   <item>Pre-carga masiva de clientes existentes en una sola consulta por lote.</item>
+    ///   <item>Verificación previa de folios duplicados antes de intentar insertar.</item>
+    ///   <item>Manejo de errores individuales por venta: un fallo no cancela el lote completo.</item>
+    ///   <item>Pausa de 2 segundos entre lotes para no saturar la API externa.</item>
+    ///   <item>Pausa de 500 ms entre llamadas día a día dentro del mismo lote.</item>
+    /// </list>
+    ///
+    /// FLUJO DETALLADO:
+    /// <list type="number">
+    ///   <item>Validar parámetros (mes válido, no futuro, idConfigSys existente).</item>
+    ///   <item>Dividir el mes en sub-rangos de <paramref name="batchSize"/> días.</item>
+    ///   <item>
+    ///     Para cada lote (<see cref="ProcessDateBatchAsync"/>):
+    ///     <list type="bullet">
+    ///       <item>Obtener ventas externas día a día (<see cref="GetExternalSalesForDateRangeAsync"/>).</item>
+    ///       <item>Filtrar folios ya existentes en la BD (<see cref="GetExistingSaleFoliosAsync"/>).</item>
+    ///       <item>Crear/encontrar clientes necesarios (<see cref="ProcessCustomersForSalesAsync"/>).</item>
+    ///       <item>Procesar cada venta nueva individualmente (<see cref="ProcessSingleSaleAsync"/>).</item>
+    ///     </list>
+    ///   </item>
+    ///   <item>Compilar estadísticas finales de clientes creados vs reutilizados.</item>
+    ///   <item>Calcular tiempos totales y promedios de procesamiento.</item>
+    /// </list>
     /// </summary>
+    /// <param name="year">Año a importar. Debe estar entre 2020 y el año en curso.</param>
+    /// <param name="month">Mes a importar, de 1 a 12. No puede ser futuro.</param>
+    /// <param name="idConfigSys">ID de la sucursal del sistema (<c>ConfigSys</c>) a la que se asociarán las ventas.</param>
+    /// <param name="createdByUserId">Identificador del usuario que ejecuta la importación, para auditoría.</param>
+    /// <param name="batchSize">Número de días por lote. Por defecto 5. Rango válido: 1–15.</param>
+    /// <returns>
+    ///   <see cref="ImportSalesResult"/> con estadísticas completas del proceso:
+    ///   totales encontrados/importados/omitidos/con error, métricas de clientes,
+    ///   tiempos de ejecución, resumen por lote (<see cref="BatchProcessingSummary"/>)
+    ///   y detalle de errores (<see cref="ImportErrorDetail"/>).
+    /// </returns>
     public async Task<ImportSalesResult> ImportSalesForMonthAsync(
         int year,
         int month,
@@ -616,8 +638,11 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Valida los parámetros de importación.
+    /// Valida los parámetros de importación antes de iniciar el proceso.
+    /// Lanza <see cref="ArgumentException"/> si algún parámetro es inválido:
+    /// año fuera de rango, mes fuera de rango o fecha en el futuro.
     /// </summary>
+    /// <exception cref="ArgumentException">Si cualquier parámetro no cumple las restricciones.</exception>
     private async Task ValidateImportParametersAsync(int year, int month, int idConfigSys)
     {
         if (year < 2020 || year > DateTime.UtcNow.Year)
@@ -639,8 +664,16 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Divide el rango de fechas en lotes para procesamiento optimizado.
+    /// Divide un rango de fechas en sub-rangos (lotes) de <paramref name="batchSize"/> días.
+    /// El último lote puede tener menos días si el rango no es múltiplo exacto.
+    ///
+    /// Ejemplo con batchSize=5 y mes de 31 días:
+    ///   Lote 1: días 1-5 | Lote 2: días 6-10 | … | Lote 7: días 31-31
     /// </summary>
+    /// <param name="startDate">Fecha de inicio del rango (primer día del mes).</param>
+    /// <param name="endDate">Fecha de fin del rango (último día del mes).</param>
+    /// <param name="batchSize">Número de días por lote.</param>
+    /// <returns>Lista de tuplas (StartDate, EndDate) para cada lote.</returns>
     private List<(DateTime StartDate, DateTime EndDate)> GenerateDateBatches(
         DateTime startDate,
         DateTime endDate,
@@ -663,8 +696,23 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Procesa un lote de fechas específico.
+    /// Procesa un lote de fechas específico dentro del flujo de importación mensual.
+    ///
+    /// PASOS:
+    /// <list type="number">
+    ///   <item>Obtiene ventas externas para el rango de fechas del lote.</item>
+    ///   <item>Filtra las ventas cuyo folio ya existe en la BD (omitidas).</item>
+    ///   <item>Pre-carga y/o crea los clientes necesarios en el cache compartido.</item>
+    ///   <item>Itera sobre las ventas nuevas e invoca <see cref="ProcessSingleSaleAsync"/> para cada una.</item>
+    ///   <item>Los errores individuales incrementan el contador <c>SalesError</c> sin detener el lote.</item>
+    /// </list>
     /// </summary>
+    /// <param name="batch">Tupla con la fecha de inicio y fin del lote.</param>
+    /// <param name="idConfigSys">ID de la sucursal para asociar las ventas.</param>
+    /// <param name="createdByUserId">Usuario que ejecuta la importación.</param>
+    /// <param name="customerCache">Cache en memoria de clientes, compartido entre lotes para optimización.</param>
+    /// <param name="batchNumber">Número secuencial del lote (para reportes).</param>
+    /// <returns><see cref="BatchProcessingSummary"/> con contadores y tiempo del lote.</returns>
     private async Task<BatchProcessingSummary> ProcessDateBatchAsync(
         (DateTime StartDate, DateTime EndDate) batch,
         int idConfigSys,
@@ -741,8 +789,18 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Obtiene ventas externas para un rango de fechas.
+    /// Obtiene ventas del sistema externo InforAVA para un rango de fechas, consultando día a día.
+    ///
+    /// Itera desde <paramref name="startDate"/> hasta <paramref name="endDate"/> inclusive,
+    /// haciendo una llamada al repositorio externo por cada día.
+    /// Incluye una pausa de 500 ms entre días para no sobrecargar la API.
+    /// Si una fecha falla, se ignora el error y se continúa con el siguiente día.
+    ///
+    /// Usa el catálogo fijo <c>"AVA01"</c>.
     /// </summary>
+    /// <param name="startDate">Fecha de inicio del rango.</param>
+    /// <param name="endDate">Fecha de fin del rango.</param>
+    /// <returns>Lista acumulada de <see cref="ExternalSalesDto"/> encontradas en el rango.</returns>
     private async Task<IEnumerable<ExternalSalesDto>> GetExternalSalesForDateRangeAsync(
         DateTime startDate,
         DateTime endDate)
@@ -772,8 +830,14 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Obtiene folios de ventas que ya existen en la base de datos.
+    /// Consulta la BD para obtener los folios de ventas que ya fueron importados previamente.
+    /// Se usa para filtrar duplicados antes de intentar insertar ventas nuevas.
     /// </summary>
+    /// <param name="folios">Colección de folios a verificar.</param>
+    /// <returns>
+    ///   <see cref="HashSet{T}"/> con los folios ya existentes en la BD
+    ///   (comparación sin distinción de mayúsculas/minúsculas).
+    /// </returns>
     private async Task<HashSet<string>> GetExistingSaleFoliosAsync(IEnumerable<string> folios)
     {
         var existingSales = await _saleRepository.GetSalesByFoliosAsync(folios);
@@ -781,12 +845,33 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Procesa y crea/encuentra clientes necesarios para las ventas.
-    /// OPTIMIZACIÓN MEJORADA: 
-    /// 1. Pre-carga todos los clientes existentes para el lote
-    /// 2. Usa ExternalId como clave principal
-    /// 3. Maneja duplicados de ExternalId de forma robusta
+    /// Crea o recupera los clientes necesarios para el lote de ventas a importar,
+    /// actualizando el cache compartido para evitar consultas redundantes.
+    ///
+    /// ESTRATEGIA EN TRES FASES:
+    /// <list type="number">
+    ///   <item>
+    ///     <b>Pre-carga masiva:</b> extrae todos los <c>ExternalId</c> únicos del lote
+    ///     y consulta la BD en una sola llamada.
+    ///   </item>
+    ///   <item>
+    ///     <b>Resolución por lote:</b> para cada venta, si el cliente no está en cache,
+    ///     busca primero en los pre-cargados por <c>ExternalId</c>; si no, hace un fallback
+    ///     a búsqueda por nombre (<see cref="ICustomerRepository.FindByNameOrCodeAsync"/>).
+    ///   </item>
+    ///   <item>
+    ///     <b>Creación de nuevos:</b> los clientes no encontrados se crean usando
+    ///     <see cref="CreateBasicCustomerFromSaleDataAsync"/>. Si hay conflicto de
+    ///     <c>IX_Customers_ExternalId</c>, reintenta recuperar el existente o usa
+    ///     <see cref="CreateFallbackCustomerAsync"/> como último recurso.
+    ///   </item>
+    /// </list>
     /// </summary>
+    /// <param name="sales">Ventas externas del lote actual.</param>
+    /// <param name="customerCache">
+    ///   Cache compartido entre lotes, indexado por <c>ExternalId</c> (string).
+    ///   Se actualiza en esta llamada con los clientes encontrados o creados.
+    /// </param>
     private async Task ProcessCustomersForSalesAsync(
         IEnumerable<ExternalSalesDto> sales,
         Dictionary<string, Customer> customerCache)
@@ -901,8 +986,13 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Crea un cliente de fallback con un ExternalId garantizado único.
+    /// Crea un cliente de fallback con un <c>ExternalId</c> garantizado único,
+    /// generado por el repositorio (<see cref="ICustomerRepository.GetNextExternalIdAsync"/>).
+    /// Se usa como último recurso cuando la creación normal falla por conflictos de clave.
+    /// Los campos opcionales como email, teléfono y dirección se dejan vacíos.
     /// </summary>
+    /// <param name="customerName">Nombre del cliente a crear.</param>
+    /// <returns>El nuevo <see cref="Customer"/> persistido en la BD.</returns>
     private async Task<Customer> CreateFallbackCustomerAsync(string customerName)
     {
         var customer = new Customer
@@ -929,8 +1019,24 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Crea un cliente básico a partir de los datos de la venta externa.
+    /// Crea un cliente básico a partir de los datos disponibles en una venta externa.
+    ///
+    /// Si <paramref name="useAlternativeExternalId"/> es <c>false</c>:
+    /// - Intenta usar el <c>ExternalId</c> del sistema externo (campo <c>Cliente</c>).
+    /// - Verifica primero que no exista ya un cliente con ese <c>ExternalId</c>; si existe, lo retorna directamente.
+    ///
+    /// Si <paramref name="useAlternativeExternalId"/> es <c>true</c>:
+    /// - Genera un nuevo <c>ExternalId</c> único para evitar conflictos de índice.
+    ///
+    /// En caso de colisión de <c>IX_Customers_ExternalId</c> durante el insert,
+    /// reintenta automáticamente con un nuevo <c>ExternalId</c>.
     /// </summary>
+    /// <param name="sale">Datos de la venta externa con información del cliente.</param>
+    /// <param name="useAlternativeExternalId">
+    ///   Si es <c>true</c>, fuerza la generación de un <c>ExternalId</c> nuevo en lugar de
+    ///   usar el del sistema externo. Útil para reintentos tras conflictos de unicidad.
+    /// </param>
+    /// <returns>El <see cref="Customer"/> creado o recuperado de la BD.</returns>
     private async Task<Customer> CreateBasicCustomerFromSaleDataAsync(ExternalSalesDto sale, bool useAlternativeExternalId = false)
     {
         int externalId;
@@ -988,8 +1094,24 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Procesa una venta individual con todos sus detalles.
+    /// Procesa e inserta en la BD una venta individual proveniente del sistema externo.
+    ///
+    /// PASOS:
+    /// <list type="number">
+    ///   <item>Recupera el cliente del cache (lanza excepción si no está).</item>
+    ///   <item>Obtiene los detalles de productos vía <see cref="GetSaleProductDetailsAsync"/>.</item>
+    ///   <item>Parsea la fecha y hora de la venta (<see cref="ParseSaleDateTime"/>).</item>
+    ///   <item>Construye la entidad <see cref="Sale"/> con todos sus campos y el <see cref="AuxNoteDataJson"/>.</item>
+    ///   <item>Persiste la venta usando el repositorio.</item>
+    /// </list>
+    ///
+    /// Si el cliente no se encuentra en el cache se lanza <see cref="InvalidOperationException"/>,
+    /// lo que hace que el lote registre esa venta como error sin interrumpir las demás.
     /// </summary>
+    /// <param name="externalSale">Datos de la venta obtenidos del sistema externo.</param>
+    /// <param name="idConfigSys">ID de la sucursal a asignar.</param>
+    /// <param name="createdByUserId">Usuario que ejecuta la importación.</param>
+    /// <param name="customerCache">Cache de clientes ya procesados en este flujo de importación.</param>
     private async Task ProcessSingleSaleAsync(
         ExternalSalesDto externalSale,
         int idConfigSys,
@@ -1039,8 +1161,21 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Obtiene los detalles de productos de una venta externa.
+    /// Obtiene los detalles de productos (líneas) de una venta del sistema externo InforAVA.
+    ///
+    /// Requiere que la venta tenga los campos <c>NF</c>, <c>Caja</c>, <c>Serie</c> y <c>Folio</c>
+    /// no vacíos para poder consultar el detalle. Si alguno falta, devuelve <c>null</c>.
+    ///
+    /// Cada línea se mapea a un <see cref="SingleProductJson"/> con:
+    /// código + descripción concatenados, cantidad, precio unitario, total y unidad de medida.
+    /// El campo <c>ProductId</c> queda en <c>null</c> ya que la vinculación con el catálogo
+    /// local es opcional y no se realiza en este flujo.
+    ///
+    /// Si la consulta al repositorio externo falla por cualquier motivo, devuelve <c>null</c>
+    /// (la venta se guarda sin líneas de detalle, no se interrumpe el proceso).
     /// </summary>
+    /// <param name="externalSale">Datos de la venta externa con los campos de identificación.</param>
+    /// <returns>Lista de <see cref="SingleProductJson"/> o <c>null</c> si no hay datos disponibles.</returns>
     private async Task<List<SingleProductJson>?> GetSaleProductDetailsAsync(ExternalSalesDto externalSale)
     {
         try
@@ -1074,8 +1209,15 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Parsea fecha y hora de los datos externos.
+    /// Parsea la fecha y hora de una venta externa y los combina en un único <see cref="DateTime"/>.
+    ///
+    /// Si <paramref name="fecha"/> no puede interpretarse como fecha válida, se usa la fecha UTC actual.
+    /// Si <paramref name="hora"/> no puede interpretarse como <see cref="TimeSpan"/> válido, se retorna
+    /// la fecha sin componente de hora (medianoche).
     /// </summary>
+    /// <param name="fecha">Fecha de la venta en formato libre (ej. "05/03/2026").</param>
+    /// <param name="hora">Hora de la venta en formato HH:mm:ss (ej. "07:53:00").</param>
+    /// <returns><see cref="DateTime"/> combinado con fecha y hora de la venta.</returns>
     private DateTime ParseSaleDateTime(string? fecha, string? hora)
     {
         var today = DateTime.UtcNow.Date;
@@ -1094,8 +1236,22 @@ public class SaleService : ISaleService
     }
 
     /// <summary>
-    /// Crea el objeto AuxNoteDataJson a partir de los datos externos.
+    /// Construye el objeto <see cref="AuxNoteDataJson"/> a partir de los datos de una venta
+    /// obtenida del sistema externo InforAVA.
+    ///
+    /// Este objeto se almacena como JSONB en la columna <c>AuxNoteDataJson</c> de la tabla
+    /// <c>Sales</c> y conserva todos los campos originales del sistema externo para
+    /// trazabilidad y conciliación posterior.
+    ///
+    /// El campo <c>ExisteEnDB</c> se marca como <c>true</c> indicando que la venta fue
+    /// importada desde el sistema fuente y existe un registro correspondiente allí.
+    ///
+    /// Nota: los campos <c>ImportePagado</c> y <c>Saldo</c> no se llenan en este método;
+    /// se completan posteriormente mediante la importación de PAGADOS.xlsx
+    /// (ver <see cref="ImportFromPagadosAsync"/>).
     /// </summary>
+    /// <param name="externalSale">Datos de la venta externa.</param>
+    /// <returns>Objeto <see cref="AuxNoteDataJson"/> listo para persistir.</returns>
     private AuxNoteDataJson CreateAuxNoteDataFromExternalSale(ExternalSalesDto externalSale)
     {
         return new AuxNoteDataJson
@@ -1121,4 +1277,279 @@ public class SaleService : ISaleService
             ExisteEnDB = true
         };
     }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // IMPORTACIÓN DESDE PAGADOS.xlsx
+    // ────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Importa o actualiza ventas a partir del JSON generado desde el archivo <c>PAGADOS.xlsx</c>.
+    ///
+    /// PROPÓSITO:
+    /// Permite registrar los montos pagados y saldos de ventas ya existentes (o crear nuevas entradas
+    /// parciales) enriqueciendo el campo <c>AuxNoteDataJson.ImportePagado</c> y
+    /// <c>AuxNoteDataJson.Saldo</c>, lo que posibilita calcular ganancias reales con mayor exactitud.
+    ///
+    /// ESTRUCTURA DE ENTRADA:
+    /// El request (<see cref="ImportPagadosRequestDto"/>) replica la estructura del archivo Excel:
+    /// <list type="bullet">
+    ///   <item>Metadatos globales: nombre de archivo, fecha de proceso, totales.</item>
+    ///   <item>Bloques (<see cref="ImportPagadosBlockDto"/>): agrupaciones de registros del Excel.</item>
+    ///   <item>Registros (<see cref="ImportPagadosRecordDto"/>): una fila = una venta.</item>
+    /// </list>
+    ///
+    /// FLUJO POR CADA REGISTRO:
+    /// <list type="number">
+    ///   <item>Parsear <c>Fecha</c> (formato <c>dd/MM/yyyy</c>). Si es inválida → omitir.</item>
+    ///   <item>
+    ///     Parsear <c>NombreCliente</c> con <see cref="ParseNombreCliente"/> para extraer
+    ///     <c>ExternalId</c> y nombre del cliente.
+    ///   </item>
+    ///   <item>
+    ///     <b>BUSCAR coincidencia:</b> ventas con mismo <c>Folio</c>, misma fecha y mismo
+    ///     <c>IdConfigSys</c>, filtrando además por <c>Customer.ExternalId</c>.
+    ///   </item>
+    ///   <item>
+    ///     <b>Si existe → ACTUALIZAR:</b> inyectar <c>ImportePagado</c> y <c>Saldo</c>
+    ///     en <c>AuxNoteDataJson</c> y actualizar <c>UpdatedAt</c>.
+    ///   </item>
+    ///   <item>
+    ///     <b>Si no existe → CREAR:</b> buscar o crear el cliente por <c>ExternalId</c>,
+    ///     luego crear una venta nueva con datos parciales y <c>Type = "Imported-Pagados"</c>.
+    ///     Los campos de nota externa (<c>Serie</c>, <c>Caja</c>, <c>Agente</c>, etc.) se
+    ///     dejan vacíos para completarse con una importación posterior.
+    ///   </item>
+    /// </list>
+    ///
+    /// Los cambios se persisten en una sola llamada a <c>SaveChangesAsync</c> al final del proceso.
+    /// </summary>
+    /// <param name="request">JSON completo del archivo PAGADOS.xlsx pre-procesado.</param>
+    /// <param name="idConfigSys">ID de la sucursal para filtrar y asociar ventas.</param>
+    /// <param name="createdByUserId">
+    ///   Identificador del usuario importador. Se usa como <c>SalesExecutive</c>
+    ///   en las ventas creadas (tipo "Imported-Pagados").
+    /// </param>
+    /// <returns>
+    ///   <see cref="ImportPagadosResultDto"/> con:
+    ///   <c>TotalProcessed</c>, <c>TotalUpdated</c>, <c>TotalCreated</c>, <c>TotalSkipped</c>,
+    ///   lista de errores y detalle de cada registro procesado.
+    /// </returns>
+    /// <inheritdoc />
+    public async Task<ImportPagadosResultDto> ImportFromPagadosAsync(
+        ImportPagadosRequestDto request,
+        int idConfigSys,
+        string createdByUserId)
+    {
+        var result = new ImportPagadosResultDto();
+
+        // Aplanar todos los records de todos los bloques en una sola lista
+        var allRecords = request.Blocks
+            .SelectMany(b => b.Records)
+            .ToList();
+
+        foreach (var record in allRecords)
+        {
+            result.TotalProcessed++;
+            try
+            {
+                // ── Parsear fecha (formato dd/MM/yyyy) ──────────────────────────
+                if (!DateTime.TryParseExact(
+                        record.Fecha,
+                        "dd/MM/yyyy",
+                        CultureInfo.InvariantCulture,
+                        DateTimeStyles.None,
+                        out DateTime saleDate))
+                {
+                    result.TotalSkipped++;
+                    result.Errors.Add($"Folio {record.Folio}: Fecha inválida '{record.Fecha}'");
+                    result.Details.Add(new ImportPagadosDetailDto
+                    {
+                        Folio = record.Folio,
+                        Fecha = record.Fecha,
+                        NombreCliente = record.NombreCliente,
+                        Action = "Skipped",
+                        Message = $"Fecha inválida: {record.Fecha}"
+                    });
+                    continue;
+                }
+
+                // ── Parsear nombreCliente → externalId + name ───────────────────
+                var (externalId, customerName) = ParseNombreCliente(record.NombreCliente);
+
+                // ── Buscar venta existente: Folio + Fecha + ConfigSys ───────────
+                var existingSales = await _dbContext.Sales
+                    .Include(s => s.Customer)
+                    .Where(s => s.Folio == record.Folio
+                             && s.SaleDate.Date == saleDate.Date
+                             && s.IdConfigSys == idConfigSys)
+                    .ToListAsync();
+
+                // Filtrar por ExternalId del cliente
+                var matchedSale = existingSales
+                    .FirstOrDefault(s => s.Customer != null && s.Customer.ExternalId == externalId);
+
+                if (matchedSale != null)
+                {
+                    // ✅ ACTUALIZAR: inyectar ImportePagado y Saldo en AuxNoteDataJson
+                    matchedSale.AuxNoteDataJson ??= new AuxNoteDataJson();
+                    matchedSale.AuxNoteDataJson.ImportePagado = record.ImportePagado;
+                    matchedSale.AuxNoteDataJson.Saldo = record.Saldo;
+                    matchedSale.UpdatedAt = DateTime.UtcNow;
+
+                    _dbContext.Sales.Update(matchedSale);
+                    result.TotalUpdated++;
+                    result.Details.Add(new ImportPagadosDetailDto
+                    {
+                        Folio = record.Folio,
+                        Fecha = record.Fecha,
+                        NombreCliente = record.NombreCliente,
+                        Action = "Updated",
+                        Message = $"ImportePagado={record.ImportePagado}, Saldo={record.Saldo}"
+                    });
+                }
+                else
+                {
+                    // 🆕 CREAR: buscar Customer por ExternalId + Name, luego sólo por ExternalId
+                    var customer = await _dbContext.Customers
+                        .FirstOrDefaultAsync(c => c.ExternalId == externalId && c.Name == customerName);
+
+                    customer ??= await _dbContext.Customers
+                        .FirstOrDefaultAsync(c => c.ExternalId == externalId);
+
+                    if (customer == null)
+                    {
+                        customer = new Customer
+                        {
+                            ExternalId = externalId,
+                            Name = customerName,
+                            DirectionJson = new DirectionJson
+                            {
+                                Index = await _customerRepository.GetNextIndexForDirectionAsync()
+                            }
+                        };
+                        _dbContext.Customers.Add(customer);
+                        await _dbContext.SaveChangesAsync();
+                    }
+
+                    var newSale = new Sale
+                    {
+                        IdCustomer = customer.IdCustomer,
+                        IdConfigSys = idConfigSys,
+                        Folio = record.Folio,
+                        SaleDate = saleDate,
+                        TotalAmount = record.Importe,
+                        // Guardamos el IdUser del token como referencia del importador
+                        SalesExecutive = createdByUserId,
+                        Type = "Imported-Pagados",
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        AuxNoteDataJson = new AuxNoteDataJson
+                        {
+                            NombreCliente = record.NombreCliente,
+                            Folio = record.Folio,
+                            Fecha = record.Fecha,
+                            Hora = record.Hora,
+                            Importe = record.Importe,
+                            ImportePagado = record.ImportePagado,
+                            Saldo = record.Saldo,
+                            // Campos vacíos para completar con importación posterior
+                            Cliente = string.Empty,
+                            Serie = string.Empty,
+                            Caja = string.Empty,
+                            Zn = string.Empty,
+                            Nf = string.Empty,
+                            Agente = string.Empty,
+                            DireccionCliente = string.Empty,
+                            PoblacionCliente = string.Empty,
+                            EmailCliente = string.Empty,
+                            TelCliente = string.Empty,
+                            ExisteEnDB = false
+                        }
+                    };
+
+                    _dbContext.Sales.Add(newSale);
+                    result.TotalCreated++;
+                    result.Details.Add(new ImportPagadosDetailDto
+                    {
+                        Folio = record.Folio,
+                        Fecha = record.Fecha,
+                        NombreCliente = record.NombreCliente,
+                        Action = "Created",
+                        Message = "Venta creada con datos parciales desde PAGADOS.xlsx"
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                result.TotalSkipped++;
+                result.Errors.Add($"Folio {record.Folio}: {ex.Message}");
+                result.Details.Add(new ImportPagadosDetailDto
+                {
+                    Folio = record.Folio,
+                    Fecha = record.Fecha,
+                    NombreCliente = record.NombreCliente,
+                    Action = "Skipped",
+                    Message = ex.Message
+                });
+            }
+        }
+
+        // Guardar todos los cambios acumulados
+        await _dbContext.SaveChangesAsync();
+        return result;
+    }
+
+    /// <summary>
+    /// Parsea el campo <c>NombreCliente</c> del archivo PAGADOS.xlsx, que viene en el formato
+    /// <c>"000055 PUBLICO GENERAL"</c>, y extrae por separado el <c>ExternalId</c> numérico
+    /// y el nombre del cliente.
+    ///
+    /// FORMATO ESPERADO: <c>"{código_con_ceros} {nombre completo}"</c>
+    ///
+    /// EJEMPLOS:
+    /// <list type="table">
+    ///   <item>
+    ///     <term>"001078 CARLOS JONATHAN DEL RIVERO IRIGOYEN"</term>
+    ///     <description>→ externalId=1078, name="CARLOS JONATHAN DEL RIVERO IRIGOYEN"</description>
+    ///   </item>
+    ///   <item>
+    ///     <term>"000055 PUBLICO GENERAL"</term>
+    ///     <description>→ externalId=55, name="PUBLICO GENERAL"</description>
+    ///   </item>
+    ///   <item>
+    ///     <term>"006423 HUGO MAGAÑA LOPEZ 9812421639 SAMULA"</term>
+    ///     <description>→ externalId=6423, name="HUGO MAGAÑA LOPEZ 9812421639 SAMULA"</description>
+    ///   </item>
+    /// </list>
+    ///
+    /// CASOS LÍMITE:
+    /// <list type="bullet">
+    ///   <item>Cadena vacía o nula → retorna (0, string.Empty).</item>
+    ///   <item>Sin espacio → retorna (0, texto_completo).</item>
+    ///   <item>Código no numérico → retorna externalId=0.</item>
+    ///   <item>Código "000000" → externalId=0 (todos los ceros se eliminan).</item>
+    /// </list>
+    /// </summary>
+    /// <param name="nombreCliente">Campo NombreCliente del registro PAGADOS.</param>
+    /// <returns>Tupla con (<c>externalId</c> entero, <c>name</c> nombre limpio).</returns>
+    private static (int externalId, string name) ParseNombreCliente(string nombreCliente)
+    {
+        if (string.IsNullOrWhiteSpace(nombreCliente))
+            return (0, string.Empty);
+
+        var trimmed = nombreCliente.Trim();
+        var spaceIndex = trimmed.IndexOf(' ');
+
+        if (spaceIndex <= 0)
+            return (0, trimmed);
+
+        var codePart = trimmed[..spaceIndex].TrimStart('0');
+        var namePart = trimmed[(spaceIndex + 1)..].Trim();
+
+        if (!int.TryParse(codePart, out int externalId))
+            externalId = 0;
+
+        return (externalId, namePart);
+    }
 }
+

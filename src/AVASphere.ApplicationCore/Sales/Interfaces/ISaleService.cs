@@ -126,4 +126,26 @@ public interface ISaleService
         string createdByUserId,
         int batchSize = 5
     );
+
+    /// <summary>
+    /// Importa ventas de forma inteligente desde el JSON procesado del archivo PAGADOS.xlsx.
+    /// 
+    /// LÓGICA POR CADA REGISTRO:
+    /// - Si existe una venta con mismo Folio + SaleDate + Customer.ExternalId →
+    ///   ACTUALIZA AuxNoteDataJson agregando ImportePagado y Saldo.
+    /// - Si NO existe →
+    ///   CREA una nueva Sale con datos parciales (campos faltantes vacíos).
+    /// 
+    /// El campo NombreCliente viene en formato "000055 PUBLICO GENERAL"
+    /// donde los primeros dígitos (con ceros al frente) son el ExternalId del cliente.
+    /// </summary>
+    /// <param name="request">JSON procesado del archivo PAGADOS.xlsx</param>
+    /// <param name="idConfigSys">ID del sistema de configuración</param>
+    /// <param name="createdByUserId">Usuario que ejecuta la importación</param>
+    /// <returns>Resultado con estadísticas: actualizados, creados, omitidos</returns>
+    Task<ImportPagadosResultDto> ImportFromPagadosAsync(
+        ImportPagadosRequestDto request,
+        int idConfigSys,
+        string createdByUserId
+    );
 }

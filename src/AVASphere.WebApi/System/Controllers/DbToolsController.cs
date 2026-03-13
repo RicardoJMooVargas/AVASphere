@@ -1,10 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿﻿using Microsoft.AspNetCore.Mvc;
+using AVASphere.ApplicationCore.Common.DTOs;
 using AVASphere.Infrastructure.System.Services;
-using AVASphere.ApplicationCore.Common.Interfaces;
-using AVASphere.ApplicationCore.Common.Entities.General;
-using AVASphere.Infrastructure;
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace AVASphere.WebApi.System.Controllers;
 
@@ -15,142 +11,184 @@ namespace AVASphere.WebApi.System.Controllers;
 public class DbToolsController : ControllerBase
 {
     private readonly DbToolsServices _dbTools;
-    private readonly IConfigSysService _configSysService;
-    private readonly MasterDbContext _dbContext;
 
-    public DbToolsController(DbToolsServices dbTools, IConfigSysService configSysService, MasterDbContext dbContext)
+    public DbToolsController(DbToolsServices dbTools)
     {
         _dbTools = dbTools;
-        _configSysService = configSysService;
-        _dbContext = dbContext;
     }
 
+    /// <summary>
+    /// Verifica la conexión y estado de la base de datos
+    /// </summary>
     [HttpGet("check")]
     public async Task<IActionResult> CheckConnection()
     {
         var (isConnected, hasData, message) = await _dbTools.CheckConnectionAsync();
-        return Ok(new
+        var response = new ApiResponse
         {
-            IsConnected = isConnected,
-            HasData = hasData,
-            Message = message
-        });
+            Success = true,
+            Data = new
+            {
+                IsConnected = isConnected,
+                HasData = hasData
+            },
+            Message = message,
+            StatusCode = 200
+        };
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Verifica si existen archivos de migración
+    /// </summary>
+    [HttpGet("check-migrations")]
+    public async Task<IActionResult> CheckMigrations()
+    {
+        var (hasMigrations, count, files) = await _dbTools.CheckMigrationsAsync();
+        var response = new ApiResponse
+        {
+            Success = true,
+            Data = new
+            {
+                HasMigrations = hasMigrations,
+                MigrationCount = count,
+                MigrationFiles = files
+            },
+            Message = hasMigrations ? $"Se encontraron {count} archivos de migración" : "No hay archivos de migración",
+            StatusCode = 200
+        };
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Elimina todos los archivos de migración existentes
+    /// </summary>
+    [HttpDelete("delete-migrations")]
+    public async Task<IActionResult> DeleteMigrations()
+    {
+        var result = await _dbTools.DeleteMigrationsAsync();
+        var response = new ApiResponse
+        {
+            Success = true,
+            Data = new { Result = result },
+            Message = "Operación de eliminación de migraciones completada",
+            StatusCode = 200
+        };
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// 🚀 PROCESO COMPLETO AUTOMATIZADO: Elimina tablas, elimina migraciones antiguas, crea nueva migración y la aplica
+    /// </summary>
+    /// <param name="name">Nombre de la migración (por defecto: "Initial")</param>
+    [HttpPost("full-migration")]
+    public async Task<IActionResult> FullMigration([FromQuery] string name = "Initial")
+    {
+        var result = await _dbTools.FullMigrationAsync(name);
+        var response = new ApiResponse
+        {
+            Success = !result.Contains("❌"),
+            Data = new { Result = result },
+            Message = !result.Contains("❌") ? "Proceso completo de migración ejecutado exitosamente" : "Error en proceso de migración",
+            StatusCode = !result.Contains("❌") ? 200 : 400
+        };
+        return !result.Contains("❌") ? Ok(response) : BadRequest(response);
+    }
+
+    /// <summary>
+    /// Crea una nueva migración (requiere base de datos vacía)
+    /// </summary>
+    /// <param name="name">Nombre de la migración</param>
+    [HttpPost("create-migration")]
+    public async Task<IActionResult> CreateMigration([FromQuery] string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return BadRequest(new ApiResponse
+            {
+                Success = false,
+                Message = "El nombre de la migración es requerido",
+                StatusCode = 400
+            });
+        }
+
+        var result = await _dbTools.CreateMigrationAsync(name);
+        var response = new ApiResponse
+        {
+            Success = !result.Contains("❌"),
+            Data = new { Result = result },
+            Message = !result.Contains("❌") ? "Migración creada correctamente" : "Error creando migración",
+            StatusCode = !result.Contains("❌") ? 200 : 400
+        };
+        return !result.Contains("❌") ? Ok(response) : BadRequest(response);
+    }
+
+    /// <summary>
+    /// Aplica migraciones pendientes a la base de datos
+    /// </summary>
+    [HttpPost("apply-migration")]
+    public async Task<IActionResult> ApplyMigration()
+    {
+        var result = await _dbTools.ApplyMigrationAsync();
+        var response = new ApiResponse
+        {
+            Success = !result.Contains("❌"),
+            Data = new { Result = result },
+            Message = !result.Contains("❌") ? "Migraciones aplicadas correctamente" : "Error aplicando migraciones",
+            StatusCode = !result.Contains("❌") ? 200 : 400
+        };
+        return !result.Contains("❌") ? Ok(response) : BadRequest(response);
     }
     
+    /// <summary>
+    /// Elimina todas las tablas de la base de datos (mantiene historial de migraciones)
+    /// </summary>
     [HttpDelete("drop-tables")]
     public async Task<IActionResult> DropTables()
     {
         var result = await _dbTools.DropTablesAsync();
-        return Ok(new { Result = result });
+        var response = new ApiResponse
+        {
+            Success = true,
+            Data = new { Result = result },
+            Message = "Operación de eliminación de tablas completada",
+            StatusCode = 200
+        };
+        return Ok(response);
     }
 
-    [HttpGet("check-initial-config")]
-    public async Task<IActionResult> CheckInitialConfig()
+    /// <summary>
+    /// Elimina completamente la base de datos
+    /// </summary>
+    [HttpDelete("drop")]
+    public async Task<IActionResult> DropDatabase()
     {
-        try
+        var result = await _dbTools.DropDatabaseAsync();
+        var response = new ApiResponse
         {
-            // Usar DbContext directamente para evitar problemas de conexión cerrada
-            ConfigSys? config = null;
-            bool tableExists = false;
-            bool hasConfiguration = false;
-            
-            try
-            {
-                // Verificar si podemos conectar a la base de datos
-                var canConnect = await _dbContext.Database.CanConnectAsync();
-                if (!canConnect)
-                {
-                    return Ok(new
-                    {
-                        HasConfiguration = false,
-                        TableExists = false,
-                        RequiresMigration = true,
-                        Message = "No se puede conectar a la base de datos",
-                        Data = (object?)null
-                    });
-                }
+            Success = true,
+            Data = new { Result = result },
+            Message = "Operación de eliminación de base de datos completada",
+            StatusCode = 200
+        };
+        return Ok(response);
+    }
 
-                // Intentar consultar directamente usando Entity Framework
-                config = await _dbContext.ConfigSys.FirstOrDefaultAsync();
-                tableExists = true; // Si no hay excepción, la tabla existe
-                hasConfiguration = config != null;
-            }
-            catch (Exception dbEx)
-            {
-                // Verificar si el error es específicamente porque la tabla no existe
-                var errorMessage = dbEx.Message.ToLower();
-                var innerMessage = dbEx.InnerException?.Message?.ToLower() ?? "";
-                
-                if (errorMessage.Contains("does not exist") || 
-                    errorMessage.Contains("relation") ||
-                    errorMessage.Contains("table") ||
-                    innerMessage.Contains("does not exist") ||
-                    innerMessage.Contains("relation") ||
-                    (dbEx is PostgresException pgEx && pgEx.SqlState == "42P01")) // PostgreSQL: undefined_table
-                {
-                    tableExists = false;
-                    hasConfiguration = false;
-                }
-                else
-                {
-                    // Re-lanzar otros errores
-                    throw;
-                }
-            }
-
-            // Determinar respuesta basada en los resultados
-            if (!tableExists)
-            {
-                return Ok(new
-                {
-                    HasConfiguration = false,
-                    TableExists = false,
-                    RequiresMigration = true,
-                    Message = "La tabla ConfigSys no existe. Se requiere ejecutar migraciones.",
-                    Data = (object?)null
-                });
-            }
-
-            if (!hasConfiguration)
-            {
-                return Ok(new
-                {
-                    HasConfiguration = false,
-                    TableExists = true,
-                    RequiresMigration = false,
-                    Message = "La tabla ConfigSys existe pero no hay configuración inicial del sistema",
-                    Data = (object?)null
-                });
-            }
-
-            return Ok(new
-            {
-                HasConfiguration = true,
-                TableExists = true,
-                RequiresMigration = false,
-                Message = "Configuración inicial encontrada y tabla ConfigSys existe",
-                Data = new
-                {
-                    config!.IdConfigSys,
-                    config.CompanyName,
-                    config.BranchName,
-                    config.LogoUrl,
-                    ColorsCount = config.Colors?.Count ?? 0,
-                    NotUseModulesCount = config.NotUseModules?.Count ?? 0,
-                    config.CreatedAt
-                }
-            });
-        }
-        catch (Exception ex)
+    /// <summary>
+    /// Proceso simplificado: elimina tablas, crea migración y la aplica (sin eliminar archivos de migración)
+    /// </summary>
+    /// <param name="name">Nombre de la migración (por defecto: "Initial")</param>
+    [HttpPost("recreate-database")]
+    public async Task<IActionResult> RecreateDatabase([FromQuery] string name = "Initial")
+    {
+        var result = await _dbTools.RecreateDatabaseAsync(name);
+        var response = new ApiResponse
         {
-            return StatusCode(500, new
-            {
-                HasConfiguration = false,
-                TableExists = false,
-                RequiresMigration = true,
-                Message = $"Error al verificar la configuración inicial: {ex.Message}",
-                Data = (object?)null
-            });
-        }
+            Success = !result.Contains("❌"),
+            Data = new { Result = result },
+            Message = !result.Contains("❌") ? "Base de datos recreada exitosamente" : "Error recreando base de datos",
+            StatusCode = !result.Contains("❌") ? 200 : 400
+        };
+        return !result.Contains("❌") ? Ok(response) : BadRequest(response);
     }
 }

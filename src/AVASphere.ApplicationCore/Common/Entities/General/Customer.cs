@@ -1,4 +1,6 @@
-﻿﻿using AVASphere.ApplicationCore.Common.Entities.Jsons;
+﻿using System.Globalization;
+using AVASphere.ApplicationCore.Common.Entities.Jsons;
+using AVASphere.ApplicationCore.Projects.Entities.General;
 using AVASphere.ApplicationCore.Sales.Entities;
 namespace AVASphere.ApplicationCore.Common.Entities.General;
 
@@ -9,7 +11,7 @@ public class Customer
     public int ExternalId { get; set; }
     public string? Name { get; set; }
     public string? LastName { get; set; }
-    public int PhoneNumber { get; set; }
+    public string PhoneNumber { get; set; } = "+00";
     public string? Email { get; set; }
     public string? TaxId { get; set; }
     // JSON
@@ -21,7 +23,32 @@ public class Customer
 
     // Relaciones
     public List<Quotation> Quotations { get; set; } = new List<Quotation>();
+    public List<Project> Projects { get; set; } = new List<Project>();
     public List<Sale> Sales { get; set; } = new List<Sale>();
+
+    // Devuelve ExternalId como string.
+    /* Si se necesita un formato o proveedor lo puedes pasar en la sobrecarga.
+
+    public string GetExternalIdAsString()
+    {
+        return ExternalId.ToString(CultureInfo.InvariantCulture);
+    }
+     Devuelve ExternalId formateado con el formato especificado (por ejemplo "D6") y proveedor opcional.
+
+    public string GetExternalIdAsString(string format, IFormatProvider? provider = null)
+    {
+        if (string.IsNullOrEmpty(format))
+            return GetExternalIdAsString();
+
+        return ExternalId.ToString(format, provider ?? CultureInfo.InvariantCulture);
+    }*/
+
+    // Devuelve ExternalId como string rellenado a totalWidth con paddingChar (ej. "0000123").
+
+    public string GetExternalIdPadded(int totalWidth, char paddingChar = '0')
+    {
+        return ExternalId.ToString(CultureInfo.InvariantCulture).PadLeft(totalWidth, paddingChar);
+    }
 }
 
 public class SettingsCustomerJson
@@ -30,5 +57,14 @@ public class SettingsCustomerJson
     public string? Route { get; set; }
     public string Type { get; set; } = "General"; // aluminiero , general, etc.
     public double Discount { get; set; } = 0.0;
+    public string? Agente { get; set; }
+    public string? TipoCliente { get; set; }
+    public string? TipoPrecio { get; set; }
+    public string? Credito { get; set; }
+    public decimal? LimiteCredito { get; set; }
+    public int? DiasPP { get; set; }
+    public decimal? PorcPP { get; set; }
+    public string? RF { get; set; }
+    public string? Descripcion { get; set; }
+    public DateTime? Alta { get; set; }
 }
-

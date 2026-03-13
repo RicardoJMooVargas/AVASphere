@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -38,7 +38,7 @@ namespace AVASphere.Infrastructure.System.Services
                 await using (var connection = _dbContext.Database.GetDbConnection())
                 {
                     await connection.OpenAsync();
-                    
+
                     // Verificar si existen tablas de datos
                     await using (var command = connection.CreateCommand())
                     {
@@ -126,10 +126,10 @@ namespace AVASphere.Infrastructure.System.Services
         {
             try
             {
-                // Construir rutas absolutas correctas
-                var basePath = @"C:\Users\AcerLapTablet\repos\AVASphere";
+                // Construir rutas absolutas correctas para Linux/Windows
+                var basePath = "/home/ricardomogas/RiderProjects/AVASphere";
                 var infraProject = Path.Combine(basePath, "src", "AVASphere.Infrastructure", "AVASphere.Infrastructure.csproj");
-                
+
                 var command = $"dotnet ef migrations add {migrationName} " +
                              $"--project \"{infraProject}\" " +
                              $"--startup-project \"{infraProject}\" " +
@@ -149,8 +149,8 @@ namespace AVASphere.Infrastructure.System.Services
                     return $"❌ Error en EF: {result}";
                 }
 
-                return result.Contains("Done") || string.IsNullOrWhiteSpace(result) ? 
-                    "✅ Migración creada exitosamente." : 
+                return result.Contains("Done") || string.IsNullOrWhiteSpace(result) ?
+                    "✅ Migración creada exitosamente." :
                     $"✅ {result}";
             }
             catch (Exception ex)
@@ -165,10 +165,10 @@ namespace AVASphere.Infrastructure.System.Services
         {
             try
             {
-                // Construir rutas absolutas correctas
-                var basePath = @"C:\Users\AcerLapTablet\repos\AVASphere";
+                // Construir rutas absolutas correctas para Linux/Windows
+                var basePath = "/home/ricardomogas/RiderProjects/AVASphere";
                 var infraProject = Path.Combine(basePath, "src", "AVASphere.Infrastructure", "AVASphere.Infrastructure.csproj");
-                
+
                 var command = $"dotnet ef database update " +
                              $"--project \"{infraProject}\" " +
                              $"--startup-project \"{infraProject}\" " +
@@ -182,8 +182,8 @@ namespace AVASphere.Infrastructure.System.Services
                     return $"❌ Error en EF CLI: {result}";
                 }
 
-                return result.Contains("Done") || string.IsNullOrWhiteSpace(result) ? 
-                    "✅ Migraciones aplicadas correctamente." : 
+                return result.Contains("Done") || string.IsNullOrWhiteSpace(result) ?
+                    "✅ Migraciones aplicadas correctamente." :
                     $"✅ {result}";
             }
             catch (Exception ex)
@@ -225,9 +225,8 @@ namespace AVASphere.Infrastructure.System.Services
                 await using var getTablesCmd = new NpgsqlCommand(@"
                     SELECT tablename 
                     FROM pg_tables 
-                    WHERE schemaname = 'public' 
-                    AND tablename != '__EFMigrationsHistory'", connection);
-                
+                    WHERE schemaname = 'public'", connection);
+
                 var tables = new List<string>();
                 await using (var reader = await getTablesCmd.ExecuteReaderAsync())
                 {
@@ -297,7 +296,7 @@ namespace AVASphere.Infrastructure.System.Services
             process.StartInfo.UseShellExecute = false;
             process.StartInfo.CreateNoWindow = true;
             // Establecer working directory desde la raíz del proyecto
-            process.StartInfo.WorkingDirectory = @"C:\Users\AcerLapTablet\repos\AVASphere";
+            process.StartInfo.WorkingDirectory = "/home/ricardomogas/RiderProjects/AVASphere";
 
             process.Start();
 
@@ -306,7 +305,7 @@ namespace AVASphere.Infrastructure.System.Services
             await process.WaitForExitAsync();
 
             var result = string.IsNullOrWhiteSpace(error) ? output : $"ERROR: {error}";
-            
+
             // Si no hay output pero tampoco error, considerar éxito
             if (string.IsNullOrWhiteSpace(result) && process.ExitCode == 0)
             {
@@ -352,5 +351,125 @@ namespace AVASphere.Infrastructure.System.Services
                 return $"❌ Error: {ex.Message}";
             }
         }
+
+        // 6️⃣ Verificar si existen archivos de migración
+        public async Task<(bool HasMigrations, int Count, List<string> Files)> CheckMigrationsAsync()
+        {
+            try
+            {
+                var basePath = "/home/ricardomogas/RiderProjects/AVASphere";
+                var migrationsPath = Path.Combine(basePath, "src", "AVASphere.Infrastructure", "System", "Migrations");
+
+                if (!Directory.Exists(migrationsPath))
+                {
+                    return (false, 0, new List<string>());
+                }
+
+                var migrationFiles = Directory.GetFiles(migrationsPath, "*.cs")
+                    .Select(Path.GetFileName)
+                    .Where(f => f != null)
+                    .Cast<string>()
+                    .ToList();
+
+                return (migrationFiles.Count > 0, migrationFiles.Count, migrationFiles);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verificando archivos de migración");
+                return (false, 0, new List<string>());
+            }
+        }
+
+        // 7️⃣ Eliminar archivos de migración existentes
+        public async Task<string> DeleteMigrationsAsync()
+        {
+            try
+            {
+                var basePath = "/home/ricardomogas/RiderProjects/AVASphere";
+                var migrationsPath = Path.Combine(basePath, "src", "AVASphere.Infrastructure", "System", "Migrations");
+
+                if (!Directory.Exists(migrationsPath))
+                {
+                    return "ℹ️ Directorio de migraciones no existe";
+                }
+
+                var files = Directory.GetFiles(migrationsPath, "*.cs");
+                if (files.Length == 0)
+                {
+                    return "ℹ️ No hay archivos de migración para eliminar";
+                }
+
+                foreach (var file in files)
+                {
+                    File.Delete(file);
+                    _logger.LogInformation($"Archivo eliminado: {Path.GetFileName(file)}");
+                }
+
+                return $"🗑️ {files.Length} archivos de migración eliminados exitosamente";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando archivos de migración");
+                return $"❌ Error eliminando archivos de migración: {ex.Message}";
+            }
+        }
+
+        // 8️⃣ Proceso completo automatizado de migración (MÉTODO PRINCIPAL)
+        public async Task<string> FullMigrationAsync(string migrationName = "Initial")
+        {
+            try
+            {
+                _logger.LogInformation($"🚀 Iniciando proceso completo de migración: {migrationName}");
+                var results = new List<string>();
+
+                // 1. Verificar conexión
+                var (isConnected, hasData, connectionMessage) = await CheckConnectionAsync();
+                results.Add($"✅ Conexión verificada: {connectionMessage}");
+
+                if (!isConnected)
+                {
+                    return string.Join("\n", results);
+                }
+
+                // 2. Si hay datos, eliminar tablas
+                if (hasData)
+                {
+                    _logger.LogInformation("🗑️ Eliminando tablas existentes...");
+                    var dropResult = await DropTablesAsync();
+                    results.Add(dropResult);
+                }
+
+                // 3. Eliminar archivos de migración antiguos
+                var deleteResult = await DeleteMigrationsAsync();
+                results.Add(deleteResult);
+
+                // 4. Crear nueva migración
+                _logger.LogInformation($"📝 Creando nueva migración: {migrationName}...");
+                var createResult = await CreateMigrationAsync(migrationName);
+                results.Add(createResult);
+
+                if (createResult.Contains("❌"))
+                {
+                    return string.Join("\n", results);
+                }
+
+                // 5. Aplicar migración
+                _logger.LogInformation("⚙️ Aplicando migración a la base de datos...");
+                var applyResult = await ApplyMigrationAsync();
+                results.Add(applyResult);
+
+                // 6. Verificar estado final
+                var (finalConnected, finalHasData, finalMessage) = await CheckConnectionAsync();
+                results.Add($"✅ Estado final: {finalMessage}");
+
+                return string.Join("\n", results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en proceso completo de migración");
+                return $"❌ Error en proceso completo: {ex.Message}";
+            }
+        }
     }
 }
+

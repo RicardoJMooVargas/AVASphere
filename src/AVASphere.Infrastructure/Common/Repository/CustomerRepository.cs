@@ -29,6 +29,15 @@ public class CustomerRepository : ICustomerRepository
         return await query.AsNoTracking().ToListAsync();
     }
 
+    /// <summary>
+    /// Obtiene un cliente por ID con tracking habilitado (para operaciones de actualización).
+    /// </summary>
+    public async Task<Customer?> GetByIdForUpdateAsync(int idCustomer)
+    {
+        return await _context.Customers
+            .FirstOrDefaultAsync(c => c.IdCustomer == idCustomer);
+    }
+
     public async Task<Customer> InsertAsync(Customer customer)
     {
         // Asegurar JSON requeridos
@@ -48,21 +57,36 @@ public class CustomerRepository : ICustomerRepository
         if (existing == null)
             throw new KeyNotFoundException($"Customer with Id {customer.IdCustomer} not found.");
 
-        // Actualización de campos (reemplazo completo en repositorio; actualización parcial debe manejarse en el servicio)
+        // Actualización de campos simples
         existing.ExternalId = customer.ExternalId;
         existing.Name = customer.Name;
         existing.LastName = customer.LastName;
         existing.PhoneNumber = customer.PhoneNumber;
         existing.Email = customer.Email;
         existing.TaxId = customer.TaxId;
-        existing.SettingsCustomerJson = customer.SettingsCustomerJson;
-        if (customer.DirectionJson is not null)
+
+        // Actualización de campos JSON (siempre se actualizan si se proporcionan)
+        if (customer.SettingsCustomerJson != null)
+        {
+            existing.SettingsCustomerJson = customer.SettingsCustomerJson;
+        }
+
+        if (customer.DirectionJson != null)
         {
             existing.DirectionJson = customer.DirectionJson; // requerido
         }
-        existing.PaymentMethodsJson = customer.PaymentMethodsJson;
-        existing.PaymentTermsJson = customer.PaymentTermsJson;
 
+        if (customer.PaymentMethodsJson != null)
+        {
+            existing.PaymentMethodsJson = customer.PaymentMethodsJson;
+        }
+
+        if (customer.PaymentTermsJson != null)
+        {
+            existing.PaymentTermsJson = customer.PaymentTermsJson;
+        }
+
+        _context.Customers.Update(existing);
         await _context.SaveChangesAsync();
         return existing;
     }
@@ -84,13 +108,13 @@ public class CustomerRepository : ICustomerRepository
             .Where(c => c.SettingsCustomerJson != null)
             .AsNoTracking()
             .ToListAsync();
-        
+
         var maxIndex = customers
             .Where(c => c.SettingsCustomerJson != null)
             .Select(c => c.SettingsCustomerJson!.Index)
             .DefaultIfEmpty(0)
             .Max();
-        
+
         return maxIndex + 1;
     }
 
@@ -100,12 +124,12 @@ public class CustomerRepository : ICustomerRepository
         var customers = await _context.Customers
             .AsNoTracking()
             .ToListAsync();
-        
+
         var maxIndex = customers
             .Select(c => c.DirectionJson.Index)
             .DefaultIfEmpty(0)
             .Max();
-        
+
         return maxIndex + 1;
     }
 
@@ -116,13 +140,13 @@ public class CustomerRepository : ICustomerRepository
             .Where(c => c.PaymentMethodsJson != null)
             .AsNoTracking()
             .ToListAsync();
-        
+
         var maxIndex = customers
             .Where(c => c.PaymentMethodsJson != null)
             .Select(c => c.PaymentMethodsJson!.Index)
             .DefaultIfEmpty(0)
             .Max();
-        
+
         return maxIndex + 1;
     }
 
@@ -133,13 +157,127 @@ public class CustomerRepository : ICustomerRepository
             .Where(c => c.PaymentTermsJson != null)
             .AsNoTracking()
             .ToListAsync();
-        
+
         var maxIndex = customers
             .Where(c => c.PaymentTermsJson != null)
             .Select(c => c.PaymentTermsJson!.Index)
             .DefaultIfEmpty(0)
             .Max();
-        
+
         return maxIndex + 1;
+    }
+
+    public async Task<int> GetNextExternalIdAsync()
+    {
+        // Traer datos a memoria primero para evitar problemas de traducción LINQ
+        var externalIds = await _context.Customers
+            .AsNoTracking()
+            .Select(c => c.ExternalId)
+            .ToListAsync();
+
+        var maxExternalId = externalIds.DefaultIfEmpty(0).Max();
+
+        return maxExternalId + 1;
+    }
+
+    public async Task<Customer?> FindByNameOrCodeAsync(string clienteCodeOrName)
+    {
+        if (string.IsNullOrWhiteSpace(clienteCodeOrName))
+            return null;
+
+        var customers = await _context.Customers.AsNoTracking().ToListAsync();
+
+        return customers.FirstOrDefault(c =>
+            c.GetExternalIdPadded(6) == clienteCodeOrName ||
+            c.Name == clienteCodeOrName);
+    }
+
+    public async Task<Customer?> GetByIdAsync(int idCustomer)
+    {
+        return await _context.Customers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.IdCustomer == idCustomer);
+    }
+
+    public async Task<IEnumerable<Customer>> SearchByFullNameAsync(string searchText)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+            return new List<Customer>();
+
+        // Normalizar texto de búsqueda (quitar espacios extra y convertir a minúsculas)
+        var normalizedSearchText = searchText.Trim().ToLower();
+
+        // Búsqueda usando ILIKE de PostgreSQL para coincidencia parcial
+        var query = _context.Customers
+            .Where(c =>
+                EF.Functions.ILike((c.Name ?? "") + " " + (c.LastName ?? ""), $"%{normalizedSearchText}%") ||
+                EF.Functions.ILike(c.Name ?? "", $"%{normalizedSearchText}%") ||
+                EF.Functions.ILike(c.LastName ?? "", $"%{normalizedSearchText}%")
+            );
+
+        return await query.AsNoTracking().ToListAsync();
+    }
+
+    public async Task<bool> ExistsByExternalIdAsync(int externalId)
+    {
+        return await _context.Customers.AnyAsync(c => c.ExternalId == externalId);
+    }
+
+    public async Task<bool> ResetTableAsync()
+    {
+        try
+        {
+            // Eliminar todos los registros
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"Customers\"");
+
+            // Reiniciar la secuencia del ID
+            await _context.Database.ExecuteSqlRawAsync("ALTER SEQUENCE IF EXISTS \"Customers_IdCustomer_seq\" RESTART WITH 1");
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Obtiene los ExternalIds existentes de una lista dada.
+    /// Optimizado para importación batch.
+    /// </summary>
+    public async Task<List<int>> GetExistingExternalIdsAsync(List<int> externalIds)
+    {
+        if (externalIds == null || !externalIds.Any())
+            return new List<int>();
+
+        return await _context.Customers
+            .AsNoTracking()
+            .Where(c => externalIds.Contains(c.ExternalId))
+            .Select(c => c.ExternalId)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Inserta múltiples clientes en una sola operación batch.
+    /// Optimizado para importación masiva.
+    /// </summary>
+    public async Task<IEnumerable<Customer>> InsertBatchAsync(List<Customer> customers)
+    {
+        if (customers == null || !customers.Any())
+            return new List<Customer>();
+
+        // Asegurar JSON requeridos
+        foreach (var customer in customers)
+        {
+            if (customer.DirectionJson is null)
+            {
+                customer.DirectionJson = new();
+            }
+        }
+
+        await _context.Customers.AddRangeAsync(customers);
+        await _context.SaveChangesAsync();
+
+        return customers;
     }
 }

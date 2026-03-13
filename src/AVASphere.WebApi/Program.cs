@@ -8,6 +8,22 @@ LoadEnvironmentVariables();
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure Kestrel to use a specific port - Solo en Development
+if (builder.Environment.IsDevelopment())
+{
+    // Solo usar configuración personalizada si no se especifica --urls
+    if (!args.Any(arg => arg.StartsWith("--urls")))
+    {
+        // Limpiar cualquier URL predefinida para evitar conflictos
+        builder.WebHost.UseUrls();
+        
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.ListenLocalhost(5001); // Solo HTTP en puerto 5001
+        });
+    }
+}
+
 // Add services to the container.
 builder.Services.AddControllers(options =>
 {
@@ -24,19 +40,28 @@ builder.Services.AddCors(options =>
         corsBuilder
             .SetIsOriginAllowed(origin =>
             {
-                // Permitir cualquier localhost/127.0.0.1 con cualquier puerto
+                // Permitir localhost, 127.0.0.1, ::1 y direcciones IP locales comunes
                 var uri = new Uri(origin);
-                return uri.Host == "localhost" || uri.Host == "127.0.0.1" || uri.Host == "::1";
+                return uri.Host == "localhost" ||
+                       uri.Host == "127.0.0.1" ||
+                       uri.Host == "::1" ||
+                       uri.Host.StartsWith("192.168.") ||
+                       uri.Host.StartsWith("10.") ||
+                       uri.Host.StartsWith("172.");
             })
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
     });
-    
+
     options.AddPolicy("ProductionCorsPolicy", corsBuilder =>
     {
         corsBuilder
-            .WithOrigins("https://yourdomain.com") // Cambiar por tu dominio en producción
+            .WithOrigins(
+                "https://vyaainfor.systems", // Cambiar por tu dominio en producción
+                "https://vyaainfor.systems",
+                "http://vyaainfor.systems"
+            )
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
@@ -124,6 +149,9 @@ builder.Services.AddSwaggerGen(c =>
     {
         c.IncludeXmlComments(xmlPath);
     }
+    
+    // Soporte para file uploads
+    c.OperationFilter<FileUploadOperationFilter>();
 });
 
 // Función auxiliar para descripciones de módulos
@@ -152,11 +180,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         // Configurar múltiples endpoints de Swagger para cada área/módulo
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "General - API Status & Health");
-        c.SwaggerEndpoint("/swagger/common/swagger.json", "Common SystemModule - User & Authentication"); // <- AGREGAR ESTA LÍNEA
+        c.SwaggerEndpoint("/swagger/common/swagger.json", "Common SystemModule - User & Authentication");
         c.SwaggerEndpoint("/swagger/system/swagger.json", "System SystemModule - System Management");
         c.SwaggerEndpoint("/swagger/sales/swagger.json", "Sales SystemModule - Sales & Tracking");
-        
+        c.SwaggerEndpoint("/swagger/projects/swagger.json", "Projects SystemModule - Project Management");
+        c.SwaggerEndpoint("/swagger/inventory/swagger.json", "Inventory SystemModule - Inventory Management");
+
         c.RoutePrefix = "swagger";
         c.DefaultModelsExpandDepth(-1);
         c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
@@ -164,7 +193,11 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// Solo usar HTTPS redirection en producción
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Enable CORS - debe estar antes de Authentication y Authorization
 app.UseCors(app.Environment.IsDevelopment() ? "DevelopmentCorsPolicy" : "ProductionCorsPolicy");
@@ -212,8 +245,10 @@ app.Run();
 static void LoadEnvironmentVariables()
 {
     var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+    Console.WriteLine($"Loading .env from: {envPath}");
     if (File.Exists(envPath))
     {
+        Console.WriteLine(".env file found, loading...");
         var lines = File.ReadAllLines(envPath);
         foreach (var line in lines)
         {
@@ -226,8 +261,19 @@ static void LoadEnvironmentVariables()
                 var key = parts[0].Trim();
                 var value = parts[1].Trim();
                 Environment.SetEnvironmentVariable(key, value);
+                
+                // También agregar con prefijo ASPNETCORE_ si no lo tiene ya
+                if (!key.StartsWith("ASPNETCORE_") && !key.StartsWith("JWT_") && !key.StartsWith("POSTGRES_"))
+                {
+                    Environment.SetEnvironmentVariable($"ASPNETCORE_{key}", value);
+                }
+                
+                Console.WriteLine($"Set env var: {key} = {value}");
             }
         }
     }
+    else
+    {
+        Console.WriteLine(".env file not found");
+    }
 }
-

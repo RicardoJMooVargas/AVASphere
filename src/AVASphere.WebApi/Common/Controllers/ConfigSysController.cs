@@ -1,4 +1,4 @@
-﻿﻿using AVASphere.ApplicationCore.Common.Entities.General;
+﻿using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Enums;
 
 namespace AVASphere.WebApi.Common.Controllers;
@@ -8,7 +8,6 @@ using AVASphere.ApplicationCore.Common.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
-using AVASphere.WebApi.Common.Extensions;
 
 [ApiController]
 [Route("api/common/[controller]")]
@@ -220,6 +219,50 @@ public class ConfigSysController : ControllerBase
         {
             _logger.LogError(ex, "Error updating system configuration");
             return StatusCode(500, new ApiResponse("Internal server error", 500));
+        }
+    }
+
+    [HttpGet("check-initial")]
+    public async Task<ActionResult> CheckInitialConfig()
+    {
+        try
+        {
+            var hasConfig = await _configSysService.HasInitialConfigAsync();
+            var tablesExist = await _configSysService.TablesExistAsync();
+
+            if (!hasConfig)
+            {
+                return Ok(new ApiResponse(new { HasConfig = false, TablesExist = tablesExist, Message = "No initial configuration found" }, "No data", 200));
+            }
+
+            var config = await _configSysService.GetConfigAsync();
+            var configResponse = new ConfigSysResponseDto
+            {
+                IdConfigSys = config.IdConfigSys,
+                CompanyName = config.CompanyName,
+                BranchName = config.BranchName,
+                LogoUrl = config.LogoUrl,
+                Colors = config.Colors.Select(c => new ColorResponseDto
+                {
+                    Index = c.Index,
+                    NameColor = c.NameColor,
+                    ColorCode = c.ColorCode,
+                    ColorRgb = c.ColorRgb
+                }).ToList(),
+                NotUseModules = config.NotUseModules.Select(m => new NotUseModuleResponseDto
+                {
+                    Index = m.Index,
+                    NameModule = m.NameModule
+                }).ToList(),
+                CreatedAt = config.CreatedAt
+            };
+
+            return Ok(new ApiResponse(new { HasConfig = true, TablesExist = tablesExist, Config = configResponse }, "Configuration found", 200));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking initial configuration");
+            return StatusCode(500, new ApiResponse($"Error checking initial configuration: {ex.Message}", 500));
         }
     }
 }

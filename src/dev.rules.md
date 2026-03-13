@@ -1,4 +1,4 @@
-﻿﻿# REGLAS DE DESARROLLO
+﻿# REGLAS DE DESARROLLO
 
 ## Convenciones de Nombramiento Basicas
 | Tipo            | regla                  |
@@ -19,7 +19,7 @@
 - hotfix/hotfix-name : para correcciones urgentes en produccion
 - release/release-name : para preparar una nueva version
 - chore/chore-name : para tareas de mantenimiento
-- docs/docs-name : para cambios en la documentacion
+  - docs/docs-name : para cambios en la documentacion
 - test/test-name : para agregar o modificar pruebas
 - refactor/refactor-name : para reestructurar codigo sin cambiar funcionalidad
 
@@ -28,13 +28,15 @@
 ### ✅ NUEVO: Sistema Automatizado (Recomendado)
 Usa el endpoint que hace todo automáticamente:
 ```http
-POST /api/system/DbTools/full-migration?name=NombreMigracion
+POST /api/system/DbTools/full-migration?name=Initial
 ```
+**⚠️ IMPORTANTE:** La migración principal DEBE llamarse "Initial" para que las instalaciones nuevas funcionen correctamente.
+
 Este endpoint automáticamente:
 1. Verifica la conexión
 2. Elimina tablas existentes
 3. Elimina archivos de migración antiguos en `System\Migrations` (ubicación correcta)
-4. Crea nueva migración
+4. Crea nueva migración con nombre "Initial"
 5. Aplica la migración
 
 ### ❌ Sistema Manual (Antiguo - No recomendado)
@@ -50,12 +52,43 @@ dotnet ef migrations add Initial `
   --context MasterDbContext `
   --output-dir System/Migrations
 ```
+En Linux
+```bash
+# DESDE EL DIRECTORIO RAÍZ DEL PROYECTO (/home/ricardomogas/RiderProjects/AVASphere):
+dotnet ef migrations add Initial \
+  --project src/AVASphere.Infrastructure \
+  --startup-project src/AVASphere.Infrastructure \
+  --context MasterDbContext \
+  --output-dir System/Migrations
+            
+# DESDE EL DIRECTORIO WEBAPI (/home/ricardomogas/RiderProjects/AVASphere/src/AVASphere.WebApi
+
+# OPCIÓN CON PATHS ABSOLUTOS (desde cualquier directorio):
+dotnet ef migrations add Initial \
+  --project /home/ricardomogas/RiderProjects/AVASphere/src/AVASphere.Infrastructure \
+  --startup-project /home/ricardomogas/RiderProjects/AVASphere/src/AVASphere.Infrastructure \
+  --context MasterDbContext \
+  --output-dir System/Migrations
+```
 
 3. Aplica la migración:
 ```bash
-dotnet ef database update `
-  --project src/AVASphere.Infrastructure `
-  --startup-project src/AVASphere.Infrastructure `
+# DESDE EL DIRECTORIO RAÍZ DEL PROYECTO:
+dotnet ef database update \
+  --project src/AVASphere.Infrastructure \
+  --startup-project src/AVASphere.Infrastructure \
+  --context MasterDbContext
+
+# DESDE EL DIRECTORIO WEBAPI:
+dotnet ef database update \
+  --project ../AVASphere.Infrastructure \
+  --startup-project ../AVASphere.Infrastructure \
+  --context MasterDbContext
+
+# CON PATHS ABSOLUTOS (desde cualquier directorio):
+dotnet ef database update \
+  --project /home/ricardomogas/RiderProjects/AVASphere/src/AVASphere.Infrastructure \
+  --startup-project /home/ricardomogas/RiderProjects/AVASphere/src/AVASphere.Infrastructure \
   --context MasterDbContext
 ```
 

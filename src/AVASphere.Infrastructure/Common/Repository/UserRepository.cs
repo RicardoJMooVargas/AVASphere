@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using AVASphere.ApplicationCore.Common.Entities;
 using AVASphere.ApplicationCore.Common.Entities.General;
 using AVASphere.ApplicationCore.Common.Interfaces;
@@ -9,10 +10,12 @@ namespace AVASphere.Infrastructure.Common.Data.Repositories;
 public class UserRepository : IUserRepository
 {
     private readonly MasterDbContext _context;
+    private readonly ILogger<UserRepository> _logger; 
 
-    public UserRepository(MasterDbContext context)
+    public UserRepository(MasterDbContext context, ILogger<UserRepository> logger) // Modifica el constructor
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger)); // Asigna el logger
     }
 
     public async Task<User> SelectUserAsync(User user) 
@@ -37,8 +40,10 @@ public class UserRepository : IUserRepository
         if (!string.IsNullOrEmpty(user.Status))
             query = query.Where(u => u.Status == user.Status);
 
-        if (!string.IsNullOrEmpty(user.Verified))
+        if (user.Verified != null)
+        {
             query = query.Where(u => u.Verified == user.Verified);
+        }
 
         if (user.IdRol > 0)
             query = query.Where(u => u.IdRol == user.IdRol);
@@ -49,7 +54,14 @@ public class UserRepository : IUserRepository
 
         // Incluir relaciones
         query = query.Include(u => u.Rol)
-                     .Include(u => u.ConfigSys); // ✅ INCLUIR CONFIG SYS
+                     .Include(u => u.ConfigSys);
+    
+        _logger.LogWarning(
+            "FILTROS => UserName={UserName}, Status={Status}, Verified={Verified}",
+            user.UserName,
+            user.Status,
+            user.Verified
+        );
 
         return await query.FirstOrDefaultAsync();
     }
@@ -61,7 +73,8 @@ public class UserRepository : IUserRepository
 
         return await _context.Users
             .Include(u => u.Rol)
-            .Include(u => u.ConfigSys) // ✅ INCLUIR CONFIG SYS
+                .ThenInclude(r => r.Area)
+            .Include(u => u.ConfigSys)
             .FirstOrDefaultAsync(u => u.IdUser == idUsers);
     }
 
@@ -87,8 +100,8 @@ public class UserRepository : IUserRepository
         if (string.IsNullOrEmpty(user.Status))
             user.Status = "Active";
 
-        if (string.IsNullOrEmpty(user.CreateAt))
-            user.CreateAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        if (user.CreateAt == null)
+            user.CreateAt = DateOnly.FromDateTime(DateTime.Now);
 
         await _context.Users.AddAsync(user);
         await _context.SaveChangesAsync();
@@ -127,5 +140,13 @@ public class UserRepository : IUserRepository
 
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<User>> GetAllAsync()
+    {
+        return await _context.Users
+            .Include(u => u.Rol)
+            .Include(u => u.ConfigSys)
+            .ToListAsync();
     }
 }

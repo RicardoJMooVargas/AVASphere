@@ -12,4 +12,6 @@ public class Area
     // RELACIONES
     public ICollection<Rol> Rol { get; set; } = new List<Rol>();
     
+    // Nota: Las relaciones con StorageStructure y LocationDetails se manejan
+    // desde las entidades específicas para evitar configuraciones duplicadas
 }

@@ -6,17 +6,17 @@ namespace AVASphere.ApplicationCore.Sales.Entities;
 
 public class Sale
 {
-    public int SaleId { get; set; }
+    public int IdSale { get; set; }
+    public int IdCustomer { get; set; }
     public string SalesExecutive { get; set; } = string.Empty;
-    public DateTime Date { get; set; } = DateTime.UtcNow;
+    public DateTime SaleDate { get; set; } = DateTime.UtcNow;
     public string Type { get; set; } = string.Empty;
-    public int CustomerId { get; set; }
     public string Folio { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
     public string? DeliveryDriver { get; set; }
     public bool HomeDelivery { get; set; } = false;
     public DateTime? DeliveryDate { get; set; }
-    public int SatisfactionLevel { get; set; } = 0;
+    public int? SatisfactionLevel { get; set; } = 0;
     public string? SatisfactionReason { get; set; }
     public string? Comment { get; set; }
     public DateTime? AfterSalesFollowupDate { get; set; }
@@ -29,7 +29,7 @@ public class Sale
 
     // NUEVO: Lista simplificada de productos (JSONB) - opcional
     [Column(TypeName = "jsonb")]
-    public List<SingleProductJson>? Products { get; set; }
+    public List<SingleProductJson>? ProductsJson { get; set; }
 
     // NUEVO: Datos de nota externa (JSONB) - opcional
     [Column(TypeName = "jsonb")]
@@ -41,6 +41,7 @@ public class Sale
     // Propiedades de navegación
     public Customer? Customer { get; set; }
     public ConfigSys? ConfigSys { get; set; }
+    public ICollection<SaleQuotation> SaleQuotations { get; set; } = new List<SaleQuotation>();
 
     // Propiedades calculadas (no se mapean a la BD)
     [NotMapped]
@@ -50,7 +51,7 @@ public class Sale
     public bool HasLinkedQuotations => LinkedQuotations?.Count > 0;
 
     [NotMapped]
-    public bool HasProducts => Products?.Count > 0;
+    public bool HasProducts => ProductsJson?.Count > 0;
 
     [NotMapped]
     public bool HasAuxNoteDataJson => AuxNoteDataJson != null;
@@ -85,5 +86,9 @@ public class AuxNoteDataJson
     public decimal Impuesto { get; set; }
     public decimal Total { get; set; }
     public bool ExisteEnDB { get; set; }
+    /// <summary>Monto efectivamente pagado (proveniente de PAGADOS.xlsx)</summary>
+    public decimal ImportePagado { get; set; }
+    /// <summary>Saldo pendiente (proveniente de PAGADOS.xlsx)</summary>
+    public decimal Saldo { get; set; }
 }
 

@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿﻿﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
 
 namespace AVASphere.Infrastructure;
 
@@ -8,10 +9,21 @@ public class MasterDbContextFactory : IDesignTimeDbContextFactory<MasterDbContex
     public MasterDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<MasterDbContext>();
-        
-        // Usar la misma cadena de conexión que está en appsettings.json
-        var connectionString = "Host=191.96.31.105;Port=5432;Database=avaspheredb;Username=adminvyaa;Password=xuWHDstwihFGW14;";
-        
+
+        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+        var basePath = Path.Combine(Directory.GetCurrentDirectory(), "../AVASphere.WebApi");
+
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(basePath)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile($"appsettings.{environment}.json", optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING")
+                               ?? configuration.GetSection("DbSettings:ConnectionString").Value
+                               ?? "Host=localhost;Port=5432;Database=avaspheredbtest;Username=postgres;Password=postgres;";
+
         optionsBuilder.UseNpgsql(connectionString);
 
         return new MasterDbContext(optionsBuilder.Options);

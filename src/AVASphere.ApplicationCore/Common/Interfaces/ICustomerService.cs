@@ -15,4 +15,13 @@ public interface ICustomerService
 
     // 4) Eliminar un cliente por Id
     Task<bool> DeleteAsync(int idCustomer);
+
+    // 5) Búsqueda inteligente por nombre completo
+    Task<IEnumerable<CustomerDto>> SearchAsync(string searchText);
+
+    // 6) Importar clientes desde archivo Excel
+    Task<CustomerImportResultDto> ImportFromExcelAsync(Stream excelFileStream);
+
+    // 7) Restablecer tabla Customers
+    Task<bool> ResetTableAsync();
 }

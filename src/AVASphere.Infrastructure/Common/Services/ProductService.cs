@@ -1,0 +1,482 @@
+using AVASphere.ApplicationCore.Common.DTOs.ProductDTOs;
+using AVASphere.ApplicationCore.Common.Entities.Products;
+using AVASphere.ApplicationCore.Common.Interfaces;
+using AVASphere.ApplicationCore.Projects.Entities.jsons;
+using Microsoft.Extensions.Logging;
+using ClosedXML.Excel;
+
+namespace AVASphere.Infrastructure.Common.Services;
+
+public class ProductService : IProductService
+{
+    private readonly IProductRepository _productRepository;
+
+    public ProductService(IProductRepository productRepository)
+    {
+        _productRepository = productRepository;
+    }
+
+    public async Task<ProductResponseDto> CreateProductAsync(CreateProductDto dto)
+    {
+        var product = new Product
+        {
+            MainName = dto.MainName,
+            Unit = dto.Unit,
+            Description = dto.Description,
+            Quantity = dto.Quantity,
+            Taxes = dto.Taxes,
+            IdSupplier = dto.IdSupplier,
+            CodeJson = dto.CodeJson ?? new(),
+            CostsJson = dto.CostsJson ?? new(),
+            CategoriesJsons = dto.CategoriesJsons ?? new(),
+            SolutionsJsons = dto.SolutionsJsons ?? new()
+        };
+
+        var createdProduct = await _productRepository.CreateProductsAsync(product);
+        return MapToResponseDto(createdProduct);
+    }
+    public async Task<IEnumerable<ProductResponseDto>> CreateMultipleProductsAsync(List<CreateProductDto> createProductDtos)
+    {
+        var createdProducts = new List<ProductResponseDto>();
+
+        foreach (var dto in createProductDtos)
+        {
+            var product = new Product
+            {
+                MainName = dto.MainName,
+                Unit = dto.Unit,
+                Description = dto.Description,
+                Quantity = dto.Quantity,
+                Taxes = dto.Taxes,
+                IdSupplier = dto.IdSupplier,
+                CodeJson = dto.CodeJson ?? new(),
+                CostsJson = dto.CostsJson ?? new(),
+                CategoriesJsons = dto.CategoriesJsons ?? new(),
+                SolutionsJsons = dto.SolutionsJsons ?? new()
+            };
+
+            var createdProduct = await _productRepository.CreateProductsAsync(product);
+            createdProducts.Add(MapToResponseDto(createdProduct));
+        }
+
+        return createdProducts;
+    }
+    public async Task<ProductResponseDto> UpdateProductAsync(int id, UpdateProductDto dto)
+    {
+        var existingProduct = await _productRepository.GetByIdProductsAsync(id);
+        if (existingProduct == null)
+        {
+            throw new KeyNotFoundException($"Product con ID {id} no encontrado.");
+        }
+
+        // Solo actualizar los campos que se envían (no nulos)
+        if (dto.MainName != null)
+            existingProduct.MainName = dto.MainName;
+
+        if (dto.Unit != null)
+            existingProduct.Unit = dto.Unit;
+
+        if (dto.Description != null)
+            existingProduct.Description = dto.Description;
+
+        if (dto.Quantity.HasValue)
+            existingProduct.Quantity = dto.Quantity.Value;
+
+        if (dto.Taxes.HasValue)
+            existingProduct.Taxes = dto.Taxes.Value;
+
+        if (dto.IdSupplier.HasValue)
+            existingProduct.IdSupplier = dto.IdSupplier.Value;
+
+        if (dto.CodeJson != null)
+            existingProduct.CodeJson = dto.CodeJson;
+
+        if (dto.CostsJson != null)
+            existingProduct.CostsJson = dto.CostsJson;
+
+        if (dto.CategoriesJsons != null)
+            existingProduct.CategoriesJsons = dto.CategoriesJsons;
+
+        if (dto.SolutionsJsons != null)
+            existingProduct.SolutionsJsons = dto.SolutionsJsons;
+
+        var updatedProduct = await _productRepository.UpdateProductsAsync(existingProduct);
+        return MapToResponseDto(updatedProduct);
+    }
+    public async Task<bool> DeleteProductAsync(int id)
+    {
+        return await _productRepository.DeleteProductsAsync(id);
+    }
+
+    /// <summary>
+    /// Agrega una URL de imagen al array de imágenes del producto
+    /// </summary>
+    public async Task<bool> AddProductImageAsync(int idProduct, string imageUrl)
+    {
+        var product = await _productRepository.GetByIdProductsAsync(idProduct);
+        if (product == null)
+        {
+            throw new KeyNotFoundException($"Producto con ID {idProduct} no encontrado.");
+        }
+
+        if (product.ImageUrls == null)
+        {
+            product.ImageUrls = new List<ProductImageJson>();
+        }
+
+        // Obtener el índice más alto actual
+        var maxIndex = product.ImageUrls.Any() ? product.ImageUrls.Max(i => i.Index) : -1;
+
+        // Evitar duplicados por URL
+        if (!product.ImageUrls.Any(i => i.Url == imageUrl))
+        {
+            var imageExtension = Path.GetExtension(imageUrl);
+            var contentType = imageExtension.ToLower() switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "image/jpeg"
+            };
+
+            product.ImageUrls.Add(new ProductImageJson
+            {
+                Index = maxIndex + 1,
+                Url = imageUrl,
+                FileName = Path.GetFileName(imageUrl),
+                ContentType = contentType,
+                IsMain = !product.ImageUrls.Any() // Primera imagen es la principal
+            });
+            await _productRepository.UpdateProductsAsync(product);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Elimina una URL de imagen del array de imágenes del producto
+    /// </summary>
+    public async Task<bool> RemoveProductImageAsync(int idProduct, string imageUrl)
+    {
+        var product = await _productRepository.GetByIdProductsAsync(idProduct);
+        if (product == null)
+        {
+            throw new KeyNotFoundException($"Producto con ID {idProduct} no encontrado.");
+        }
+
+        if (product.ImageUrls != null)
+        {
+            var imageToRemove = product.ImageUrls.FirstOrDefault(i => i.Url == imageUrl);
+            if (imageToRemove != null)
+            {
+                product.ImageUrls.Remove(imageToRemove);
+                await _productRepository.UpdateProductsAsync(product);
+            }
+        }
+
+        return true;
+    }
+
+    public async Task<ProductResponseDto?> GetProductByIdAsync(int id, ProductFilterDto? filters = null)
+    {
+        var product = await _productRepository.GetByIdProductsAsync(id, filters);
+
+        if (product == null)
+            return null;
+
+        return MapToResponseDto(product);
+    }
+    /// <summary>
+    /// Obtiene todos los productos con filtros y paginación (OPTIMIZADO)
+    /// </summary>
+    public async Task<PaginatedProductResponseDto> GetAllProductsAsync(
+        int pageNumber = 1,
+        int pageSize = 20,
+        ProductFilterDto? filters = null)
+    {
+        // Validar parámetros de paginación
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageSize < 1) pageSize = 20;
+        if (pageSize > 10000) pageSize = 10000; // Límite máximo de 10000 registros por página
+
+        // Optimización 1: Obtener el total de registros SIN cargar los datos
+        var totalCount = await _productRepository.GetProductCountAsync(filters);
+
+        // Optimización 2: Calcular páginas antes de cargar datos
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        // Optimización 3: Aplicar paginación en la base de datos (no en memoria)
+        var pagination = new PaginationDto
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
+
+        // Optimización 4: Solo cargar los productos de la página actual
+        var pagedProducts = await _productRepository.GetAllProductsAsync(filters, pagination);
+
+        // Mapear a DTOs
+        var productDtos = pagedProducts.Select(MapToResponseDto).ToList();
+
+        // Crear respuesta paginada
+        return new PaginatedProductResponseDto
+        {
+            Items = productDtos,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = totalPages,
+            HasPreviousPage = pageNumber > 1,
+            HasNextPage = pageNumber < totalPages
+        };
+    }
+    private ProductResponseDto MapToResponseDto(Product product)
+    {
+        return new ProductResponseDto
+        {
+            IdProduct = product.IdProduct,
+            MainName = product.MainName,
+            SupplierName = product.Supplier?.Name ?? "",
+            Unit = product.Unit,
+            Description = product.Description,
+            Quantity = product.Quantity,
+            Taxes = product.Taxes,
+            IdSupplier = product.IdSupplier,
+            ImageUrls = product.ImageUrls?.ToList() ?? new List<ProductImageJson>(),
+            CodeJson = product.CodeJson?.ToList() ?? new(),
+            CostsJson = product.CostsJson?.ToList() ?? new(),
+            CategoriesJsons = product.CategoriesJsons?.ToList() ?? new(),
+            SolutionsJsons = product.SolutionsJsons?.ToList() ?? new(),
+
+            // Mapear ProductProperties con nombres de PropertyValue y Property
+            ProductProperties = product.ProductProperties?.Select(pp => new ProductPropertyDto
+            {
+                IdProductProperties = pp.IdProductProperties,
+                CustomValue = pp.CustomValue ?? "",
+                IdProduct = pp.IdProduct,
+                IdPropertyValue = pp.IdPropertyValue,
+                PropertyValueName = pp.PropertyValue?.Value ?? "",
+                PropertyName = pp.PropertyValue?.Property?.Name ?? ""
+            }).ToList() ?? new List<ProductPropertyDto>()
+        };
+    }
+
+    /// <summary>
+    /// Importa productos desde un archivo Excel. El archivo debe tener las siguientes columnas:
+    /// </summary>
+    public async Task<ImportProductResultDto> ImportProductsFromExcelAsync(Stream excelStream)
+    {
+        var result = new ImportProductResultDto();
+        const int batchSize = 400;
+
+        // PRE-CARGAR TODOS LOS DATOS NECESARIOS ANTES DEL BUCLE
+        var suppliersDict = await _productRepository.GetAllSuppliersAsync();
+        var familiaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Familia");
+        var claseValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Clase");
+        var lineaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Línea");
+        var batch = new List<(int Row, Product Product)>(batchSize);
+
+        using (var workbook = new XLWorkbook(excelStream))
+        {
+            var worksheet = workbook.Worksheet(1);
+            var rowCount = worksheet.LastRowUsed().RowNumber();
+
+            for (int row = 2; row <= rowCount; row++)
+            {
+                try
+                {
+                    // Columna A: Código
+                    var code = worksheet.Cell(row, 1).GetValue<string>().Trim();
+
+                    // Columna B: Descripción
+                    var description = worksheet.Cell(row, 2).GetValue<string>().Trim();
+
+                    // ✅ VALIDACIÓN: Saltar filas de encabezado (títulos del Excel)
+                    var commonHeaders = new[] { "codigo", "código", "code", "descripcion", "descripción", "description", "unidad", "unit", "activo", "active", "proveedor", "supplier" };
+                    var isHeaderRow = (!string.IsNullOrWhiteSpace(code) && commonHeaders.Contains(code.ToLower())) ||
+                                     (!string.IsNullOrWhiteSpace(description) && commonHeaders.Contains(description.ToLower()));
+
+                    if (isHeaderRow)
+                    {
+                        // Saltar silenciosamente o registrar en errores si se desea tracking
+                        continue;
+                    }
+
+                    // Columna C: Unidad (por defecto "S/N" si está vacío)
+                    var unit = worksheet.Cell(row, 3).GetValue<string>().Trim();
+                    if (string.IsNullOrWhiteSpace(unit))
+                    {
+                        unit = "S/U";
+                    }
+
+                    // Columna D: Activo (True/False) - VERIFICACIÓN OBLIGATORIA
+                    var activoCell = worksheet.Cell(row, 4);
+                    bool activo = false;
+
+                    // Intentar leer como booleano o como string
+                    try
+                    {
+                        activo = activoCell.GetValue<bool>();
+                    }
+                    catch
+                    {
+                        var activoString = activoCell.GetValue<string>().Trim();
+                        activo = activoString.Equals("True", StringComparison.OrdinalIgnoreCase) ||
+                                 activoString.Equals("1", StringComparison.OrdinalIgnoreCase);
+                    }
+
+                    // Si Activo es False, ignorar esta fila y continuar con la siguiente
+                    if (!activo)
+                    {
+                        result.Errors.Add($"Fila {row}: Producto '{code}' omitido (Activo = False)");
+                        continue;
+                    }
+
+                    // Columna I (9): Proveedor
+                    var supplierName = worksheet.Cell(row, 9).GetValue<string>().Trim();
+                    int supplierId;
+
+                    // Buscar proveedor en el diccionario precargado, si no existe usar ID 37 por defecto
+                    if (!suppliersDict.TryGetValue(supplierName.ToLower(), out var supplier))
+                    {
+                        result.Errors.Add($"Fila {row}: Proveedor '{supplierName}' no encontrado. Se usará Supplier ID 37 por defecto.");
+                        supplierId = 37;
+                    }
+                    else
+                    {
+                        supplierId = supplier.IdSupplier;
+                    }
+
+                    var product = new Product
+                    {
+                        MainName = description,
+                        Unit = unit,
+                        Description = description,
+                        Quantity = 0,
+                        Taxes = 16,
+                        IdSupplier = supplierId,
+                        CodeJson = new List<CodeJson>
+                        {
+                            new CodeJson
+                            {
+                                Index = 0,
+                                Type = "Principal",
+                                Code = code
+                            }
+                        },
+                        CostsJson = new List<CostsJson>(),
+                        CategoriesJsons = new List<CategoriesJson>(),
+                        SolutionsJsons = new List<SolutionsJson>(),
+                        ProductProperties = new List<ProductProperties>()
+                    };
+
+                    // Columna J (10): Familia - buscar en diccionario precargado
+                    var familia = worksheet.Cell(row, 10).GetValue<string>().Trim();
+                    if (!string.IsNullOrWhiteSpace(familia))
+                    {
+                        if (familiaValuesDict.TryGetValue(familia.ToLower(), out var familiaId))
+                        {
+                            product.ProductProperties.Add(new ProductProperties
+                            {
+                                IdPropertyValue = familiaId
+                            });
+                        }
+                        else
+                        {
+                            result.Errors.Add($"Fila {row}: PropertyValue 'Familia' con valor '{familia}' no encontrado");
+                        }
+                    }
+
+                    // Columna K (11): Clase - buscar en diccionario precargado
+                    var clase = worksheet.Cell(row, 11).GetValue<string>().Trim();
+                    if (!string.IsNullOrWhiteSpace(clase))
+                    {
+                        if (claseValuesDict.TryGetValue(clase.ToLower(), out var claseId))
+                        {
+                            product.ProductProperties.Add(new ProductProperties
+                            {
+                                IdPropertyValue = claseId
+                            });
+                        }
+                        else
+                        {
+                            result.Errors.Add($"Fila {row}: PropertyValue 'Clase' con valor '{clase}' no encontrado");
+                        }
+                    }
+
+                    // Columna L (12): Línea - buscar en diccionario precargado
+                    var linea = worksheet.Cell(row, 12).GetValue<string>().Trim();
+                    if (!string.IsNullOrWhiteSpace(linea))
+                    {
+                        if (lineaValuesDict.TryGetValue(linea.ToLower(), out var lineaId))
+                        {
+                            product.ProductProperties.Add(new ProductProperties
+                            {
+                                IdPropertyValue = lineaId
+                            });
+                        }
+                        else
+                        {
+                            result.Errors.Add($"Fila {row}: PropertyValue 'Línea' con valor '{linea}' no encontrado");
+                        }
+                    }
+
+                    batch.Add((row, product));
+                    if (batch.Count >= batchSize)
+                    {
+                        await PersistImportBatchAsync(batch, result);
+                        batch.Clear();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    result.Errors.Add($"Fila {row}: {ex.Message}");
+                    result.FailedImports++;
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                await PersistImportBatchAsync(batch, result);
+            }
+
+            result.TotalRows = rowCount - 1;
+        }
+
+        return result;
+    }
+
+    private async Task PersistImportBatchAsync(List<(int Row, Product Product)> batch, ImportProductResultDto result)
+    {
+        if (batch.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await _productRepository.CreateProductsBulkAsync(batch.Select(x => x.Product).ToList());
+            result.SuccessfulImports += batch.Count;
+        }
+        catch (Exception ex)
+        {
+            result.Errors.Add($"Lote con {batch.Count} filas falló: {ex.Message}. Se reintentará fila por fila.");
+
+            foreach (var item in batch)
+            {
+                try
+                {
+                    await _productRepository.CreateProductsAsync(item.Product);
+                    result.SuccessfulImports++;
+                }
+                catch (Exception rowEx)
+                {
+                    result.Errors.Add($"Fila {item.Row}: {rowEx.Message}");
+                    result.FailedImports++;
+                }
+            }
+        }
+    }
+
+}

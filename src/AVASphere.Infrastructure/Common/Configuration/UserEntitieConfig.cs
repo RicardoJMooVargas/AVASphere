@@ -17,15 +17,13 @@ namespace AVASphere.Infrastructure.Common.Configuration
                 .IsRequired();
 
             entity.HasIndex(e => e.UserName).IsUnique();
-
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.LastName).HasMaxLength(100);
-            entity.Property(e => e.Password).HasMaxLength(255);
             entity.Property(e => e.HashPassword).HasMaxLength(255);
             entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.Aux).HasMaxLength(100);
-            entity.Property(e => e.CreateAt).HasMaxLength(50);
-            entity.Property(e => e.Verified).HasMaxLength(10);
+            entity.Property(e => e.CreateAt).HasColumnType("date");
+            entity.Property(e => e.Verified);
 
             // 🔹 Relación con Rol
             entity.HasOne(u => u.Rol)

@@ -256,7 +256,19 @@ namespace AVASphere.Infrastructure.Common.Services
             if (string.IsNullOrWhiteSpace(searchText))
                 return new List<CustomerDto>();
 
-            var customers = await _repository.SearchByFullNameAsync(searchText);
+            var normalizedSearch = searchText.Trim();
+            IEnumerable<Customer> customers;
+
+            // Si el texto contiene solo dígitos, se interpreta como búsqueda por ExternalId.
+            if (normalizedSearch.All(char.IsDigit) && int.TryParse(normalizedSearch, out var externalId))
+            {
+                customers = await _repository.SearchByExternalIdAsync(externalId);
+            }
+            else
+            {
+                customers = await _repository.SearchByFullNameAsync(normalizedSearch);
+            }
+
             return customers.Select(MapToDto);
         }
 

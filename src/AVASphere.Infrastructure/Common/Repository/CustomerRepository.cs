@@ -280,4 +280,12 @@ public class CustomerRepository : ICustomerRepository
 
         return customers;
     }
+
+    public async Task<IEnumerable<Customer>> SearchByExternalIdAsync(int externalId)
+    {
+        return await _context.Customers
+            .Where(c => c.ExternalId == externalId)
+            .AsNoTracking()
+            .ToListAsync();
+    }
 }

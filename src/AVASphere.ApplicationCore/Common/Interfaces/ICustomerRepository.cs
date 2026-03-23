@@ -44,4 +44,7 @@ public interface ICustomerRepository
     // Métodos optimizados para importación batch
     Task<List<int>> GetExistingExternalIdsAsync(List<int> externalIds);
     Task<IEnumerable<Customer>> InsertBatchAsync(List<Customer> customers);
+
+    // Búsqueda por ExternalId exacto
+    Task<IEnumerable<Customer>> SearchByExternalIdAsync(int externalId);
 }

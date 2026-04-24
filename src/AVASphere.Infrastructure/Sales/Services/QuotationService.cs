@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using AVASphere.ApplicationCore.Sales.DTOs;
@@ -40,9 +41,27 @@ public class QuotationService : IQuotationService
         if (dto is null) throw new ArgumentNullException(nameof(dto));
 
         // ✅ Validar que el folio no exista
-        var folioExists = await _quotationRepository.QuotationExistsByFolioAsync(dto.Folio);
-        if (folioExists)
-            throw new Exception($"Ya existe una cotización con el folio {dto.Folio}. Por favor, use un folio diferente.");
+        var existingQuotation = await _quotationRepository.GetQuotationByFolioAsync(dto.Folio);
+        if (existingQuotation != null)
+        {
+            var createdAt = existingQuotation.CreatedAt;
+            var culture = new CultureInfo("es-MX");
+            var diaTexto = createdAt.Day == 1 ? "1ro" : createdAt.Day.ToString(culture);
+            var mesAnio = $"{createdAt.ToString("MMMM", culture)} ({createdAt:MM}) de {createdAt:yyyy}";
+            var hora = createdAt.ToString("HH:mm", culture);
+            var fechaCreacion = $"{diaTexto} de {mesAnio} a las {hora}";
+            var usuarioCreador = existingQuotation.Versions?
+                .OrderBy(v => v.CreatedAt)
+                .Select(v => v.CreatedBy)
+                .FirstOrDefault(u => !string.IsNullOrWhiteSpace(u))
+                ?? existingQuotation.SalesExecutives?.FirstOrDefault()
+                ?? "No disponible";
+            var nombreCliente = string.IsNullOrWhiteSpace(existingQuotation.Customer?.Name)
+                ? "No disponible"
+                : existingQuotation.Customer.Name;
+
+            throw new Exception($"Ya existe una cotización con el folio {dto.Folio}. Fecha de creación: {fechaCreacion}. Usuario creador: {usuarioCreador}. Cliente asociado: {nombreCliente}. Por favor, use un folio diferente.");
+        }
 
         Customer? customer = null;
 

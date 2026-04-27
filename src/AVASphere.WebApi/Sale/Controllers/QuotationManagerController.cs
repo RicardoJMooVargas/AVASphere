@@ -41,11 +41,14 @@ public class QuotationManagerController : ControllerBase
 
     // GET: api/QuotationManager
     [HttpGet("GetAll/Quotations")]
-    public async Task<ActionResult> GetAll([FromQuery] QuotationFilterDto? filter = null)
+    public async Task<ActionResult> GetAll(
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] QuotationFilterDto? filter = null)
     {
         try
         {
-            var items = await _quotationService.GetQuotationsAsync(filter);
+            var items = await _quotationService.GetQuotationsAsync(startDate, endDate, filter);
             return Ok(items);
         }
         catch (Exception ex)

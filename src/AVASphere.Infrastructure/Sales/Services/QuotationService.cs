@@ -25,8 +25,8 @@ public class QuotationService : IQuotationService
 
 
     public QuotationService(
-        IQuotationRepository quotationRepository, 
-        IQuotationVersionRepository versionRepository, 
+        IQuotationRepository quotationRepository,
+        IQuotationVersionRepository versionRepository,
         ICustomerRepository customerRepository,
         IConfigSysRepository configSysRepository)
     {
@@ -188,10 +188,43 @@ public class QuotationService : IQuotationService
     }
 
 
-    public async Task<IEnumerable<Quotation>> GetQuotationsAsync(QuotationFilterDto? filter = null)
+    public async Task<IEnumerable<Quotation>> GetQuotationsAsync(DateTime? startDate = null, DateTime? endDate = null, QuotationFilterDto? filter = null)
     {
-        // Si no se proporciona filtro, crear uno con valores por defecto
+        // Si no se proporciona filtro, crear uno vacío
         filter ??= new QuotationFilterDto();
+
+        var today = DateTime.UtcNow;
+        var effectiveStartDate = startDate ?? filter.StartDate;
+        var effectiveEndDate = endDate ?? filter.EndDate;
+
+        DateTime rangeStartDate;
+        DateTime rangeEndDate;
+
+        // Si se envían ambas fechas, se usa el rango completo.
+        // Si no se envía ninguna, se usa el mes actual por defecto.
+        if (effectiveStartDate.HasValue && effectiveEndDate.HasValue)
+        {
+            rangeStartDate = effectiveStartDate.Value.Date;
+            rangeEndDate = effectiveEndDate.Value.Date;
+        }
+        else if (effectiveStartDate.HasValue)
+        {
+            rangeStartDate = effectiveStartDate.Value.Date;
+            rangeEndDate = rangeStartDate;
+        }
+        else if (effectiveEndDate.HasValue)
+        {
+            rangeEndDate = effectiveEndDate.Value.Date;
+            rangeStartDate = rangeEndDate;
+        }
+        else
+        {
+            rangeStartDate = new DateTime(today.Year, today.Month, 1);
+            rangeEndDate = new DateTime(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month));
+        }
+
+        if (rangeStartDate > rangeEndDate)
+            throw new ArgumentException("StartDate no puede ser mayor que EndDate.");
 
         IEnumerable<Quotation> quotations;
 
@@ -207,10 +240,10 @@ public class QuotationService : IQuotationService
             var q = await _quotationRepository.GetQuotationByFolioAsync(filter.Folio.Value);
             quotations = q != null ? new[] { q } : Array.Empty<Quotation>();
         }
-        // 3️⃣ Buscar por rango de fechas (por defecto mes actual)
+        // 3️⃣ Buscar por rango de fechas
         else
         {
-            quotations = await _quotationRepository.GetQuotationsByDateRangeAsync(filter.StartDate, filter.EndDate);
+            quotations = await _quotationRepository.GetQuotationsByDateRangeAsync(rangeStartDate, rangeEndDate);
 
             // 4️⃣ Filtrar por IdCustomer si se especifica
             if (filter.IdCustomer.HasValue)
@@ -237,13 +270,13 @@ public class QuotationService : IQuotationService
             if (!string.IsNullOrWhiteSpace(filter.SalesExecutive))
             {
                 var salesExecutiveLower = filter.SalesExecutive.ToLowerInvariant();
-                bool isAdmin = salesExecutiveLower == "admin" || 
+                bool isAdmin = salesExecutiveLower == "admin" ||
                               salesExecutiveLower == "administrador";
-                
+
                 // Solo aplicar filtro si NO es administrador
                 if (!isAdmin)
                 {
-                    quotations = quotations.Where(q => q.SalesExecutives != null && 
+                    quotations = quotations.Where(q => q.SalesExecutives != null &&
                         q.SalesExecutives.Any(se => se.Contains(filter.SalesExecutive, StringComparison.OrdinalIgnoreCase)));
                 }
             }
@@ -447,7 +480,7 @@ public class QuotationService : IQuotationService
             {
                 return configSys.IdConfigSys;
             }
-            
+
             // Si no hay configuración, devolver 1 como valor por defecto
             // (esto asume que siempre habrá al menos un registro con ID 1)
             return 1;

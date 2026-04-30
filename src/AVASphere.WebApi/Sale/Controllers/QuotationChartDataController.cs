@@ -18,28 +18,41 @@ public class QuotationChartDataController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene el conteo de cotizaciones por ejecutivo y estatus para un mes/año.
+    /// Obtiene el conteo de cotizaciones por ejecutivo y estatus en un rango de fechas.
+    /// Si no se envía startDate ni endDate, usa por defecto el año actual completo.
+    /// Si se envía solo una fecha, se toma como un solo día.
     /// Si no se envía SalesExecutive, devuelve todos los agentes encontrados en el periodo.
     /// </summary>
     [HttpGet("quotations-by-agent-status")]
-    public async Task<IActionResult> GetQuotationsByAgentStatus([FromQuery] int? month = null, [FromQuery] int? year = null, [FromQuery] string? salesExecutive = null)
+    public async Task<IActionResult> GetQuotationsByAgentStatus(
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] string? salesExecutive = null)
     {
         try
         {
-            var now = DateTime.UtcNow;
-            var selectedMonth = month ?? now.Month;
-            var selectedYear = year ?? now.Year;
+            var now = DateTime.UtcNow.Date;
+            DateTime selectedStartDate;
+            DateTime selectedEndDate;
+            string appliedDateFilter;
 
-            if (selectedMonth is < 1 or > 12)
-                return BadRequest("Month debe ser un valor entre 1 y 12.");
+            if (startDate.HasValue || endDate.HasValue)
+            {
+                selectedStartDate = (startDate ?? endDate)!.Value.Date;
+                selectedEndDate = (endDate ?? startDate)!.Value.Date;
+                appliedDateFilter = "custom-date-range";
+            }
+            else
+            {
+                selectedStartDate = new DateTime(now.Year, 1, 1);
+                selectedEndDate = new DateTime(now.Year, 12, 31);
+                appliedDateFilter = "current-year-default";
+            }
 
-            if (selectedYear < 2000 || selectedYear > 3000)
-                return BadRequest("Year debe ser un valor válido.");
+            if (selectedStartDate > selectedEndDate)
+                return BadRequest("StartDate no puede ser mayor que EndDate.");
 
-            var startDate = new DateTime(selectedYear, selectedMonth, 1);
-            var endDate = startDate.AddMonths(1).AddDays(-1);
-
-            var quotations = (await _quotationRepository.GetQuotationsByDateRangeAsync(startDate, endDate)).ToList();
+            var quotations = (await _quotationRepository.GetQuotationsByDateRangeAsync(selectedStartDate, selectedEndDate)).ToList();
 
             var availableAgents = quotations
                 .Where(q => q.SalesExecutives != null)
@@ -83,8 +96,10 @@ public class QuotationChartDataController : ControllerBase
 
             return Ok(new QuotationByAgentStatusResponse
             {
-                Month = selectedMonth,
-                Year = selectedYear,
+                Year = selectedStartDate.Year,
+                StartDate = selectedStartDate,
+                EndDate = selectedEndDate,
+                AppliedDateFilter = appliedDateFilter,
                 AppliedSalesExecutive = string.IsNullOrWhiteSpace(salesExecutive) ? null : salesExecutive.Trim(),
                 AvailableSalesExecutives = availableAgents,
                 Items = chartData
@@ -98,8 +113,10 @@ public class QuotationChartDataController : ControllerBase
 
     public class QuotationByAgentStatusResponse
     {
-        public int Month { get; set; }
         public int Year { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string AppliedDateFilter { get; set; } = string.Empty;
         public string? AppliedSalesExecutive { get; set; }
         public List<string> AvailableSalesExecutives { get; set; } = new();
         public List<QuotationByAgentStatusItem> Items { get; set; } = new();

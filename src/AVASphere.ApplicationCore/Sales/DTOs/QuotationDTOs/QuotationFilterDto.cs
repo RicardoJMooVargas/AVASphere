@@ -39,22 +39,12 @@ public class QuotationFilterDto
     public string? SalesExecutive { get; set; }
 
     /// <summary>
-    /// Fecha de inicio para filtrar por rango (por defecto: primer día del mes actual).
+    /// Fecha de inicio del rango a consultar (opcional, formato YYYY-MM-DD).
     /// </summary>
-    public DateTime StartDate { get; set; }
+    public DateTime? StartDate { get; set; }
 
     /// <summary>
-    /// Fecha de fin para filtrar por rango (por defecto: último día del mes actual).
+    /// Fecha de fin del rango a consultar (opcional, formato YYYY-MM-DD).
     /// </summary>
-    public DateTime EndDate { get; set; }
-
-    /// <summary>
-    /// Constructor que establece valores por defecto.
-    /// </summary>
-    public QuotationFilterDto()
-    {
-        var today = DateTime.UtcNow;
-        StartDate = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-        EndDate = new DateTime(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month), 23, 59, 59, DateTimeKind.Utc);
-    }
+    public DateTime? EndDate { get; set; }
 }

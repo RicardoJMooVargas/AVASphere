@@ -1,0 +1,707 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>AVASphere.WebApi</name>
+    </assembly>
+    <members>
+        <member name="M:AVASphere.WebApi.Common.Controllers.AuthController.ValidateToken">
+            <summary>
+            Validate JWT token
+            </summary>
+            <returns>Token validation result</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.CustomerController.ImportFromExcel(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Importa clientes desde un archivo Excel
+            </summary>
+            <param name="file">Archivo Excel que contiene los clientes a importar</param>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.CustomerController.ResetTable">
+            <summary>
+            Restablece la tabla de clientes eliminando todos los registros y reiniciando la secuencia de ID
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.InventoryController.ImportInventoryFromExcel(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Importa inventario desde un archivo Excel
+            </summary>
+            <param name="file">Archivo Excel con el inventario</param>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.InventoryController.ImportInventoryUbication(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Importa inventario de ubicación desde un archivo Excel
+            </summary>
+            <param name="file">Archivo Excel con el inventario de ubicación</param>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.InventoryController.CreateInventory(AVASphere.ApplicationCore.Inventory.DTOs.CreateInventoryDto)">
+            <summary>
+            Crea un nuevo registro de inventario
+            </summary>
+            <param name="createDto">Datos del inventario</param>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.InventoryController.GetAllInventory(System.Int32,System.Int32,System.Nullable{System.Int32},System.Nullable{System.Int32},System.String,System.Nullable{System.Int32},System.String)">
+            <summary>
+            Obtiene todo el inventario con filtros opcionales y paginación
+            </summary>
+            <param name="pageNumber">Número de página (base 1, por defecto 1)</param>
+            <param name="pageSize">Tamaño de página (por defecto 20, máximo 10000)</param>
+            <param name="idInventory">Filtrar por ID de inventario (opcional)</param>
+            <param name="idWarehouse">Filtrar por ID de bodega (opcional)</param>
+            <param name="warehouseCode">Filtrar por código de bodega: AVA01, AVA02, AVA03, AVA04 (opcional)</param>
+            <param name="idProduct">Filtrar por ID de producto (opcional)</param>
+            <param name="productName">Buscar por nombre/descripción del producto (opcional)</param>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.ProductController.CreateProducts(AVASphere.ApplicationCore.Common.DTOs.ProductDTOs.CreateProductDto)">
+            <summary>
+            Crea un nuevo producto
+            </summary>
+            <param name="createProductDto">Datos del producto a crear</param>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.ProductController.CreateMultipleProducts(System.Collections.Generic.List{AVASphere.ApplicationCore.Common.DTOs.ProductDTOs.CreateProductDto})">
+            <summary>
+            Crea múltiples productos de una sola vez
+            </summary>
+            <param name="createProductDtos">Lista de productos a crear</param>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.ProductController.GetProductById(System.Nullable{System.Int32},System.String,System.Nullable{System.Int32},System.String,System.Nullable{System.Int32},System.String,System.Nullable{System.Int32},System.String,System.Int32,System.Int32)">
+            <summary>
+            Obtiene un producto por su ID o todos los productos si no se especifica ID (con paginación)
+            </summary>
+            <param name="id">ID del producto (opcional). Si no se proporciona, devuelve todos los productos</param>
+            <param name="mainName">Filtro por nombre del producto (opcional)</param>
+            <param name="idSupplier">Filtro por ID del proveedor (opcional)</param>
+            <param name="supplierName">Filtro por nombre del proveedor (opcional)</param>
+            <param name="idProperty">Filtro por ID de propiedad: 1=Familia, 2=Clase, 3=Línea (opcional)</param>
+            <param name="propertyName">Filtro por nombre de propiedad: Familia, Clase, Línea (opcional)</param>
+            <param name="idPropertyValue">Filtro por ID de valor de propiedad (opcional)</param>
+            <param name="propertyValue">Filtro por valor de propiedad: ACRILICOS, CORTE, etc (opcional)</param>
+            <param name="pageNumber">Número de página (base 1, por defecto 1)</param>
+            <param name="pageSize">Tamaño de página (por defecto 20, máximo 10000)</param>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.ProductController.UpdateProduct(System.Int32,AVASphere.ApplicationCore.Common.DTOs.ProductDTOs.UpdateProductDto)">
+            <summary>
+            Actualiza un producto existente
+            </summary>
+            <param name="id">ID del producto a actualizar</param>
+            <param name="updateProductDto">Datos actualizados del producto</param>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.ProductController.DeleteProduct(System.Int32)">
+            <summary>
+            Elimina un producto
+            </summary>
+            <param name="id">ID del producto a eliminar</param>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.ProductController.UploadProductImage(System.Int32,Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Agrega una imagen al producto (permite múltiples imágenes)
+            </summary>
+            <param name="id">ID del producto</param>
+            <param name="file">Archivo de imagen a subir (jpg, jpeg, png, gif, webp)</param>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.ProductController.DeleteProductImage(System.Int32,System.String)">
+            <summary>
+            Elimina una imagen específica del producto por su URL
+            </summary>
+            <param name="id">ID del producto</param>
+            <param name="imageUrl">URL de la imagen a eliminar</param>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.ProductController.ImportProducts(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Importa productos desde un archivo Excel
+            </summary>
+            <param name="file">Archivo Excel que contiene los productos a importar</param>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.UsersController.GetUsers(System.Nullable{System.Int32},System.String)">
+            <summary>
+            Obtiene usuarios por ID, nombre de usuario o todos si no se especifica ninguno
+            </summary>
+            <param name="idUsers">ID del usuario a buscar (opcional)</param>
+            <param name="userName">Nombre de usuario a buscar (opcional)</param>
+            <returns>Información del usuario encontrado o lista de usuarios</returns>
+            <response code="200">Usuario(s) encontrado(s) exitosamente</response>
+            <response code="404">Usuario no encontrado</response>
+            <response code="500">Error interno del servidor</response>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.UsersController.GetUser(System.Int32)">
+            <summary>
+            Obtiene un usuario por su ID
+            </summary>
+            <param name="idUsers">ID del usuario a buscar</param>
+            <returns>Información del usuario encontrado</returns>
+            <response code="200">Usuario encontrado exitosamente</response>
+            <response code="404">Usuario no encontrado</response>
+            <response code="500">Error interno del servidor</response>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.UsersController.UpdateUser(System.Int32,AVASphere.ApplicationCore.Common.DTOs.UserUpdateRequest)">
+            <summary>
+            Actualiza un usuario existente
+            </summary>
+            <param name="idUsers">ID del usuario a actualizar</param>
+            <param name="request">Datos actualizados del usuario</param>
+            <returns>Usuario actualizado</returns>
+            <response code="200">Usuario actualizado exitosamente</response>
+            <response code="400">Solicitud inválida</response>
+            <response code="404">Usuario no encontrado</response>
+            <response code="409">El nombre de usuario ya existe</response>
+            <response code="500">Error interno del servidor</response>
+        </member>
+        <member name="M:AVASphere.WebApi.Common.Controllers.UsersController.Options">
+            <summary>
+            Opciones preflight para CORS
+            </summary>
+        </member>
+        <member name="T:AVASphere.WebApi.Common.Filters.FileUploadOperationFilter">
+            <summary>
+            Filtro para manejar file uploads en Swagger UI
+            </summary>
+        </member>
+        <member name="T:AVASphere.WebApi.Common.Filters.ValidateModelStateFilter">
+            <summary>
+            Filtro de acción que valida automáticamente el ModelState y devuelve respuestas estándar
+            </summary>
+        </member>
+        <member name="T:AVASphere.WebApi.Common.Filters.StandardizeResponseFilter">
+            <summary>
+            Filtro de resultado que envuelve respuestas no estándar en el formato ApiResponse
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.LocationDetailsController.GetById(System.Int32)">
+            <summary>
+            Obtiene los detalles de ubicación por ID
+            </summary>
+            <param name="id">ID de la ubicación</param>
+            <returns>Detalles de la ubicación con información de área y estructura de almacenamiento</returns>
+            <response code="200">Ubicación encontrada exitosamente</response>
+            <response code="404">Ubicación no encontrada</response>
+            <response code="500">Error interno del servidor</response>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.LocationDetailsController.Create(AVASphere.ApplicationCore.Inventory.DTOs.LocationDetailsRequestDto)">
+            <summary>
+            Crea una nueva ubicación de almacenamiento
+            </summary>
+            <param name="request">Datos de la nueva ubicación</param>
+            <returns>Ubicación creada</returns>
+            <response code="201">Ubicación creada exitosamente</response>
+            <response code="400">Datos de entrada inválidos</response>
+            <response code="409">La ubicación ya existe con los mismos parámetros</response>
+            <response code="500">Error interno del servidor</response>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.LocationDetailsController.Update(System.Int32,AVASphere.ApplicationCore.Inventory.DTOs.LocationDetailsUpdateDto)">
+            <summary>
+            Actualiza una ubicación existente
+            </summary>
+            <param name="id">ID de la ubicación a actualizar</param>
+            <param name="request">Nuevos datos de la ubicación</param>
+            <returns>Ubicación actualizada</returns>
+            <response code="200">Ubicación actualizada exitosamente</response>
+            <response code="400">Datos de entrada inválidos</response>
+            <response code="404">Ubicación no encontrada</response>
+            <response code="409">Conflicto con ubicación existente</response>
+            <response code="500">Error interno del servidor</response>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.LocationDetailsController.Delete(System.Int32)">
+            <summary>
+            Elimina una ubicación
+            </summary>
+            <param name="id">ID de la ubicación a eliminar</param>
+            <returns>Resultado de la eliminación</returns>
+            <response code="200">Ubicación eliminada exitosamente</response>
+            <response code="404">Ubicación no encontrada</response>
+            <response code="500">Error interno del servidor</response>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.LocationDetailsController.GetAll">
+            <summary>
+            Obtiene todas las ubicaciones
+            </summary>
+            <returns>Lista de todas las ubicaciones</returns>
+            <response code="200">Lista obtenida exitosamente</response>
+            <response code="500">Error interno del servidor</response>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.LocationDetailsController.GetByAreaId(System.Int32)">
+            <summary>
+            Obtiene ubicaciones por área
+            </summary>
+            <param name="areaId">ID del área</param>
+            <returns>Lista de ubicaciones del área especificada</returns>
+            <response code="200">Lista obtenida exitosamente</response>
+            <response code="500">Error interno del servidor</response>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.LocationDetailsController.GetByStorageStructureId(System.Int32)">
+            <summary>
+            Obtiene ubicaciones por estructura de almacenamiento
+            </summary>
+            <param name="storageStructureId">ID de la estructura de almacenamiento</param>
+            <returns>Lista de ubicaciones de la estructura especificada</returns>
+            <response code="200">Lista obtenida exitosamente</response>
+            <response code="500">Error interno del servidor</response>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.LocationDetailsController.SearchByParameters(System.Int32,System.Int32,System.String,System.Int32)">
+            <summary>
+            Busca una ubicación por parámetros específicos
+            </summary>
+            <param name="areaId">ID del área</param>
+            <param name="storageStructureId">ID de la estructura de almacenamiento</param>
+            <param name="section">Sección (A o B)</param>
+            <param name="verticalLevel">Nivel vertical</param>
+            <returns>Ubicación que coincide con los parámetros</returns>
+            <response code="200">Ubicación encontrada</response>
+            <response code="404">Ubicación no encontrada</response>
+            <response code="500">Error interno del servidor</response>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.LocationDetailsController.GetUserAreaIdAsync">
+            <summary>
+            Obtiene el IdArea del usuario actual basado en su rol
+            </summary>
+            <returns>IdArea del usuario o null si no se puede determinar</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryController.CreatePhysicalInventory(AVASphere.ApplicationCore.Inventory.DTOs.CreatePhysicalInventoryDto)">
+            <summary>
+            Crear un nuevo conteo físico
+            </summary>
+            <param name="createDto">Datos para crear el conteo físico</param>
+            <returns>Conteo físico creado</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryController.UpdatePhysicalInventory(AVASphere.ApplicationCore.Inventory.DTOs.UpdatePhysicalInventoryDto)">
+            <summary>
+            Actualizar un conteo físico existente
+            NOTA: Solo se permite editar IdWarehouse si no existen registros en PhysicalInventoryDetail
+            </summary>
+            <param name="updateDto">Datos para actualizar el conteo físico</param>
+            <returns>Conteo físico actualizado</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryController.DeletePhysicalInventory(System.Int32,System.Boolean)">
+            <summary>
+            Eliminar un conteo físico
+            </summary>
+            <param name="id">ID del conteo físico a eliminar</param>
+            <param name="forceDelete">Si true, permite eliminación en cascada aunque existan detalles (default: false)</param>
+            <returns>Resultado de la eliminación</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryController.GetPhysicalInventoryWithProducts(System.Int32,System.Int32)">
+            <summary>
+            Obtener un conteo físico con todos los productos relacionados al warehouse y área del usuario
+            </summary>
+            <param name="id">ID del conteo físico</param>
+            <param name="userId">ID del usuario que realiza el conteo (para obtener su área)</param>
+            <returns>Conteo físico con productos relacionados</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryController.GetPhysicalInventories(System.Nullable{System.Int32},System.String,System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Obtener todos los conteos físicos con filtros opcionales
+            </summary>
+            <param name="idWarehouse">Filtro por warehouse</param>
+            <param name="status">Filtro por estado (Open, Closed, Cancelled)</param>
+            <param name="startDate">Fecha de inicio del filtro</param>
+            <param name="endDate">Fecha de fin del filtro</param>
+            <returns>Lista de conteos físicos</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryController.GetProductInventoryList(System.Int32)">
+            <summary>
+            Obtener lista de productos para conteo físico basado en el IdPhysicalInventory
+            Obtiene todos los PhysicalInventoryDetail asociados al inventario físico especificado.
+            El userId se obtiene automáticamente del token JWT.
+            </summary>
+            <param name="idPhysicalInventory">ID del inventario físico para obtener sus productos</param>
+            <returns>Lista de productos para realizar el conteo físico</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryController.GetProductInventoryListPaginated(System.Int32,System.Int32,System.Int32,System.String,System.Nullable{System.Int32},System.String,System.String,System.String)">
+            <summary>
+            Obtener lista paginada de productos para conteo físico con filtros y catálogos
+            Incluye paginación, filtros por texto, proveedor, familia, clase y línea,
+            además de las listas de catálogos para filtros en el frontend
+            </summary>
+            <param name="idPhysicalInventory">ID del inventario físico</param>
+            <param name="pageNumber">Número de página (por defecto: 1)</param>
+            <param name="pageSize">Tamaño de página (por defecto: 50, máximo: 1000)</param>
+            <param name="searchText">Filtro por descripción o nombre del producto</param>
+            <param name="idSupplier">Filtro por ID del proveedor</param>
+            <param name="familia">Filtro por familia (propiedad del producto)</param>
+            <param name="clase">Filtro por clase (propiedad del producto)</param>
+            <param name="linea">Filtro por línea (propiedad del producto)</param>
+            <returns>Lista paginada de productos con catálogos para filtros</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryController.GetPhysicalInventoryById(System.Int32)">
+            <summary>
+            Obtener un conteo físico por ID
+            </summary>
+            <param name="id">ID del conteo físico</param>
+            <returns>Conteo físico encontrado</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryController.CreateOrUpdatePhysicalCount(AVASphere.ApplicationCore.Inventory.DTOs.CreateOrUpdatePhysicalCountDto)">
+            <summary>
+            Crear o actualizar un conteo específico de un producto en el inventario físico
+            </summary>
+            <param name="countDto">Datos del conteo a crear o actualizar</param>
+            <returns>Detalle del conteo actualizado</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryDetailController.UpdatePhysicalQuantity(AVASphere.ApplicationCore.Inventory.DTOs.PhysicalQuantityUpdateDto)">
+            <summary>
+            Actualiza la cantidad física de un detalle específico
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryDetailController.CreatePhysicalInventoryDetail(AVASphere.ApplicationCore.Inventory.DTOs.PhysicalInventoryDetailCreateDto)">
+            <summary>
+            Crea un nuevo registro de detalle de inventario físico con cantidad física
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryDetailController.GetPhysicalInventoryDetailById(System.Int32)">
+            <summary>
+            Obtiene un detalle de inventario físico por su ID
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryDetailController.GetPhysicalInventoryDetailsByInventoryId(System.Int32)">
+            <summary>
+            Obtiene todos los detalles de un inventario físico específico
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryDetailController.RecalculateDifferences(System.Int32)">
+            <summary>
+            Recalcula automáticamente todas las diferencias para un inventario físico específico
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.Inventory.Controllers.PhysicalInventoryDetailController.QuickPhysicalCount(AVASphere.WebApi.Inventory.Controllers.QuickPhysicalCountDto)">
+            <summary>
+            Endpoint simplificado para solo actualizar la cantidad física (para contabilización rápida)
+            </summary>
+        </member>
+        <member name="T:AVASphere.WebApi.Inventory.Controllers.QuickPhysicalCountDto">
+            <summary>
+            DTO simplificado para conteo rápido
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.Projects.Controllers.ProjectController.GetCustomersWithProjects(AVASphere.ApplicationCore.Projects.DTOs.GetProjectsWithCustomersFilterDto)">
+            <summary>
+            Obtiene clientes con sus proyectos asociados (Endpoint principal GET)
+            </summary>
+            <remarks>
+            Este endpoint devuelve una lista de clientes, cada uno con sus proyectos asociados.
+            
+            Filtros opcionales:
+            - IdCustomer: Filtrar por un cliente específico
+            - CurrentHito: Filtrar por el estado actual del proyecto (Appointment, Design, Production, etc.)
+            - CategoryIds: Filtrar proyectos que contengan al menos una de las categorías especificadas
+            
+            La respuesta incluye:
+            - Información completa del cliente (nombre, email, teléfono, configuraciones)
+            - Lista de proyectos del cliente con:
+              * Datos del proyecto (dirección, estado actual, citas, visitas)
+              * Cotización del proyecto (totales e impuestos)
+              * Categorías asociadas al proyecto
+            </remarks>
+            <param name="filter">Filtro opcional para clientes y proyectos</param>
+            <returns>Lista de clientes con sus proyectos</returns>
+            <response code="200">Lista de clientes con proyectos obtenida exitosamente</response>
+            <response code="500">Error interno del servidor</response>
+        </member>
+        <member name="M:AVASphere.WebApi.Projects.Controllers.ProjectController.CreateProject(AVASphere.ApplicationCore.Projects.DTOs.ProjectCreateSimpleRequestDto)">
+            <summary>
+            Crea un nuevo proyecto (versión simplificada)
+            </summary>
+            <remarks>
+            Esta versión simplificada solo requiere:
+            - IdConfigSys: Identificador del sistema de configuración
+            - IdCustomer: Identificador del cliente
+            - IdProjectCategories: Lista de IDs de categorías del proyecto (al menos una)
+            
+            El proyecto se crea con valores por defecto:
+            - IdProjectQuote: 0 (se asignará cuando se cree la cotización)
+            - CurrentHito: Appointment (Estado inicial)
+            - VisitsJson: Lista vacía
+            </remarks>
+            <param name="request">Datos del proyecto a crear</param>
+            <returns>El proyecto creado con sus datos básicos</returns>
+            <response code="201">Proyecto creado exitosamente</response>
+            <response code="400">Datos de entrada inválidos</response>
+            <response code="404">Cliente, configuración o categoría no encontrada</response>
+            <response code="500">Error interno del servidor</response>
+        </member>
+        <member name="M:AVASphere.WebApi.Sale.Controllers.QuotationChartDataController.GetQuotationsByAgentStatus(System.Nullable{System.Int32},System.Nullable{System.Int32},System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.String,System.Nullable{System.Int32},System.String)">
+            <summary>
+            Obtiene el conteo de cotizaciones por ejecutivo y estatus para un periodo flexible.
+            Soporta:
+            - startDate/endDate (rango explícito)
+            - period=day|week|month + amount (rango relativo)
+            - month/year (compatibilidad)
+            Si no se envía ningún filtro de fecha, usa por defecto el año actual completo.
+            Si no se envía SalesExecutive, devuelve todos los agentes encontrados en el periodo.
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.Sale.Controllers.SaleManagerController.DeleteSalesData">
+            <summary>
+            Elimina todos los datos de ventas y relaciones, reiniciando las secuencias
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.Sale.Controllers.SaleManagerController.UnlinkSaleFromQuotation(System.Int32,System.Int32)">
+            <summary>
+            Desvincula una venta de una cotización existente y elimina completamente el registro de la venta.
+            Elimina la relación en SaleQuotations, actualiza la Quotation removiendo referencias y elimina la Sale.
+            </summary>
+            <param name="saleId">ID de la venta a desvincular y eliminar</param>
+            <param name="quotationId">ID de la cotización a desvincular</param>
+            <returns>Confirmación de la desvinculación y eliminación</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Sale.Controllers.SaleManagerController.ImportSalesMonth(System.Int32,System.Int32,System.Int32,System.Int32)">
+             <summary>
+             POST: api/SaleManager/ImportSalesMonth
+            
+             PROPÓSITO:
+             Importa todas las ventas del sistema externo InforAVA (catálogo fijo <c>AVA01</c>)
+             correspondientes a un mes completo. El proceso se realiza por lotes de días
+             para no saturar la API externa ni la base de datos.
+            
+             FLUJO GENERAL:
+             <list type="number">
+               <item>Validar los parámetros de entrada (año, mes, idConfigSys, batchSize).</item>
+               <item>
+                 Dividir el mes en sub-rangos de <paramref name="batchSize"/> días
+                 (ej. batchSize=5 → lotes: 1-5, 6-10, 11-15 …).
+               </item>
+               <item>
+                 Para cada lote:
+                 <list type="bullet">
+                   <item>Consultar la API externa día a día y acumular las ventas encontradas.</item>
+                   <item>Filtrar ventas cuyos folios ya existen en la BD (duplicados → omitidas).</item>
+                   <item>
+                     Crear o recuperar los clientes necesarios usando un cache en memoria
+                     (<c>Dictionary&lt;string, Customer&gt;</c>) para evitar consultas repetidas a la BD.
+                   </item>
+                   <item>
+                     Para cada venta nueva: obtener sus productos desde el sistema externo,
+                     construir la entidad <c>Sale</c> con <c>AuxNoteDataJson</c> y persistirla.
+                   </item>
+                 </list>
+               </item>
+               <item>Esperar 2 segundos entre lotes para no sobrecargar la API externa.</item>
+               <item>
+                 Devolver estadísticas detalladas: ventas importadas/omitidas/con error,
+                 clientes creados/reutilizados, tiempos de procesamiento y detalle por lote.
+               </item>
+             </list>
+            
+             CÓDIGOS DE RESPUESTA HTTP:
+             <list type="table">
+               <item><term>200 OK</term><description>Importación completada sin errores.</description></item>
+               <item><term>207 Multi-Status</term><description>Al menos una venta importada, pero hubo errores parciales.</description></item>
+               <item><term>400 Bad Request</term><description>Parámetros de entrada inválidos.</description></item>
+               <item><term>422 Unprocessable Entity</term><description>Importación falló completamente (0 ventas importadas).</description></item>
+               <item><term>500 Internal Server Error</term><description>Error inesperado del servidor.</description></item>
+             </list>
+            
+             RESTRICCIONES:
+             <list type="bullet">
+               <item>Año mínimo: 2020 | Año máximo: año en curso.</item>
+               <item>No se pueden importar períodos con fecha futura.</item>
+               <item><paramref name="batchSize"/> debe estar entre 1 y 15 días.</item>
+               <item><paramref name="idConfigSys"/> debe ser mayor a 0.</item>
+             </list>
+            
+             NOTAS DE IMPLEMENTACIÓN:
+             El campo <c>createdByUserId</c> se fija como <c>"system"</c> en esta versión.
+             Si se requiere trazabilidad por usuario, se debe obtener del claim JWT
+             <c>ClaimTypes.NameIdentifier</c> (ver <see cref="M:AVASphere.WebApi.Sale.Controllers.SaleManagerController.ImportFromPagados(AVASphere.ApplicationCore.Sales.DTOs.ImportDTOs.ImportPagadosRequestDto,System.Int32)"/>).
+             </summary>
+             <param name="year">Año del período a importar, entre 2020 y el año actual.</param>
+             <param name="month">Mes del período a importar, de 1 a 12.</param>
+             <param name="idConfigSys">
+               ID de la sucursal/configuración del sistema (<c>IdConfigSys</c>).
+               Se usa para asociar cada venta importada a la sucursal correspondiente.
+             </param>
+             <param name="batchSize">
+               Número de días agrupados por lote. Valor por defecto: 5.
+               Valores menores reducen la carga por llamada pero aumentan el tiempo total.
+               Rango permitido: 1 – 15.
+             </param>
+             <returns>
+               Objeto JSON con las siguientes secciones:
+               <list type="bullet">
+                 <item><c>ImportPeriod</c>: Rango de fechas del mes procesado.</item>
+                 <item><c>Statistics</c>: Totales de ventas encontradas, importadas, omitidas y con error.</item>
+                 <item><c>Customers</c>: Clientes encontrados, creados y reutilizados.</item>
+                 <item><c>Performance</c>: Tiempo total, lotes procesados y promedio por lote.</item>
+                 <item><c>BatchDetails</c>: Detalle por cada lote (período, ventas, tiempo).</item>
+                 <item><c>Errors</c>: Detalle de errores individuales con folio y tipo de error.</item>
+                 <item><c>SkippedSales</c>: Folios de ventas omitidas por ya existir en la BD.</item>
+               </list>
+             </returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Sale.Controllers.SaleManagerController.ImportFromPagados(AVASphere.ApplicationCore.Sales.DTOs.ImportDTOs.ImportPagadosRequestDto,System.Int32)">
+             <summary>
+             POST: api/SaleManager/ImportFromPagados
+            
+             PROPÓSITO:
+             Importa o actualiza ventas de forma inteligente a partir del JSON generado
+             al pre-procesar el archivo <c>PAGADOS.xlsx</c> del sistema InforAVA.
+             Complementa a <see cref="M:AVASphere.WebApi.Sale.Controllers.SaleManagerController.ImportSalesMonth(System.Int32,System.Int32,System.Int32,System.Int32)"/>: mientras ese endpoint importa los
+             datos de nota completos, éste se enfoca en los datos de pago (monto pagado y saldo).
+            
+             LÓGICA POR CADA REGISTRO:
+             <list type="table">
+               <item>
+                 <term>COINCIDENCIA ENCONTRADA</term>
+                 <description>
+                   Existe una <c>Sale</c> con el mismo <c>Folio</c>, misma <c>SaleDate</c>
+                   y cuyo cliente tiene el mismo <c>ExternalId</c> extraído de <c>NombreCliente</c>.
+                   → Se actualizan <c>AuxNoteDataJson.ImportePagado</c> y <c>AuxNoteDataJson.Saldo</c>.
+                 </description>
+               </item>
+               <item>
+                 <term>SIN COINCIDENCIA</term>
+                 <description>
+                   No existe ninguna venta con esa combinación.
+                   → Se crea una nueva <c>Sale</c> con <c>Type="Imported-Pagados"</c>
+                   y los campos de nota (Serie, Caja, Agente, etc.) vacíos para completar
+                   con una importación posterior de notas completas.
+                 </description>
+               </item>
+             </list>
+            
+             FORMATO DE NombreCliente:
+             El campo viene como <c>"000055 PUBLICO GENERAL"</c>, donde los primeros dígitos
+             (con ceros al frente) representan el <c>ExternalId</c> del cliente.
+             Es procesado por <c>SaleService.ParseNombreCliente()</c>.
+            
+             AUTENTICACIÓN:
+             Requiere JWT válido. El <c>IdUser</c> se extrae del claim <c>ClaimTypes.NameIdentifier</c>
+             y se usa como <c>SalesExecutive</c> en las ventas nuevas.
+            
+             CÓDIGOS DE RESPUESTA HTTP:
+             <list type="table">
+               <item><term>200 OK</term><description>Importación completada (con o sin errores parciales). Ver <c>data.result</c>.</description></item>
+               <item><term>400 Bad Request</term><description>Request nulo, idConfigSys inválido o sin bloques de datos.</description></item>
+               <item><term>401 Unauthorized</term><description>No se pudo obtener el usuario del token JWT.</description></item>
+               <item><term>500 Internal Server Error</term><description>Error inesperado del servidor.</description></item>
+             </list>
+             </summary>
+             <param name="request">
+               JSON procesado del archivo PAGADOS.xlsx. Ver <see cref="T:AVASphere.ApplicationCore.Sales.DTOs.ImportDTOs.ImportPagadosRequestDto"/>.
+             </param>
+             <param name="idConfigSys">
+               ID de la sucursal/configuración del sistema. Se usa para filtrar ventas existentes
+               y para asociar las ventas nuevas creadas.
+             </param>
+             <returns>
+               200 OK con objeto que incluye metadatos del archivo y <see cref="T:AVASphere.ApplicationCore.Sales.DTOs.ImportDTOs.ImportPagadosResultDto"/>
+               con contadores de procesados/actualizados/creados/omitidos y detalle por registro.
+             </returns>
+        </member>
+        <member name="M:AVASphere.WebApi.Sale.Controllers.SalesChartDataController.GetSalesSummary(AVASphere.ApplicationCore.Sales.DTOs.ChartDTOs.SaleByCostChartFilter)">
+            <summary>
+            Obtiene estadísticas principales de ventas (TotalAmount + total de ventas)
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.Sale.Controllers.SalesChartDataController.GetSalesByAgent(AVASphere.ApplicationCore.Sales.DTOs.ChartDTOs.SalesByAgentChartFilter)">
+            <summary>
+            Obtiene estadísticas de ventas por agente
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.Sale.Controllers.SalesChartDataController.GetSalesByProduct(AVASphere.ApplicationCore.Sales.DTOs.ChartDTOs.SalesByProductChartFilter)">
+            <summary>
+            Obtiene estadísticas de ventas por producto
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.System.Controllers.ConfigController.PrepareInitialMigration">
+            <summary>
+            🚀 MIGRACIÓN INICIAL PARA INSTALACIÓN: Crea específicamente la migración "Initial" para nuevas instalaciones
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.System.Controllers.ConfigController.ImportFromSql(Microsoft.AspNetCore.Http.IFormFile,System.Boolean)">
+            <summary>
+            Importa datos desde un archivo SQL
+            </summary>
+            <param name="sqlFile">Archivo SQL a importar</param>
+            <param name="overwrite">Si debe sobrescribir datos existentes</param>
+            <returns>Resultado de la importación</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.System.Controllers.ConfigController.LoadDefaultCatalogs(System.Boolean)">
+            <summary>
+            Importa los catálogos por defecto del sistema (Property, Supplier, PropertyValue)
+            </summary>
+            <param name="overwrite">Si es true, sobrescribe datos existentes. Si es false, solo inserta nuevos.</param>
+            <returns>Resultado de la importación con estadísticas detalladas</returns>
+            <remarks>
+            Este endpoint importa:
+            - 3 Properties (Familia, Clase, Línea)                                                                                                                                                                                                                                                                                                                                                                                                                  
+            - 36 Suppliers (La Viga, Casa Fernández, Herralum, etc.)
+            - 150+ PropertyValues organizados por categorías
+            - 15 Storage Structure
+            </remarks>
+        </member>
+        <member name="M:AVASphere.WebApi.System.Controllers.ConfigController.DeleteCatalogData">
+            <summary>
+            Elimina todos los datos de inventario y catálogos, dejando las tablas vacías y reiniciando las secuencias.
+            </summary>
+            <remarks>
+            ELIMINA LAS TABLAS DE:
+            - PhysicalInventoryDetail
+            - WarehouseTransferDetail
+            - PhysicalInventory
+            - WarehouseTransfer
+            - StockMovement
+            - Inventory
+            - LocationDetails
+            - StorageStructure
+            - ProductProperties
+            - PropertyValue
+            - Product
+            - Property
+            - Supplier
+            - Warehouse
+            
+            NO ELIMINA (se mantienen intactos):
+            - User (usuarios)
+            - Rol (roles)
+            - Area (áreas)
+            - ConfigSys (configuración del sistema)
+            </remarks>
+            <returns>Resultado de la operación</returns>
+        </member>
+        <member name="M:AVASphere.WebApi.System.Controllers.DbToolsController.CheckConnection">
+            <summary>
+            Verifica la conexión y estado de la base de datos
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.System.Controllers.DbToolsController.CheckMigrations">
+            <summary>
+            Verifica si existen archivos de migración
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.System.Controllers.DbToolsController.DeleteMigrations">
+            <summary>
+            Elimina todos los archivos de migración existentes
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.System.Controllers.DbToolsController.FullMigration(System.String)">
+            <summary>
+            🚀 PROCESO COMPLETO AUTOMATIZADO: Elimina tablas, elimina migraciones antiguas, crea nueva migración y la aplica
+            </summary>
+            <param name="name">Nombre de la migración (por defecto: "Initial")</param>
+        </member>
+        <member name="M:AVASphere.WebApi.System.Controllers.DbToolsController.CreateMigration(System.String)">
+            <summary>
+            Crea una nueva migración (requiere base de datos vacía)
+            </summary>
+            <param name="name">Nombre de la migración</param>
+        </member>
+        <member name="M:AVASphere.WebApi.System.Controllers.DbToolsController.ApplyMigration">
+            <summary>
+            Aplica migraciones pendientes a la base de datos
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.System.Controllers.DbToolsController.DropTables">
+            <summary>
+            Elimina todas las tablas de la base de datos (mantiene historial de migraciones)
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.System.Controllers.DbToolsController.DropDatabase">
+            <summary>
+            Elimina completamente la base de datos
+            </summary>
+        </member>
+        <member name="M:AVASphere.WebApi.System.Controllers.DbToolsController.RecreateDatabase(System.String)">
+            <summary>
+            Proceso simplificado: elimina tablas, crea migración y la aplica (sin eliminar archivos de migración)
+            </summary>
+            <param name="name">Nombre de la migración (por defecto: "Initial")</param>
+        </member>
+    </members>
+</doc>

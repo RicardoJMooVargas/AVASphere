@@ -7,7 +7,7 @@ public interface IQuotationService
 {
     // Operaciones de negocio
     Task<Quotation> CreateQuotationAsync(CreateQuotationDto createQuotationDto, string createdByUserId);
-    Task<IEnumerable<Quotation>> GetQuotationsAsync(QuotationFilterDto? filter = null);
+    Task<IEnumerable<Quotation>> GetQuotationsAsync(DateTime? startDate = null, DateTime? endDate = null, QuotationFilterDto? filter = null);
     Task<Quotation?> UpdateIdQuotation(int IdQuotation, QuotationUpdateDto dto);
     Task<Quotation> GetByIdAsync(int IdQuotation);
     Task<bool> DeleteQuotationAsync(int IdQuotation);

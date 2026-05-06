@@ -24,6 +24,8 @@
   <ItemGroup>
     <Folder Include="Common\Extensions\" />
     <Folder Include="Common\Middleware\" />
+    <Folder Include="Projects\docs\flows\" />
+    <Folder Include="Projects\docs\endpoints\" />
   </ItemGroup>
 
 </Project>

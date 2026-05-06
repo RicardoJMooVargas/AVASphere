@@ -26,6 +26,9 @@
     <Folder Include="Common\Middleware\" />
     <Folder Include="Projects\docs\flows\" />
     <Folder Include="Projects\docs\endpoints\" />
+    <Folder Include="Sale\docs\endpoints\" />
+    <Folder Include="Sale\docs\diagrams\" />
+    <Folder Include="Sale\docs\flows\" />
   </ItemGroup>
 
 </Project>

@@ -39,8 +39,19 @@ public class QuotationManagerController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Obtiene las cotizaciones con filtros opcionales.
+    /// </summary>
+    /// <param name="startDate">Fecha inicial del rango (query). Si es null y no se envían fechas, se usa el primer día del mes actual.</param>
+    /// <param name="endDate">Fecha final del rango (query). Si es null y no se envían fechas, se usa el día de hoy.</param>
+    /// <param name="filter">Filtros adicionales (query): IdQuotation, Folio, IdCustomer, CustomerName, ExternalId, SalesExecutive, StartDate, EndDate.</param>
+    /// <remarks>
+    /// Documentación: <see href="docs/endpoints/quotation_controller.md">docs/endpoints/quotation_controller.md</see>
+    /// </remarks>
     // GET: api/QuotationManager
     [HttpGet("GetAll/Quotations")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> GetAll(
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
@@ -48,6 +59,13 @@ public class QuotationManagerController : ControllerBase
     {
         try
         {
+            if (!startDate.HasValue && !endDate.HasValue && filter?.StartDate == null && filter?.EndDate == null)
+            {
+                var today = DateTime.UtcNow;
+                startDate = new DateTime(today.Year, today.Month, 1);
+                endDate = today.Date;
+            }
+
             var items = await _quotationService.GetQuotationsAsync(startDate, endDate, filter);
             return Ok(items);
         }

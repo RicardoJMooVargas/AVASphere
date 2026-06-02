@@ -526,64 +526,37 @@ namespace AVASphere.WebApi.Sale.Controllers
 
     
         /// <summary>
-        /// POST: api/SaleManager/ImportSalesMonth
-        ///
-        /// PROPÓSITO:
-        /// Importa todas las ventas del sistema externo InforAVA (catálogo fijo <c>AVA01</c>)
-        /// correspondientes a un mes completo. El proceso se realiza por lotes de días
-        /// para no saturar la API externa ni la base de datos.
-        ///
-        /// FLUJO GENERAL:
-        /// <list type="number">
-        ///   <item>Validar los parámetros de entrada (año, mes, idConfigSys, batchSize).</item>
-        ///   <item>
-        ///     Dividir el mes en sub-rangos de <paramref name="batchSize"/> días
-        ///     (ej. batchSize=5 → lotes: 1-5, 6-10, 11-15 …).
-        ///   </item>
-        ///   <item>
-        ///     Para cada lote:
-        ///     <list type="bullet">
-        ///       <item>Consultar la API externa día a día y acumular las ventas encontradas.</item>
-        ///       <item>Filtrar ventas cuyos folios ya existen en la BD (duplicados → omitidas).</item>
-        ///       <item>
-        ///         Crear o recuperar los clientes necesarios usando un cache en memoria
-        ///         (<c>Dictionary&lt;string, Customer&gt;</c>) para evitar consultas repetidas a la BD.
-        ///       </item>
-        ///       <item>
-        ///         Para cada venta nueva: obtener sus productos desde el sistema externo,
-        ///         construir la entidad <c>Sale</c> con <c>AuxNoteDataJson</c> y persistirla.
-        ///       </item>
-        ///     </list>
-        ///   </item>
-        ///   <item>Esperar 2 segundos entre lotes para no sobrecargar la API externa.</item>
-        ///   <item>
-        ///     Devolver estadísticas detalladas: ventas importadas/omitidas/con error,
-        ///     clientes creados/reutilizados, tiempos de procesamiento y detalle por lote.
-        ///   </item>
-        /// </list>
-        ///
-        /// CÓDIGOS DE RESPUESTA HTTP:
-        /// <list type="table">
-        ///   <item><term>200 OK</term><description>Importación completada sin errores.</description></item>
-        ///   <item><term>207 Multi-Status</term><description>Al menos una venta importada, pero hubo errores parciales.</description></item>
-        ///   <item><term>400 Bad Request</term><description>Parámetros de entrada inválidos.</description></item>
-        ///   <item><term>422 Unprocessable Entity</term><description>Importación falló completamente (0 ventas importadas).</description></item>
-        ///   <item><term>500 Internal Server Error</term><description>Error inesperado del servidor.</description></item>
-        /// </list>
-        ///
-        /// RESTRICCIONES:
-        /// <list type="bullet">
-        ///   <item>Año mínimo: 2020 | Año máximo: año en curso.</item>
-        ///   <item>No se pueden importar períodos con fecha futura.</item>
-        ///   <item><paramref name="batchSize"/> debe estar entre 1 y 15 días.</item>
-        ///   <item><paramref name="idConfigSys"/> debe ser mayor a 0.</item>
-        /// </list>
-        ///
-        /// NOTAS DE IMPLEMENTACIÓN:
-        /// El campo <c>createdByUserId</c> se fija como <c>"system"</c> en esta versión.
-        /// Si se requiere trazabilidad por usuario, se debe obtener del claim JWT
-        /// <c>ClaimTypes.NameIdentifier</c> (ver <see cref="ImportFromPagados"/>).
+        /// Importa ventas del sistema externo InforAVA para un mes completo.
         /// </summary>
+        /// <remarks>
+        /// Propósito:
+        /// - Importa todas las ventas del catálogo fijo <c>AVA01</c> para el mes indicado.
+        /// - Procesa en lotes de días para evitar sobrecarga.
+        ///
+        /// Flujo general:
+        /// - Valida parámetros de entrada (año, mes, idConfigSys, batchSize).
+        /// - Divide el mes en sub-rangos de <paramref name="batchSize"/> días.
+        /// - Por cada lote: consulta la API externa, omite duplicados, crea clientes y ventas nuevas.
+        /// - Espera 2 segundos entre lotes.
+        /// - Devuelve estadísticas detalladas del proceso.
+        ///
+        /// Códigos de respuesta HTTP:
+        /// - 200 OK: Importación completada sin errores.
+        /// - 207 Multi-Status: Importación parcial con errores.
+        /// - 400 Bad Request: Parámetros de entrada inválidos.
+        /// - 422 Unprocessable Entity: Importación falló completamente.
+        /// - 500 Internal Server Error: Error inesperado del servidor.
+        ///
+        /// Restricciones:
+        /// - Año mínimo: 2020 | Año máximo: año en curso.
+        /// - No se pueden importar períodos con fecha futura.
+        /// - <paramref name="batchSize"/> debe estar entre 1 y 15 días.
+        /// - <paramref name="idConfigSys"/> debe ser mayor a 0.
+        ///
+        /// Notas:
+        /// - <c>createdByUserId</c> se fija como <c>"system"</c>.
+        /// - Para trazabilidad por usuario, usar el claim JWT <c>ClaimTypes.NameIdentifier</c>.
+        /// </remarks>
         /// <param name="year">Año del período a importar, entre 2020 y el año actual.</param>
         /// <param name="month">Mes del período a importar, de 1 a 12.</param>
         /// <param name="idConfigSys">
@@ -596,7 +569,7 @@ namespace AVASphere.WebApi.Sale.Controllers
         ///   Rango permitido: 1 – 15.
         /// </param>
         /// <returns>
-        ///   Objeto JSON con las siguientes secciones:
+        ///   Objeto JSON con las siguientes secciones: 
         ///   <list type="bullet">
         ///     <item><c>ImportPeriod</c>: Rango de fechas del mes procesado.</item>
         ///     <item><c>Statistics</c>: Totales de ventas encontradas, importadas, omitidas y con error.</item>
@@ -616,7 +589,7 @@ namespace AVASphere.WebApi.Sale.Controllers
         {
             try
             {
-                // 🔍 VALIDACIONES INICIALES
+                // 🔍 VALIDACIONES INI   CIALES
                 if (year < 2020 || year > DateTime.UtcNow.Year)
                 {
                     return BadRequest(new
@@ -778,52 +751,29 @@ namespace AVASphere.WebApi.Sale.Controllers
         }
 
         /// <summary>
-        /// POST: api/SaleManager/ImportFromPagados
-        ///
-        /// PROPÓSITO:
-        /// Importa o actualiza ventas de forma inteligente a partir del JSON generado
-        /// al pre-procesar el archivo <c>PAGADOS.xlsx</c> del sistema InforAVA.
-        /// Complementa a <see cref="ImportSalesMonth"/>: mientras ese endpoint importa los
-        /// datos de nota completos, éste se enfoca en los datos de pago (monto pagado y saldo).
-        ///
-        /// LÓGICA POR CADA REGISTRO:
-        /// <list type="table">
-        ///   <item>
-        ///     <term>COINCIDENCIA ENCONTRADA</term>
-        ///     <description>
-        ///       Existe una <c>Sale</c> con el mismo <c>Folio</c>, misma <c>SaleDate</c>
-        ///       y cuyo cliente tiene el mismo <c>ExternalId</c> extraído de <c>NombreCliente</c>.
-        ///       → Se actualizan <c>AuxNoteDataJson.ImportePagado</c> y <c>AuxNoteDataJson.Saldo</c>.
-        ///     </description>
-        ///   </item>
-        ///   <item>
-        ///     <term>SIN COINCIDENCIA</term>
-        ///     <description>
-        ///       No existe ninguna venta con esa combinación.
-        ///       → Se crea una nueva <c>Sale</c> con <c>Type="Imported-Pagados"</c>
-        ///       y los campos de nota (Serie, Caja, Agente, etc.) vacíos para completar
-        ///       con una importación posterior de notas completas.
-        ///     </description>
-        ///   </item>
-        /// </list>
-        ///
-        /// FORMATO DE NombreCliente:
-        /// El campo viene como <c>"000055 PUBLICO GENERAL"</c>, donde los primeros dígitos
-        /// (con ceros al frente) representan el <c>ExternalId</c> del cliente.
-        /// Es procesado por <c>SaleService.ParseNombreCliente()</c>.
-        ///
-        /// AUTENTICACIÓN:
-        /// Requiere JWT válido. El <c>IdUser</c> se extrae del claim <c>ClaimTypes.NameIdentifier</c>
-        /// y se usa como <c>SalesExecutive</c> en las ventas nuevas.
-        ///
-        /// CÓDIGOS DE RESPUESTA HTTP:
-        /// <list type="table">
-        ///   <item><term>200 OK</term><description>Importación completada (con o sin errores parciales). Ver <c>data.result</c>.</description></item>
-        ///   <item><term>400 Bad Request</term><description>Request nulo, idConfigSys inválido o sin bloques de datos.</description></item>
-        ///   <item><term>401 Unauthorized</term><description>No se pudo obtener el usuario del token JWT.</description></item>
-        ///   <item><term>500 Internal Server Error</term><description>Error inesperado del servidor.</description></item>
-        /// </list>
+        /// Importa o actualiza ventas a partir del JSON generado desde PAGADOS.xlsx.
         /// </summary>
+        /// <remarks>
+        /// Propósito:
+        /// - Importa o actualiza ventas con datos de pago (pagado y saldo).
+        /// - Complementa a <see cref="ImportSalesMonth"/>.
+        ///
+        /// Lógica por registro:
+        /// - Coincidencia: misma combinación de Folio + SaleDate + ExternalId → actualiza pago y saldo.
+        /// - Sin coincidencia: crea una venta nueva con <c>Type="Imported-Pagados"</c>.
+        ///
+        /// Formato de NombreCliente:
+        /// - Ejemplo: <c>"000055 PUBLICO GENERAL"</c>. Los dígitos iniciales son el ExternalId.
+        ///
+        /// Autenticación:
+        /// - Requiere JWT válido. Usa <c>ClaimTypes.NameIdentifier</c> para el usuario.
+        ///
+        /// Códigos de respuesta HTTP:
+        /// - 200 OK: Importación completada (con o sin errores parciales).
+        /// - 400 Bad Request: Request nulo, idConfigSys inválido o sin bloques.
+        /// - 401 Unauthorized: No se pudo obtener el usuario del token JWT.
+        /// - 500 Internal Server Error: Error inesperado del servidor.
+        /// </remarks>
         /// <param name="request">
         ///   JSON procesado del archivo PAGADOS.xlsx. Ver <see cref="ImportPagadosRequestDto"/>.
         /// </param>

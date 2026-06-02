@@ -4,6 +4,7 @@ using AVASphere.ApplicationCore.Common.Entities.Products;
 using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace AVASphere.Infrastructure.Common.Repository;
 
@@ -100,7 +101,7 @@ public class ProductRepository : IProductRepository
         if (filters != null)
         {
             if (!string.IsNullOrEmpty(filters.MainName))
-                query = query.Where(p => p.MainName.Contains(filters.MainName));
+                query = query.Where(p => p.MainName != null && p.MainName.Contains(filters.MainName));
 
             if (filters.IdSupplier.HasValue && filters.IdSupplier.Value > 0)
                 query = query.Where(p => p.IdSupplier == filters.IdSupplier.Value);
@@ -146,6 +147,64 @@ public class ProductRepository : IProductRepository
         return await query.FirstOrDefaultAsync();
     }
 
+    public async Task<Product?> GetByPrincipalCodeAsync(string principalCode)
+    {
+        if (string.IsNullOrWhiteSpace(principalCode))
+        {
+            return null;
+        }
+
+        var trimmedCode = principalCode.Trim();
+        var jsonFilter = JsonSerializer.Serialize(new[] { new { Type = "Principal", Code = trimmedCode } });
+
+        return await _context.Products
+            .Include(p => p.ProductProperties)
+                .ThenInclude(pp => pp.PropertyValue)
+                    .ThenInclude(pv => pv.Property)
+            .FirstOrDefaultAsync(p => p.CodeJson != null && EF.Functions.JsonContains(p.CodeJson, jsonFilter));
+    }
+
+    public async Task<Product?> GetByMainNameAsync(string mainName)
+    {
+        if (string.IsNullOrWhiteSpace(mainName))
+        {
+            return null;
+        }
+
+        var trimmedName = mainName.Trim();
+
+        return await _context.Products
+            .Include(p => p.ProductProperties)
+                .ThenInclude(pp => pp.PropertyValue)
+                    .ThenInclude(pv => pv.Property)
+            .FirstOrDefaultAsync(p => p.MainName != null && EF.Functions.ILike(p.MainName, trimmedName));
+    }
+
+    public async Task<List<Product>> GetByPrincipalCodesAsync(IEnumerable<string> principalCodes)
+    {
+        var codes = principalCodes
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .Select(code => code.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (codes.Count == 0)
+        {
+            return new List<Product>();
+        }
+
+        var jsonFilters = codes
+            .Select(code => JsonSerializer.Serialize(new[] { new { Type = "Principal", Code = code } }))
+            .ToList();
+
+        return await _context.Products
+            .Include(p => p.ProductProperties)
+                .ThenInclude(pp => pp.PropertyValue)
+                    .ThenInclude(pv => pv.Property)
+            .Where(p => p.CodeJson != null && jsonFilters.Any(filter => EF.Functions.JsonContains(p.CodeJson, filter)))
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<Product>> GetAllProductsAsync(ProductFilterDto? filters = null, PaginationDto? pagination = null)
     {
         var query = _context.Products
@@ -187,7 +246,7 @@ public class ProductRepository : IProductRepository
         if (filters == null) return query;
 
         if (!string.IsNullOrEmpty(filters.MainName))
-            query = query.Where(p => p.MainName.Contains(filters.MainName));
+            query = query.Where(p => p.MainName != null && p.MainName.Contains(filters.MainName));
 
         if (filters.IdSupplier.HasValue && filters.IdSupplier.Value > 0)
             query = query.Where(p => p.IdSupplier == filters.IdSupplier.Value);
@@ -232,6 +291,7 @@ public class ProductRepository : IProductRepository
         return query;
     }
 
+
     public async Task<Supplier?> GetSupplierByNameAsync(string name)
     {
         return await _context.Suppliers
@@ -258,6 +318,50 @@ public class ProductRepository : IProductRepository
 
         _context.ProductProperties.Add(productProperty);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<int> GetOrCreatePropertyValueIdAsync(string propertyName, string propertyValue)
+    {
+        if (string.IsNullOrWhiteSpace(propertyName))
+        {
+            throw new ArgumentException("PropertyName no puede ser vacío.", nameof(propertyName));
+        }
+
+        if (string.IsNullOrWhiteSpace(propertyValue))
+        {
+            throw new ArgumentException("PropertyValue no puede ser vacío.", nameof(propertyValue));
+        }
+
+        var normalizedName = propertyName.Trim().ToLower();
+        var normalizedValue = propertyValue.Trim().ToLower();
+
+        var property = await _context.Properties
+            .FirstOrDefaultAsync(p => p.Name != null && p.Name.ToLower() == normalizedName);
+
+        if (property == null)
+        {
+            throw new KeyNotFoundException($"Property '{propertyName}' no encontrado.");
+        }
+
+        var existing = await _context.PropertyValues
+            .FirstOrDefaultAsync(pv => pv.IdProperty == property.IdProperty &&
+                                       pv.Value != null &&
+                                       pv.Value.ToLower() == normalizedValue);
+
+        if (existing != null)
+        {
+            return existing.IdPropertyValue;
+        }
+
+        var newValue = new PropertyValue
+        {
+            IdProperty = property.IdProperty,
+            Value = propertyValue.Trim()
+        };
+
+        _context.PropertyValues.Add(newValue);
+        await _context.SaveChangesAsync();
+        return newValue.IdPropertyValue;
     }
 
     public async Task<Dictionary<string, Supplier>> GetAllSuppliersAsync()

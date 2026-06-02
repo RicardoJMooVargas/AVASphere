@@ -85,6 +85,14 @@ public class ProductPropertyDto
     public string PropertyName { get; set; } = string.Empty;
 }
 
+public class HerrajeLookupResultDto
+{
+    public string Code { get; set; } = string.Empty;
+    public bool Found { get; set; }
+    public bool IsHerraje { get; set; }
+    public string? MainName { get; set; }
+}
+
 public class PaginationDto
 {
     public int PageNumber { get; set; } = 1;

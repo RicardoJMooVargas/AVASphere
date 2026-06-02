@@ -4,6 +4,9 @@ using AVASphere.ApplicationCore.Common.Interfaces;
 using AVASphere.ApplicationCore.Projects.Entities.jsons;
 using Microsoft.Extensions.Logging;
 using ClosedXML.Excel;
+using ExcelDataReader;
+using System.Data;
+using System.Text;
 
 namespace AVASphere.Infrastructure.Common.Services;
 
@@ -187,6 +190,113 @@ public class ProductService : IProductService
 
         return MapToResponseDto(product);
     }
+
+    public async Task<bool?> IsProductHerrajeByCodeAsync(string principalCode)
+    {
+        return await IsProductHerrajeByCodeOrNameAsync(principalCode, null);
+    }
+
+    public async Task<bool?> IsProductHerrajeByCodeOrNameAsync(string? principalCode, string? mainName)
+    {
+        if (string.IsNullOrWhiteSpace(principalCode) && string.IsNullOrWhiteSpace(mainName))
+        {
+            throw new ArgumentException("Debe proporcionar el codigo o el nombre del producto.");
+        }
+
+        Product? product = null;
+        if (!string.IsNullOrWhiteSpace(principalCode))
+        {
+            product = await _productRepository.GetByPrincipalCodeAsync(principalCode);
+        }
+
+        if (product == null && !string.IsNullOrWhiteSpace(mainName))
+        {
+            product = await _productRepository.GetByMainNameAsync(mainName);
+        }
+
+        if (product == null)
+        {
+            return null;
+        }
+
+        return product.ProductProperties.Any(pp =>
+            pp.PropertyValue != null &&
+            (string.Equals(pp.PropertyValue.Type, "Herrajes", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(pp.PropertyValue.Type, "Area de Herrajes", StringComparison.OrdinalIgnoreCase)) &&
+            string.Equals(pp.PropertyValue.Property?.Name, "Familia", StringComparison.OrdinalIgnoreCase));
+    }
+
+    public async Task<IReadOnlyList<HerrajeLookupResultDto>> GetHerrajeStatusByCodesAsync(IEnumerable<string> principalCodes)
+    {
+        if (principalCodes == null)
+        {
+            throw new ArgumentNullException(nameof(principalCodes));
+        }
+
+        var normalizedCodes = principalCodes
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .Select(code => code.Trim())
+            .ToList();
+
+        if (normalizedCodes.Count == 0)
+        {
+            return Array.Empty<HerrajeLookupResultDto>();
+        }
+
+        var distinctCodes = normalizedCodes
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var codeSet = new HashSet<string>(distinctCodes, StringComparer.OrdinalIgnoreCase);
+        var products = await _productRepository.GetByPrincipalCodesAsync(distinctCodes);
+
+        var codeToProduct = new Dictionary<string, Product>(StringComparer.OrdinalIgnoreCase);
+        foreach (var product in products)
+        {
+            foreach (var codeJson in product.CodeJson.Where(c =>
+                         string.Equals(c.Type, "Principal", StringComparison.OrdinalIgnoreCase) &&
+                         !string.IsNullOrWhiteSpace(c.Code)))
+            {
+                var trimmedCode = codeJson.Code!.Trim();
+                if (codeSet.Contains(trimmedCode) && !codeToProduct.ContainsKey(trimmedCode))
+                {
+                    codeToProduct[trimmedCode] = product;
+                }
+            }
+        }
+
+        return distinctCodes
+            .Select(code =>
+            {
+                if (!codeToProduct.TryGetValue(code, out var product))
+                {
+                    return new HerrajeLookupResultDto
+                    {
+                        Code = code,
+                        Found = false,
+                        IsHerraje = false
+                    };
+                }
+
+                return new HerrajeLookupResultDto
+                {
+                    Code = code,
+                    Found = true,
+                    IsHerraje = IsHerrajeProduct(product),
+                    MainName = product.MainName
+                };
+            })
+            .ToList();
+    }
+
+    private static bool IsHerrajeProduct(Product product)
+    {
+        return product.ProductProperties.Any(pp =>
+            pp.PropertyValue != null &&
+            (string.Equals(pp.PropertyValue.Type, "Herrajes", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(pp.PropertyValue.Type, "Area de Herrajes", StringComparison.OrdinalIgnoreCase)) &&
+            string.Equals(pp.PropertyValue.Property?.Name, "Familia", StringComparison.OrdinalIgnoreCase));
+    }
     /// <summary>
     /// Obtiene todos los productos con filtros y paginación (OPTIMIZADO)
     /// </summary>
@@ -263,9 +373,158 @@ public class ProductService : IProductService
     }
 
     /// <summary>
-    /// Importa productos desde un archivo Excel. El archivo debe tener las siguientes columnas:
+    /// Importa productos desde un archivo Excel en uno de dos formatos.
+    /// 
+    /// Formato 1 (original):
+    /// - Columna A: Código (requerido)
+    /// - Columna B: Descripción (requerido)
+    /// - Columna C: Unidad (opcional, por defecto "S/U" si está vacío)
+    /// - Columna D: Activo (requerido, True/False o 1/0, solo importa si es True)
+    /// - Columna E-H: Reservadas (no utilizadas, pueden estar vacías)
+    /// - Columna I: Proveedor (requerido, se usa ID 37 por defecto si no existe)
+    /// - Columna J: Familia (opcional, debe existir en PropertyValues)
+    /// - Columna K: Clase (opcional, debe existir en PropertyValues)
+    /// - Columna L: Línea (opcional, debe existir en PropertyValues)
+    /// 
+    /// Formato 2 (catalogo):
+    /// - Columna C: Codigo producto
+    /// - Columna D: Codigo SAT
+    /// - Columna E: Codigo proveedor
+    /// - Columna F: Descripcion
+    /// - Columna H: Unidad
+    /// - Columna W/X: Id y nombre de Familia
+    /// - Columna Y/Z: Id y nombre de Clase
+    /// - Columna AA/AB: Id y nombre de Linea
+    /// - Columna AT/AU: Id y nombre de Proveedor
+    /// 
+    /// Las filas de encabezado se saltan automáticamente en formato 1. 
+    /// Se procesa en lotes de 400 productos para optimizar el rendimiento.
     /// </summary>
     public async Task<ImportProductResultDto> ImportProductsFromExcelAsync(Stream excelStream)
+    {
+        using var workbook = await LoadWorkbookFromExcelAsync(excelStream);
+        var worksheet = workbook.Worksheet(1);
+        var format = DetectImportExcelFormat(worksheet);
+
+        return format == ImportExcelFormat.CatalogV2
+            ? await ImportProductsFromCatalogFormatAsync(worksheet)
+            : await ImportProductsFromOriginalFormatAsync(worksheet);
+    }
+
+    private static async Task<XLWorkbook> LoadWorkbookFromExcelAsync(Stream excelStream)
+    {
+        if (excelStream == null)
+        {
+            throw new ArgumentNullException(nameof(excelStream));
+        }
+
+        using var buffer = new MemoryStream();
+        await excelStream.CopyToAsync(buffer);
+        var data = buffer.ToArray();
+
+        if (IsOleCompoundDocument(data))
+        {
+            return LoadWorkbookFromXls(data);
+        }
+
+        return new XLWorkbook(new MemoryStream(data));
+    }
+
+    private static XLWorkbook LoadWorkbookFromXls(byte[] data)
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+        using var stream = new MemoryStream(data);
+        using var reader = ExcelReaderFactory.CreateReader(stream);
+        var dataSet = reader.AsDataSet(new ExcelDataSetConfiguration
+        {
+            ConfigureDataTable = _ => new ExcelDataTableConfiguration
+            {
+                UseHeaderRow = false
+            }
+        });
+
+        if (dataSet.Tables.Count == 0)
+        {
+            throw new InvalidDataException("El archivo Excel no contiene hojas legibles.");
+        }
+
+        var workbook = new XLWorkbook();
+        workbook.Worksheets.Add(dataSet.Tables[0], "Sheet1");
+        return workbook;
+    }
+
+    private static bool IsOleCompoundDocument(byte[] data)
+    {
+        if (data.Length < 8)
+        {
+            return false;
+        }
+
+        return data[0] == 0xD0 && data[1] == 0xCF && data[2] == 0x11 && data[3] == 0xE0 &&
+               data[4] == 0xA1 && data[5] == 0xB1 && data[6] == 0x1A && data[7] == 0xE1;
+    }
+
+    private enum ImportExcelFormat
+    {
+        Original,
+        CatalogV2
+    }
+
+    private static ImportExcelFormat DetectImportExcelFormat(IXLWorksheet worksheet)
+    {
+        if (FindCatalogHeaderRow(worksheet).HasValue)
+        {
+            return ImportExcelFormat.CatalogV2;
+        }
+
+        return ImportExcelFormat.Original;
+    }
+
+    private static int? FindCatalogHeaderRow(IXLWorksheet worksheet)
+    {
+        for (int row = 1; row <= 5; row++)
+        {
+            var headerA = worksheet.Cell(row, 1).GetValue<string>().Trim();
+            var headerC = worksheet.Cell(row, 3).GetValue<string>().Trim();
+            var headerF = worksheet.Cell(row, 6).GetValue<string>().Trim();
+
+            if (headerA.Equals("nuevocodigo", StringComparison.OrdinalIgnoreCase) &&
+                headerC.Equals("id", StringComparison.OrdinalIgnoreCase) &&
+                headerF.Equals("descripcion", StringComparison.OrdinalIgnoreCase))
+            {
+                return row;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<int?> EnsurePropertyValueAsync(
+        string propertyName,
+        string propertyValue,
+        Dictionary<string, int> cache,
+        ImportProductResultDto result,
+        int row)
+    {
+        if (string.IsNullOrWhiteSpace(propertyValue))
+        {
+            return null;
+        }
+
+        var normalizedValue = propertyValue.Trim().ToLowerInvariant();
+        if (cache.TryGetValue(normalizedValue, out var cachedId))
+        {
+            return cachedId;
+        }
+
+        var createdId = await _productRepository.GetOrCreatePropertyValueIdAsync(propertyName, propertyValue.Trim());
+        cache[normalizedValue] = createdId;
+        result.Errors.Add($"Fila {row}: PropertyValue '{propertyName}' con valor '{propertyValue}' no encontrado. Se creó automáticamente.");
+        return createdId;
+    }
+
+    private async Task<ImportProductResultDto> ImportProductsFromOriginalFormatAsync(IXLWorksheet worksheet)
     {
         var result = new ImportProductResultDto();
         const int batchSize = 400;
@@ -277,173 +536,321 @@ public class ProductService : IProductService
         var lineaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Línea");
         var batch = new List<(int Row, Product Product)>(batchSize);
 
-        using (var workbook = new XLWorkbook(excelStream))
+        var lastRow = worksheet.LastRowUsed();
+        if (lastRow == null)
         {
-            var worksheet = workbook.Worksheet(1);
-            var rowCount = worksheet.LastRowUsed().RowNumber();
-
-            for (int row = 2; row <= rowCount; row++)
-            {
-                try
-                {
-                    // Columna A: Código
-                    var code = worksheet.Cell(row, 1).GetValue<string>().Trim();
-
-                    // Columna B: Descripción
-                    var description = worksheet.Cell(row, 2).GetValue<string>().Trim();
-
-                    // ✅ VALIDACIÓN: Saltar filas de encabezado (títulos del Excel)
-                    var commonHeaders = new[] { "codigo", "código", "code", "descripcion", "descripción", "description", "unidad", "unit", "activo", "active", "proveedor", "supplier" };
-                    var isHeaderRow = (!string.IsNullOrWhiteSpace(code) && commonHeaders.Contains(code.ToLower())) ||
-                                     (!string.IsNullOrWhiteSpace(description) && commonHeaders.Contains(description.ToLower()));
-
-                    if (isHeaderRow)
-                    {
-                        // Saltar silenciosamente o registrar en errores si se desea tracking
-                        continue;
-                    }
-
-                    // Columna C: Unidad (por defecto "S/N" si está vacío)
-                    var unit = worksheet.Cell(row, 3).GetValue<string>().Trim();
-                    if (string.IsNullOrWhiteSpace(unit))
-                    {
-                        unit = "S/U";
-                    }
-
-                    // Columna D: Activo (True/False) - VERIFICACIÓN OBLIGATORIA
-                    var activoCell = worksheet.Cell(row, 4);
-                    bool activo = false;
-
-                    // Intentar leer como booleano o como string
-                    try
-                    {
-                        activo = activoCell.GetValue<bool>();
-                    }
-                    catch
-                    {
-                        var activoString = activoCell.GetValue<string>().Trim();
-                        activo = activoString.Equals("True", StringComparison.OrdinalIgnoreCase) ||
-                                 activoString.Equals("1", StringComparison.OrdinalIgnoreCase);
-                    }
-
-                    // Si Activo es False, ignorar esta fila y continuar con la siguiente
-                    if (!activo)
-                    {
-                        result.Errors.Add($"Fila {row}: Producto '{code}' omitido (Activo = False)");
-                        continue;
-                    }
-
-                    // Columna I (9): Proveedor
-                    var supplierName = worksheet.Cell(row, 9).GetValue<string>().Trim();
-                    int supplierId;
-
-                    // Buscar proveedor en el diccionario precargado, si no existe usar ID 37 por defecto
-                    if (!suppliersDict.TryGetValue(supplierName.ToLower(), out var supplier))
-                    {
-                        result.Errors.Add($"Fila {row}: Proveedor '{supplierName}' no encontrado. Se usará Supplier ID 37 por defecto.");
-                        supplierId = 37;
-                    }
-                    else
-                    {
-                        supplierId = supplier.IdSupplier;
-                    }
-
-                    var product = new Product
-                    {
-                        MainName = description,
-                        Unit = unit,
-                        Description = description,
-                        Quantity = 0,
-                        Taxes = 16,
-                        IdSupplier = supplierId,
-                        CodeJson = new List<CodeJson>
-                        {
-                            new CodeJson
-                            {
-                                Index = 0,
-                                Type = "Principal",
-                                Code = code
-                            }
-                        },
-                        CostsJson = new List<CostsJson>(),
-                        CategoriesJsons = new List<CategoriesJson>(),
-                        SolutionsJsons = new List<SolutionsJson>(),
-                        ProductProperties = new List<ProductProperties>()
-                    };
-
-                    // Columna J (10): Familia - buscar en diccionario precargado
-                    var familia = worksheet.Cell(row, 10).GetValue<string>().Trim();
-                    if (!string.IsNullOrWhiteSpace(familia))
-                    {
-                        if (familiaValuesDict.TryGetValue(familia.ToLower(), out var familiaId))
-                        {
-                            product.ProductProperties.Add(new ProductProperties
-                            {
-                                IdPropertyValue = familiaId
-                            });
-                        }
-                        else
-                        {
-                            result.Errors.Add($"Fila {row}: PropertyValue 'Familia' con valor '{familia}' no encontrado");
-                        }
-                    }
-
-                    // Columna K (11): Clase - buscar en diccionario precargado
-                    var clase = worksheet.Cell(row, 11).GetValue<string>().Trim();
-                    if (!string.IsNullOrWhiteSpace(clase))
-                    {
-                        if (claseValuesDict.TryGetValue(clase.ToLower(), out var claseId))
-                        {
-                            product.ProductProperties.Add(new ProductProperties
-                            {
-                                IdPropertyValue = claseId
-                            });
-                        }
-                        else
-                        {
-                            result.Errors.Add($"Fila {row}: PropertyValue 'Clase' con valor '{clase}' no encontrado");
-                        }
-                    }
-
-                    // Columna L (12): Línea - buscar en diccionario precargado
-                    var linea = worksheet.Cell(row, 12).GetValue<string>().Trim();
-                    if (!string.IsNullOrWhiteSpace(linea))
-                    {
-                        if (lineaValuesDict.TryGetValue(linea.ToLower(), out var lineaId))
-                        {
-                            product.ProductProperties.Add(new ProductProperties
-                            {
-                                IdPropertyValue = lineaId
-                            });
-                        }
-                        else
-                        {
-                            result.Errors.Add($"Fila {row}: PropertyValue 'Línea' con valor '{linea}' no encontrado");
-                        }
-                    }
-
-                    batch.Add((row, product));
-                    if (batch.Count >= batchSize)
-                    {
-                        await PersistImportBatchAsync(batch, result);
-                        batch.Clear();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    result.Errors.Add($"Fila {row}: {ex.Message}");
-                    result.FailedImports++;
-                }
-            }
-
-            if (batch.Count > 0)
-            {
-                await PersistImportBatchAsync(batch, result);
-            }
-
-            result.TotalRows = rowCount - 1;
+            return result;
         }
 
+        var rowCount = lastRow.RowNumber();
+
+        for (int row = 2; row <= rowCount; row++)
+        {
+            try
+            {
+                // Columna A: Código
+                var code = worksheet.Cell(row, 1).GetValue<string>().Trim();
+
+                // Columna B: Descripción
+                var description = worksheet.Cell(row, 2).GetValue<string>().Trim();
+
+                if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(description))
+                {
+                    continue;
+                }
+
+                // ✅ VALIDACIÓN: Saltar filas de encabezado (títulos del Excel)
+                var commonHeaders = new[] { "codigo", "código", "code", "descripcion", "descripción", "description", "unidad", "unit", "activo", "active", "proveedor", "supplier" };
+                var isHeaderRow = (!string.IsNullOrWhiteSpace(code) && commonHeaders.Contains(code.ToLower())) ||
+                                 (!string.IsNullOrWhiteSpace(description) && commonHeaders.Contains(description.ToLower()));
+
+                if (isHeaderRow)
+                {
+                    continue;
+                }
+
+                // Columna C: Unidad (por defecto "S/N" si está vacío)
+                var unit = worksheet.Cell(row, 3).GetValue<string>().Trim();
+                if (string.IsNullOrWhiteSpace(unit))
+                {
+                    unit = "S/U";
+                }
+
+                // Columna D: Activo (True/False) - VERIFICACIÓN OBLIGATORIA
+                var activoCell = worksheet.Cell(row, 4);
+                bool activo = false;
+
+                // Intentar leer como booleano o como string
+                try
+                {
+                    activo = activoCell.GetValue<bool>();
+                }
+                catch
+                {
+                    var activoString = activoCell.GetValue<string>().Trim();
+                    activo = activoString.Equals("True", StringComparison.OrdinalIgnoreCase) ||
+                             activoString.Equals("1", StringComparison.OrdinalIgnoreCase);
+                }
+
+                // Si Activo es False, ignorar esta fila y continuar con la siguiente
+                if (!activo)
+                {
+                    result.Errors.Add($"Fila {row}: Producto '{code}' omitido (Activo = False)");
+                    continue;
+                }
+
+                // Columna I (9): Proveedor
+                var supplierName = worksheet.Cell(row, 9).GetValue<string>().Trim();
+                int supplierId;
+
+                // Buscar proveedor en el diccionario precargado, si no existe usar ID 37 por defecto
+                if (!suppliersDict.TryGetValue(supplierName.ToLower(), out var supplier))
+                {
+                    result.Errors.Add($"Fila {row}: Proveedor '{supplierName}' no encontrado. Se usará Supplier ID 37 por defecto.");
+                    supplierId = 37;
+                }
+                else
+                {
+                    supplierId = supplier.IdSupplier;
+                }
+
+                var product = new Product
+                {
+                    MainName = description,
+                    Unit = unit,
+                    Description = description,
+                    Quantity = 0,
+                    Taxes = 16,
+                    IdSupplier = supplierId,
+                    CodeJson = new List<CodeJson>
+                    {
+                        new CodeJson
+                        {
+                            Index = 0,
+                            Type = "Principal",
+                            Code = code
+                        }
+                    },
+                    CostsJson = new List<CostsJson>(),
+                    CategoriesJsons = new List<CategoriesJson>(),
+                    SolutionsJsons = new List<SolutionsJson>(),
+                    ProductProperties = new List<ProductProperties>()
+                };
+
+                // Columna J (10): Familia - buscar en diccionario precargado
+                var familia = worksheet.Cell(row, 10).GetValue<string>().Trim();
+                var familiaId = await EnsurePropertyValueAsync("Familia", familia, familiaValuesDict, result, row);
+                if (familiaId.HasValue)
+                {
+                    product.ProductProperties.Add(new ProductProperties
+                    {
+                        IdPropertyValue = familiaId.Value
+                    });
+                }
+
+                // Columna K (11): Clase - buscar en diccionario precargado
+                var clase = worksheet.Cell(row, 11).GetValue<string>().Trim();
+                var claseId = await EnsurePropertyValueAsync("Clase", clase, claseValuesDict, result, row);
+                if (claseId.HasValue)
+                {
+                    product.ProductProperties.Add(new ProductProperties
+                    {
+                        IdPropertyValue = claseId.Value
+                    });
+                }
+
+                // Columna L (12): Línea - buscar en diccionario precargado
+                var linea = worksheet.Cell(row, 12).GetValue<string>().Trim();
+                var lineaId = await EnsurePropertyValueAsync("Línea", linea, lineaValuesDict, result, row);
+                if (lineaId.HasValue)
+                {
+                    product.ProductProperties.Add(new ProductProperties
+                    {
+                        IdPropertyValue = lineaId.Value
+                    });
+                }
+
+                batch.Add((row, product));
+                if (batch.Count >= batchSize)
+                {
+                    await PersistImportBatchAsync(batch, result);
+                    batch.Clear();
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Errors.Add($"Fila {row}: {ex.Message}");
+                result.FailedImports++;
+            }
+        }
+
+        if (batch.Count > 0)
+        {
+            await PersistImportBatchAsync(batch, result);
+        }
+
+        result.TotalRows = rowCount - 1;
+        return result;
+    }
+
+    private async Task<ImportProductResultDto> ImportProductsFromCatalogFormatAsync(IXLWorksheet worksheet)
+    {
+        var result = new ImportProductResultDto();
+        const int batchSize = 400;
+
+        var suppliersDict = await _productRepository.GetAllSuppliersAsync();
+        var familiaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Familia");
+        var claseValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Clase");
+        var lineaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Línea");
+        var batch = new List<(int Row, Product Product)>(batchSize);
+
+        var lastRow = worksheet.LastRowUsed();
+        if (lastRow == null)
+        {
+            return result;
+        }
+
+        var rowCount = lastRow.RowNumber();
+
+        var headerRow = FindCatalogHeaderRow(worksheet) ?? 1;
+        var startRow = headerRow + 1;
+
+        for (int row = startRow; row <= rowCount; row++)
+        {
+            try
+            {
+                var productCode = worksheet.Cell(row, 3).GetValue<string>().Trim();
+                var satCode = worksheet.Cell(row, 4).GetValue<string>().Trim();
+                var supplierCode = worksheet.Cell(row, 5).GetValue<string>().Trim();
+                var description = worksheet.Cell(row, 6).GetValue<string>().Trim();
+                var unit = worksheet.Cell(row, 8).GetValue<string>().Trim();
+
+                if (string.IsNullOrWhiteSpace(productCode) && string.IsNullOrWhiteSpace(description))
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(unit))
+                {
+                    unit = "S/U";
+                }
+
+                var supplierName = worksheet.Cell(row, 47).GetValue<string>().Trim();
+                int supplierId;
+
+                if (!string.IsNullOrWhiteSpace(supplierName) && suppliersDict.TryGetValue(supplierName.ToLower(), out var supplier))
+                {
+                    supplierId = supplier.IdSupplier;
+                }
+                else
+                {
+                    result.Errors.Add($"Fila {row}: Proveedor '{supplierName}'/{supplierCode} no encontrado. Se usará Supplier ID 37 por defecto.");
+                    supplierId = 37;
+                }
+
+                var taxes = 16;
+                var taxCell = worksheet.Cell(row, 31).GetValue<string>().Trim();
+                if (double.TryParse(taxCell, out var taxValue))
+                {
+                    taxes = Convert.ToInt32(Math.Round(taxValue));
+                }
+
+                var codes = new List<CodeJson>();
+                if (!string.IsNullOrWhiteSpace(productCode))
+                {
+                    codes.Add(new CodeJson
+                    {
+                        Index = codes.Count,
+                        Type = "Principal",
+                        Code = productCode
+                    });
+                }
+
+                if (!string.IsNullOrWhiteSpace(satCode))
+                {
+                    codes.Add(new CodeJson
+                    {
+                        Index = codes.Count,
+                        Type = "SAT",
+                        Code = satCode
+                    });
+                }
+
+                if (!string.IsNullOrWhiteSpace(supplierCode))
+                {
+                    codes.Add(new CodeJson
+                    {
+                        Index = codes.Count,
+                        Type = "Proveedor",
+                        Code = supplierCode
+                    });
+                }
+
+                var product = new Product
+                {
+                    MainName = description,
+                    Unit = unit,
+                    Description = description,
+                    Quantity = 0,
+                    Taxes = taxes,
+                    IdSupplier = supplierId,
+                    CodeJson = codes,
+                    CostsJson = new List<CostsJson>(),
+                    CategoriesJsons = new List<CategoriesJson>(),
+                    SolutionsJsons = new List<SolutionsJson>(),
+                    ProductProperties = new List<ProductProperties>()
+                };
+
+                var familiaName = worksheet.Cell(row, 24).GetValue<string>().Trim();
+                var familiaId = await EnsurePropertyValueAsync("Familia", familiaName, familiaValuesDict, result, row);
+                if (familiaId.HasValue)
+                {
+                    product.ProductProperties.Add(new ProductProperties
+                    {
+                        IdPropertyValue = familiaId.Value
+                    });
+                }
+
+                var claseName = worksheet.Cell(row, 26).GetValue<string>().Trim();
+                var claseId = await EnsurePropertyValueAsync("Clase", claseName, claseValuesDict, result, row);
+                if (claseId.HasValue)
+                {
+                    product.ProductProperties.Add(new ProductProperties
+                    {
+                        IdPropertyValue = claseId.Value
+                    });
+                }
+
+                var lineaName = worksheet.Cell(row, 28).GetValue<string>().Trim();
+                var lineaId = await EnsurePropertyValueAsync("Línea", lineaName, lineaValuesDict, result, row);
+                if (lineaId.HasValue)
+                {
+                    product.ProductProperties.Add(new ProductProperties
+                    {
+                        IdPropertyValue = lineaId.Value
+                    });
+                }
+
+                batch.Add((row, product));
+                if (batch.Count >= batchSize)
+                {
+                    await PersistImportBatchAsync(batch, result);
+                    batch.Clear();
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Errors.Add($"Fila {row}: {ex.Message}");
+                result.FailedImports++;
+            }
+        }
+
+        if (batch.Count > 0)
+        {
+            await PersistImportBatchAsync(batch, result);
+        }
+
+        result.TotalRows = rowCount - 1;
         return result;
     }
 

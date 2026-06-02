@@ -164,6 +164,75 @@ public class ProductController : ControllerBase
     }
 
     /// <summary>
+    /// Indica si un producto es herraje segun su codigo principal o su MainName
+    /// </summary>
+    /// <param name="code">Codigo principal del producto (opcional)</param>
+    /// <param name="mainName">Nombre principal del producto (opcional)</param>
+    [HttpGet("is-herraje")]
+    public async Task<ActionResult> IsProductHerraje([FromQuery] string? code, [FromQuery] string? mainName)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(mainName))
+            {
+                return BadRequest(new ApiResponse("Debe proporcionar el codigo o el nombre del producto", 400));
+            }
+
+            var isHerraje = await _productService.IsProductHerrajeByCodeOrNameAsync(code, mainName);
+            if (!isHerraje.HasValue)
+            {
+                var reference = !string.IsNullOrWhiteSpace(code) ? $"codigo '{code}'" : $"nombre '{mainName}'";
+                return NotFound(new ApiResponse($"Producto con {reference} no encontrado", 404));
+            }
+
+            var response = new
+            {
+                code = code?.Trim(),
+                mainName = mainName?.Trim(),
+                isHerraje = isHerraje.Value
+            };
+
+            return Ok(new ApiResponse(response, "Consulta realizada exitosamente", 200));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ApiResponse(ex.Message, 400));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse($"Error al consultar el producto: {ex.Message}", 500));
+        }
+    }
+
+    /// <summary>
+    /// Indica que codigos corresponden a productos herrajes
+    /// </summary>
+    /// <param name="codes">Lista de codigos principales</param>
+    [HttpPost("is-herraje/batch")]
+    public async Task<ActionResult> IsProductHerrajeBatch([FromBody] List<string> codes)
+    {
+        try
+        {
+            if (codes == null || codes.Count == 0)
+            {
+                return BadRequest(new ApiResponse("Debe proporcionar al menos un codigo", 400));
+            }
+
+            var results = await _productService.GetHerrajeStatusByCodesAsync(codes);
+
+            return Ok(new ApiResponse(results, "Consulta realizada exitosamente", 200));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ApiResponse(ex.Message, 400));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse($"Error al consultar los productos: {ex.Message}", 500));
+        }
+    }
+
+    /// <summary>
     /// Actualiza un producto existente
     /// </summary>
     /// <param name="id">ID del producto a actualizar</param>

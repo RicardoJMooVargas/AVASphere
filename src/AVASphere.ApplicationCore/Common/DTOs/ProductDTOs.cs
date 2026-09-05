@@ -83,6 +83,7 @@ public class ProductPropertyDto
     // Información de la PropertyValue
     public string PropertyValueName { get; set; } = string.Empty;
     public string PropertyName { get; set; } = string.Empty;
+    public string PropertyNormalizedName { get; set; } = string.Empty;
 }
 
 public class HerrajeLookupResultDto

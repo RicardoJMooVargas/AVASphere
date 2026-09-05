@@ -367,7 +367,8 @@ public class ProductService : IProductService
                 IdProduct = pp.IdProduct,
                 IdPropertyValue = pp.IdPropertyValue,
                 PropertyValueName = pp.PropertyValue?.Value ?? "",
-                PropertyName = pp.PropertyValue?.Property?.Name ?? ""
+                PropertyName = pp.PropertyValue?.Property?.Name ?? "",
+                PropertyNormalizedName = pp.PropertyValue?.Property?.NormalizedName ?? ""
             }).ToList() ?? new List<ProductPropertyDto>()
         };
     }
@@ -394,7 +395,7 @@ public class ProductService : IProductService
     /// - Columna H: Unidad
     /// - Columna W/X: Id y nombre de Familia
     /// - Columna Y/Z: Id y nombre de Clase
-    /// - Columna AA/AB: Id y nombre de Linea
+    /// - Columna AA/AB: Id y nombre de Línea
     /// - Columna AT/AU: Id y nombre de Proveedor
     /// 
     /// Las filas de encabezado se saltan automáticamente en formato 1. 
@@ -533,7 +534,7 @@ public class ProductService : IProductService
         var suppliersDict = await _productRepository.GetAllSuppliersAsync();
         var familiaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Familia");
         var claseValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Clase");
-        var lineaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Línea");
+        var LíneaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Línea");
         var batch = new List<(int Row, Product Product)>(batchSize);
 
         var lastRow = worksheet.LastRowUsed();
@@ -660,13 +661,13 @@ public class ProductService : IProductService
                 }
 
                 // Columna L (12): Línea - buscar en diccionario precargado
-                var linea = worksheet.Cell(row, 12).GetValue<string>().Trim();
-                var lineaId = await EnsurePropertyValueAsync("Línea", linea, lineaValuesDict, result, row);
-                if (lineaId.HasValue)
+                var Línea = worksheet.Cell(row, 12).GetValue<string>().Trim();
+                var LíneaId = await EnsurePropertyValueAsync("Línea", Línea, LíneaValuesDict, result, row);
+                if (LíneaId.HasValue)
                 {
                     product.ProductProperties.Add(new ProductProperties
                     {
-                        IdPropertyValue = lineaId.Value
+                        IdPropertyValue = LíneaId.Value
                     });
                 }
 
@@ -701,7 +702,7 @@ public class ProductService : IProductService
         var suppliersDict = await _productRepository.GetAllSuppliersAsync();
         var familiaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Familia");
         var claseValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Clase");
-        var lineaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Línea");
+        var LíneaValuesDict = await _productRepository.GetPropertyValueIdsByPropertyNameAsync("Línea");
         var batch = new List<(int Row, Product Product)>(batchSize);
 
         var lastRow = worksheet.LastRowUsed();
@@ -821,13 +822,13 @@ public class ProductService : IProductService
                     });
                 }
 
-                var lineaName = worksheet.Cell(row, 28).GetValue<string>().Trim();
-                var lineaId = await EnsurePropertyValueAsync("Línea", lineaName, lineaValuesDict, result, row);
-                if (lineaId.HasValue)
+                var LíneaName = worksheet.Cell(row, 28).GetValue<string>().Trim();
+                var LíneaId = await EnsurePropertyValueAsync("Línea", LíneaName, LíneaValuesDict, result, row);
+                if (LíneaId.HasValue)
                 {
                     product.ProductProperties.Add(new ProductProperties
                     {
-                        IdPropertyValue = lineaId.Value
+                        IdPropertyValue = LíneaId.Value
                     });
                 }
 

@@ -373,10 +373,16 @@ public class ProductRepository : IProductRepository
 
     public async Task<Dictionary<string, int>> GetPropertyValueIdsByPropertyNameAsync(string propertyName)
     {
-        return await _context.PropertyValues
+        var propertyValues = await _context.PropertyValues
             .Include(pv => pv.Property)
             .Where(pv => pv.Property.Name!.ToLower() == propertyName.ToLower())
             .Where(pv => !string.IsNullOrEmpty(pv.Value))
-            .ToDictionaryAsync(pv => pv.Value!.ToLower(), pv => pv.IdPropertyValue);
+            .ToListAsync();
+
+        return propertyValues
+            .GroupBy(pv => pv.Value!.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key.ToLowerInvariant(),
+                group => group.Min(pv => pv.IdPropertyValue));
     }
 }

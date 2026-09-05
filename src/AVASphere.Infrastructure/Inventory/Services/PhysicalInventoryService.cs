@@ -72,13 +72,22 @@ public class PhysicalInventoryService : IPhysicalInventoryService
                 };
             }
 
+            // Persistir los filtros en las observaciones
+            var finalObservations = createDto.Observations ?? "";
+            if (createDto.ProductFilters != null)
+            {
+                var filterJson = global::System.Text.Json.JsonSerializer.Serialize(createDto.ProductFilters);
+                var filterText = $"[Filtros aplicados: {filterJson}]";
+                finalObservations = string.IsNullOrEmpty(finalObservations) ? filterText : $"{finalObservations}\n{filterText}";
+            }
+
             // Crear la entidad PhysicalInventory
             var physicalInventory = new PhysicalInventory
             {
                 InventoryDate = createDto.InventoryDate,
                 Status = PhysicalInventoryStatus.Open.ToString(),
                 CreatedBy = userId,
-                Observations = createDto.Observations,
+                Observations = finalObservations,
                 IdWarehouse = createDto.IdWarehouse
             };
 
@@ -1003,7 +1012,19 @@ public class PhysicalInventoryService : IPhysicalInventoryService
                 var filteredProducts = await _productRepository.GetAllProductsAsync(productFilter);
                 var filteredProductsList = filteredProducts.ToList();
                 
-                _logger.LogInformation("Found {ProductCount} filtered products", filteredProductsList.Count);
+                // Obtener el inventario actual del almacén para cruzar la información
+                var warehouseInventory = await _inventoryRepository.GetByWarehouseIdAsync(idWarehouse);
+                var warehouseInventoryList = warehouseInventory.ToList();
+                var warehouseProductIds = warehouseInventoryList.Select(i => i.IdProduct).ToHashSet();
+                
+                // Si el almacén tiene inventario, SOLO filtramos sobre los productos que existen en él.
+                // Si el almacén es nuevo (vacío), permitimos que se agreguen todos los productos filtrados (comportamiento por defecto).
+                if (warehouseInventoryList.Any())
+                {
+                    filteredProductsList = filteredProductsList.Where(p => warehouseProductIds.Contains(p.IdProduct)).ToList();
+                }
+
+                _logger.LogInformation("Found {ProductCount} filtered products for warehouse {WarehouseId}", filteredProductsList.Count, idWarehouse);
                 
                 foreach (var product in filteredProductsList)
                 {

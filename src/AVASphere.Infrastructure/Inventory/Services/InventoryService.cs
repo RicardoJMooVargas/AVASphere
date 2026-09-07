@@ -153,51 +153,32 @@ public class InventoryService : IInventoryService
                         new { Code = "AVA04", Stock = ReadDoubleValue(worksheet.Cell(row, 8)), IdWarehouse = warehousesCache.GetValueOrDefault("AVA04", 0) }
                     };
 
-                    // Sumar todas las cantidades de todas las bodegas
-                    var totalStock = stocks.Sum(s => s.Stock);
-
-                    // Determinar la bodega según el número de ubicación (Ubicación 1→AVA01, 2→AVA02, etc.)
-                    var warehouseCode = $"AVA0{ubicacion}";
-                    var idWarehouse = warehousesCache.GetValueOrDefault(warehouseCode, 0);
-
-                    // Si la ubicación no corresponde a ninguna bodega, usar la primera con stock
-                    if (idWarehouse == 0)
+                    // Iterar sobre cada bodega para asignar su respectivo stock
+                    foreach (var stockInfo in stocks)
                     {
-                        var fallbackWarehouse = stocks.FirstOrDefault(s => s.Stock > 0 && s.IdWarehouse > 0)
-                                             ?? stocks.FirstOrDefault(s => s.IdWarehouse > 0);
+                        if (stockInfo.IdWarehouse == 0) continue; // Ignorar si la bodega no existe en la DB
 
-                        if (fallbackWarehouse == null || fallbackWarehouse.IdWarehouse == 0)
+                        // Crear clave única: IdProduct + IdWarehouse
+                        var groupKey = $"{idProduct}_{stockInfo.IdWarehouse}";
+
+                        if (inventoryGroups.ContainsKey(groupKey))
                         {
-                            result.WarehousesNotFound++;
-                            result.Warnings.Add($"Fila {row}: No se encontró ninguna bodega válida");
-                            result.TotalRows++;
-                            continue;
+                            // Si el mismo producto aparece en otra fila, sumamos el stock
+                            inventoryGroups[groupKey].TotalStock = (inventoryGroups[groupKey].TotalStock ?? 0) + stockInfo.Stock;
                         }
-
-                        idWarehouse = fallbackWarehouse.IdWarehouse;
-                        warehouseCode = fallbackWarehouse.Code;
-                    }
-
-                    // Crear clave única: IdProduct + Ubicación (sin bodega)
-                    var groupKey = $"{idProduct}_{ubicacion}";
-
-                    if (inventoryGroups.ContainsKey(groupKey))
-                    {
-                        // Ya existe este grupo, sumar el stock
-                        inventoryGroups[groupKey].TotalStock = (inventoryGroups[groupKey].TotalStock ?? 0) + totalStock;
-                    }
-                    else
-                    {
-                        // Crear nuevo grupo
-                        inventoryGroups[groupKey] = new InventoryGroup
+                        else
                         {
-                            IdProduct = idProduct,
-                            IdWarehouse = idWarehouse, // Usar la bodega correspondiente a la ubicación
-                            LocationDetail = ubicacion,
-                            TotalStock = totalStock, // Suma de todas las bodegas
-                            ProductDescription = descripcion,
-                            WarehouseCode = warehouseCode
-                        };
+                            // Crear nuevo grupo para esta bodega
+                            inventoryGroups[groupKey] = new InventoryGroup
+                            {
+                                IdProduct = idProduct,
+                                IdWarehouse = stockInfo.IdWarehouse,
+                                LocationDetail = ubicacion, // Guardamos la columna M solo como detalle referencial
+                                TotalStock = stockInfo.Stock,
+                                ProductDescription = descripcion,
+                                WarehouseCode = stockInfo.Code
+                            };
+                        }
                     }
 
                     result.TotalRows++;

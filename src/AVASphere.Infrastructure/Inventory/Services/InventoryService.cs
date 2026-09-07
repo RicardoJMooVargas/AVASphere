@@ -65,7 +65,8 @@ public class InventoryService : IInventoryService
         {
             ubicacionProperty = new AVASphere.ApplicationCore.Common.Entities.Catalogs.Property
             {
-                Name = "Ubicación"
+                Name = "Ubicación",
+                NormalizedName = "ubicacion"
             };
             _context.Properties.Add(ubicacionProperty);
             await _context.SaveChangesAsync();

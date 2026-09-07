@@ -1021,7 +1021,9 @@ public class PhysicalInventoryService : IPhysicalInventoryService
             var detailsToCreate = new List<PhysicalInventoryDetail>();
 
             if (filters != null && (filters.IdSupplier.HasValue || !string.IsNullOrEmpty(filters.SupplierName) || 
-                filters.ProductProperties?.Any() == true))
+                filters.ProductProperties?.Any() == true || !string.IsNullOrEmpty(filters.Familia) || 
+                !string.IsNullOrEmpty(filters.Clase) || !string.IsNullOrEmpty(filters.Linea) || 
+                !string.IsNullOrEmpty(filters.Ubicacion)))
             {
                 _logger.LogInformation("Using filtered products with supplier ID: {SupplierId}, supplier name: {SupplierName}", 
                     filters.IdSupplier, filters.SupplierName);
@@ -1030,7 +1032,11 @@ public class PhysicalInventoryService : IPhysicalInventoryService
                 {
                     IdSupplier = filters.IdSupplier,
                     SupplierName = filters.SupplierName,
-                    Properties = filters.ProductProperties
+                    Properties = filters.ProductProperties,
+                    Familia = filters.Familia,
+                    Clase = filters.Clase,
+                    Linea = filters.Linea,
+                    Ubicacion = filters.Ubicacion
                 };
 
                 var filteredProducts = await _productRepository.GetAllProductsAsync(productFilter);

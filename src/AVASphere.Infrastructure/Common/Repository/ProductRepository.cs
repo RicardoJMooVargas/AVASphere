@@ -270,6 +270,27 @@ public class ProductRepository : IProductRepository
         if (!string.IsNullOrEmpty(filters.PropertyValue))
             query = query.Where(p => p.ProductProperties.Any(pp => pp.PropertyValue.Value!.Contains(filters.PropertyValue)));
 
+        // Filtros explícitos de propiedades comunes
+        if (!string.IsNullOrEmpty(filters.Familia))
+            query = query.Where(p => p.ProductProperties.Any(pp => 
+                pp.PropertyValue.Property.Name == "Familia" && 
+                (pp.PropertyValue.Value!.Contains(filters.Familia) || (pp.CustomValue != null && pp.CustomValue.Contains(filters.Familia)))));
+
+        if (!string.IsNullOrEmpty(filters.Clase))
+            query = query.Where(p => p.ProductProperties.Any(pp => 
+                pp.PropertyValue.Property.Name == "Clase" && 
+                (pp.PropertyValue.Value!.Contains(filters.Clase) || (pp.CustomValue != null && pp.CustomValue.Contains(filters.Clase)))));
+
+        if (!string.IsNullOrEmpty(filters.Linea))
+            query = query.Where(p => p.ProductProperties.Any(pp => 
+                (pp.PropertyValue.Property.Name == "Línea" || pp.PropertyValue.Property.Name == "Linea") && 
+                (pp.PropertyValue.Value!.Contains(filters.Linea) || (pp.CustomValue != null && pp.CustomValue.Contains(filters.Linea)))));
+
+        if (!string.IsNullOrEmpty(filters.Ubicacion))
+            query = query.Where(p => p.ProductProperties.Any(pp => 
+                (pp.PropertyValue.Property.Name == "Ubicación" || pp.PropertyValue.Property.Name == "Ubicacion") && 
+                (pp.PropertyValue.Value!.Contains(filters.Ubicacion) || (pp.CustomValue != null && pp.CustomValue.Contains(filters.Ubicacion)))));
+
         // Filtros dinámicos por propiedades
         if (filters.Properties != null && filters.Properties.Any())
         {
@@ -278,9 +299,19 @@ public class ProductRepository : IProductRepository
                 var propertyName = propertyFilter.Key;
                 var propertyValue = propertyFilter.Value;
 
+                var isUbicacion = propertyName.Equals("Ubicacion", StringComparison.OrdinalIgnoreCase) || 
+                                  propertyName.Equals("Ubicación", StringComparison.OrdinalIgnoreCase);
+
+                var isLinea = propertyName.Equals("Linea", StringComparison.OrdinalIgnoreCase) || 
+                              propertyName.Equals("Línea", StringComparison.OrdinalIgnoreCase);
+
                 query = query.Where(p =>
                     p.ProductProperties.Any(pp =>
-                        pp.PropertyValue.Property.Name == propertyName &&
+                        (
+                            (isUbicacion && (pp.PropertyValue.Property.Name == "Ubicación" || pp.PropertyValue.Property.Name == "Ubicacion")) ||
+                            (isLinea && (pp.PropertyValue.Property.Name == "Línea" || pp.PropertyValue.Property.Name == "Linea")) ||
+                            (!isUbicacion && !isLinea && pp.PropertyValue.Property.Name == propertyName)
+                        ) &&
                         (pp.PropertyValue.Value!.Contains(propertyValue) ||
                          (pp.CustomValue != null && pp.CustomValue.Contains(propertyValue)))
                     )

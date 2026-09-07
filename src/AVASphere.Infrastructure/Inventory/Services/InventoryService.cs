@@ -57,7 +57,9 @@ public class InventoryService : IInventoryService
     {
         var result = new ImportInventoryResultDto();
 
-        // Asegurar que exista la propiedad "Ubicación"
+        try
+        {
+            // Asegurar que exista la propiedad "Ubicación"
         var ubicacionProperty = await _context.Properties
             .FirstOrDefaultAsync(p => p.Name.ToLower() == "ubicación" || p.Name.ToLower() == "ubicacion");
             
@@ -337,6 +339,13 @@ public class InventoryService : IInventoryService
             {
                 result.Errors.Add($"Error al actualizar las propiedades de Ubicación de los productos: {ex.Message}");
             }
+        }
+
+        }
+        catch (Exception ex)
+        {
+            var innerMsg = ex.InnerException != null ? ex.InnerException.Message : "N/A";
+            result.Errors.Add($"Error crítico en importación: {ex.Message}. Inner: {innerMsg}");
         }
 
         return result;

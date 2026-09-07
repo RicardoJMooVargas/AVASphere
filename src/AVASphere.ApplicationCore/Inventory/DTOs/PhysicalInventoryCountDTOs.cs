@@ -56,6 +56,25 @@ public class ProductSelectionFilterDto
     /// Filtros por propiedades específicas
     /// Key: Nombre de la propiedad ("Familia", "Clase", "Línea")
     /// Value: Valor de la propiedad
-    /// </summary>
     public Dictionary<string, string>? ProductProperties { get; set; }
+
+    /// <summary>
+    /// Filtro explícito de Familia
+    /// </summary>
+    public string? Familia { get; set; }
+
+    /// <summary>
+    /// Filtro explícito de Clase
+    /// </summary>
+    public string? Clase { get; set; }
+
+    /// <summary>
+    /// Filtro explícito de Línea
+    /// </summary>
+    public string? Linea { get; set; }
+
+    /// <summary>
+    /// Filtro explícito de Ubicación
+    /// </summary>
+    public string? Ubicacion { get; set; }
 }

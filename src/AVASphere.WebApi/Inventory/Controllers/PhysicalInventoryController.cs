@@ -214,7 +214,8 @@ public class PhysicalInventoryController : ControllerBase
         [FromQuery] int? idSupplier = null,
         [FromQuery] string? familia = null,
         [FromQuery] string? clase = null,
-        [FromQuery] string? linea = null)
+        [FromQuery] string? linea = null,
+        [FromQuery] string? ubicacion = null)
     {
         // Obtener el ID del usuario del token JWT
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
@@ -246,7 +247,8 @@ public class PhysicalInventoryController : ControllerBase
             IdSupplier = idSupplier,
             Familia = familia,
             Clase = clase,
-            Linea = linea
+            Linea = linea,
+            Ubicacion = ubicacion
         };
 
         var result = await _physicalInventoryService.GetProductInventoryListPaginatedAsync(

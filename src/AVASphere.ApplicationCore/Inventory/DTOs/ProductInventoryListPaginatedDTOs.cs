@@ -31,6 +31,11 @@ public class ProductInventoryListFiltersDto
     /// Filtro por línea (propiedad del producto)
     /// </summary>
     public string? Linea { get; set; }
+    
+    /// <summary>
+    /// Filtro por ubicación (propiedad del producto)
+    /// </summary>
+    public string? Ubicacion { get; set; }
 }
 
 /// <summary>
@@ -75,6 +80,11 @@ public class ProductInventoryCatalogsDto
     /// Lista de valores únicos de línea encontrados en los productos
     /// </summary>
     public List<string> Lineas { get; set; } = new();
+
+    /// <summary>
+    /// Lista de valores únicos de ubicación encontrados en los productos
+    /// </summary>
+    public List<string> Ubicaciones { get; set; } = new();
 }
 
 /// <summary>

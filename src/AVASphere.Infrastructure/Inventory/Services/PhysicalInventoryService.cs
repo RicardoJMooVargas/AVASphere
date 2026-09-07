@@ -904,6 +904,18 @@ public class PhysicalInventoryService : IPhysicalInventoryService
 
             catalogs.Lineas = lineas;
 
+            // Ubicaciones
+            var ubicaciones = allProperties
+                .Where(pp => string.Equals(pp.PropertyValue!.Property!.Name, "Ubicación", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(pp.PropertyValue!.Property!.Name, "Ubicacion", StringComparison.OrdinalIgnoreCase))
+                .Select(pp => pp.CustomValue ?? pp.PropertyValue!.Value ?? "Sin valor")
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(v => v)
+                .ToList();
+
+            catalogs.Ubicaciones = ubicaciones;
+
             return catalogs;
         }
         catch (Exception ex)
@@ -973,6 +985,18 @@ public class PhysicalInventoryService : IPhysicalInventoryService
                     (string.Equals(pp.PropertyValue?.Property?.Name, "Línea", StringComparison.OrdinalIgnoreCase) ||
                      string.Equals(pp.PropertyValue?.Property?.Name, "Linea", StringComparison.OrdinalIgnoreCase)) &&
                     string.Equals(pp.CustomValue ?? pp.PropertyValue?.Value, lineaFilter, StringComparison.OrdinalIgnoreCase)
+                ) == true);
+        }
+
+        // Filtro por ubicación
+        if (!string.IsNullOrWhiteSpace(filters.Ubicacion))
+        {
+            var ubicacionFilter = filters.Ubicacion.Trim();
+            filtered = filtered.Where(d =>
+                d.Product?.ProductProperties?.Any(pp =>
+                    (string.Equals(pp.PropertyValue?.Property?.Name, "Ubicación", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(pp.PropertyValue?.Property?.Name, "Ubicacion", StringComparison.OrdinalIgnoreCase)) &&
+                    string.Equals(pp.CustomValue ?? pp.PropertyValue?.Value, ubicacionFilter, StringComparison.OrdinalIgnoreCase)
                 ) == true);
         }
 

@@ -57,6 +57,28 @@ public class InventoryService : IInventoryService
     {
         var result = new ImportInventoryResultDto();
 
+        // Asegurar que exista la propiedad "Ubicación"
+        var ubicacionProperty = await _context.Properties
+            .FirstOrDefaultAsync(p => p.Name.ToLower() == "ubicación" || p.Name.ToLower() == "ubicacion");
+            
+        if (ubicacionProperty == null)
+        {
+            ubicacionProperty = new AVASphere.ApplicationCore.Common.Entities.Catalogs.Property
+            {
+                Name = "Ubicación"
+            };
+            _context.Properties.Add(ubicacionProperty);
+            await _context.SaveChangesAsync();
+        }
+
+        // Cachear valores de ubicación
+        var ubicacionValuesDict = await _context.PropertyValues
+            .Where(pv => pv.IdProperty == ubicacionProperty.IdProperty)
+            .ToDictionaryAsync(pv => pv.Value.ToLower(), pv => pv.IdPropertyValue);
+
+        // Diccionario para rastrear nuevas propiedades a asignar
+        var newProductProperties = new List<ProductProperties>();
+
         // Diccionario para cachear bodegas
         var warehousesCache = new Dictionary<string, int>();
 
@@ -141,8 +163,41 @@ public class InventoryService : IInventoryService
                         continue;
                     }
 
-                    // Columna M (13): Ubicación
-                    var ubicacion = ReadIntValue(worksheet.Cell(row, 13));
+                    // Columna M (13): Ubicación (como código/string)
+                    var ubicacionStr = worksheet.Cell(row, 13).GetValue<string>()?.Trim();
+                    
+                    if (!string.IsNullOrWhiteSpace(ubicacionStr))
+                    {
+                        var ubicacionKey = ubicacionStr.ToLower();
+                        if (!ubicacionValuesDict.TryGetValue(ubicacionKey, out int ubicacionValueId))
+                        {
+                            // Crear el nuevo valor
+                            var newValue = new AVASphere.ApplicationCore.Common.Entities.Catalogs.PropertyValue
+                            {
+                                IdProperty = ubicacionProperty.IdProperty,
+                                Value = ubicacionStr
+                            };
+                            _context.PropertyValues.Add(newValue);
+                            await _context.SaveChangesAsync();
+                            
+                            ubicacionValueId = newValue.IdPropertyValue;
+                            ubicacionValuesDict[ubicacionKey] = ubicacionValueId;
+                        }
+                        
+                        // Preparar para asignar al producto
+                        newProductProperties.Add(new ProductProperties
+                        {
+                            IdProduct = idProduct,
+                            IdPropertyValue = ubicacionValueId
+                        });
+                    }
+
+                    // Intentar leer como número para no romper el LocationDetail legacy, si es que todavía era un número
+                    int? ubicacionNum = null;
+                    if (int.TryParse(ubicacionStr, out int parsedInt))
+                    {
+                        ubicacionNum = parsedInt;
+                    }
 
                     // Leer las cantidades de cada bodega (Columnas E-H: 5-8)
                     var stocks = new[]
@@ -173,7 +228,7 @@ public class InventoryService : IInventoryService
                             {
                                 IdProduct = idProduct,
                                 IdWarehouse = stockInfo.IdWarehouse,
-                                LocationDetail = ubicacion, // Guardamos la columna M solo como detalle referencial
+                                LocationDetail = ubicacionNum, // Guardamos la columna M solo como detalle referencial si es numérico
                                 TotalStock = stockInfo.Stock,
                                 ProductDescription = descripcion,
                                 WarehouseCode = stockInfo.Code
@@ -250,6 +305,36 @@ public class InventoryService : IInventoryService
                     result.Errors.Add($"Error al guardar {group.ProductDescription} en {group.WarehouseCode}: {errorMessage}");
                     result.FailedImports++;
                 }
+            }
+        }
+
+        // Tercera pasada: Actualizar ProductProperties para asignar la ubicación
+        if (newProductProperties.Any())
+        {
+            try
+            {
+                // Agrupar por producto y tomar la última ubicación asignada en el excel
+                var latestProperties = newProductProperties
+                    .GroupBy(p => p.IdProduct)
+                    .Select(g => g.Last())
+                    .ToList();
+                    
+                var productIds = latestProperties.Select(p => p.IdProduct).ToList();
+                
+                // Buscar si ya tienen la propiedad de Ubicación asignada
+                var existingUbicacionProps = await _context.ProductProperties
+                    .Include(pp => pp.PropertyValue)
+                    .Where(pp => productIds.Contains(pp.IdProduct) && pp.PropertyValue.IdProperty == ubicacionProperty.IdProperty)
+                    .ToListAsync();
+                    
+                _context.ProductProperties.RemoveRange(existingUbicacionProps); // Remover anteriores
+                _context.ProductProperties.AddRange(latestProperties); // Asignar nuevas
+                
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                result.Errors.Add($"Error al actualizar las propiedades de Ubicación de los productos: {ex.Message}");
             }
         }
 

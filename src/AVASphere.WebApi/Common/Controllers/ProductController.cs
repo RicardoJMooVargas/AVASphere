@@ -386,23 +386,23 @@ public class ProductController : ControllerBase
     /// <param name="file">Archivo Excel que contiene los productos a importar</param>
     [HttpPost("import")]
     [Consumes("multipart/form-data")]
-    public async Task<ActionResult<ImportProductResultDto>> ImportProducts(IFormFile file)
+    public async Task<ActionResult> ImportProducts(IFormFile file)
     {
         if (file == null || file.Length == 0)
-            return BadRequest("No se proporcionó ningún archivo");
+            return BadRequest(new ApiResponse("No se proporcionó ningún archivo", 400));
 
         if (!file.FileName.EndsWith(".xlsx") && !file.FileName.EndsWith(".xls"))
-            return BadRequest("El archivo debe ser un Excel (.xlsx o .xls)");
+            return BadRequest(new ApiResponse("El archivo debe ser un Excel (.xlsx o .xls)", 400));
 
         try
         {
             using var stream = file.OpenReadStream();
             var result = await _productService.ImportProductsFromExcelAsync(stream);
-            return Ok(result);
+            return Ok(new ApiResponse(result, "Importación procesada", 200));
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error al importar: {ex.Message}");
+            return StatusCode(500, new ApiResponse($"Error al importar: {ex.Message}", 500));
         }
     }
 }

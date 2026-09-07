@@ -1140,38 +1140,9 @@ public class PhysicalInventoryService : IPhysicalInventoryService
                 }
                 else
                 {
-                    _logger.LogInformation("No inventory records found, creating details from all products");
-                    
-                    var allProducts = await _productRepository.GetAllProductsAsync();
-                    var allProductsList = allProducts.ToList();
-                    
-                    _logger.LogInformation("Found {AllProductCount} total products", allProductsList.Count);
-                    
-                    foreach (var product in allProductsList)
-                    {
-                        // Verificar que el producto no tenga ya un detalle para este inventario físico
-                        var existingDetail = await _physicalInventoryDetailRepository
-                            .GetByPhysicalInventoryAndProductAsync(idPhysicalInventory, product.IdProduct);
-                        
-                        if (existingDetail != null)
-                        {
-                            _logger.LogWarning("Product {ProductId} already has a detail for PhysicalInventory {PhysicalInventoryId}, skipping", 
-                                product.IdProduct, idPhysicalInventory);
-                            continue;
-                        }
-
-                        var detail = new PhysicalInventoryDetail
-                        {
-                            IdPhysicalInventory = idPhysicalInventory,
-                            IdProduct = product.IdProduct,
-                            IdLocationDetails = null,
-                            SystemQuantity = 0,
-                            PhysicalQuantity = 0,
-                            Difference = 0
-                        };
-                        
-                        detailsToCreate.Add(detail);
-                    }
+                    _logger.LogInformation("No inventory records found for warehouse {WarehouseId}. Starting with empty physical inventory.", idWarehouse);
+                    // Si el almacén está vacío, el conteo físico inicia vacío. 
+                    // Los productos se agregarán manualmente durante el conteo al ser escaneados.
                 }
             }
 

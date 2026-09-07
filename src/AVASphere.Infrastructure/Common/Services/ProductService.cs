@@ -544,6 +544,7 @@ public class ProductService : IProductService
         }
 
         var rowCount = lastRow.RowNumber();
+        var processedCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         for (int row = 2; row <= rowCount; row++)
         {
@@ -568,6 +569,26 @@ public class ProductService : IProductService
                 if (isHeaderRow)
                 {
                     continue;
+                }
+
+                // ✅ VALIDACIÓN: Evitar duplicados por código
+                if (!string.IsNullOrWhiteSpace(code))
+                {
+                    if (processedCodes.Contains(code))
+                    {
+                        result.Errors.Add($"Fila {row}: Producto '{code}' omitido (Código duplicado en el archivo excel)");
+                        continue;
+                    }
+
+                    var existingProduct = await _productRepository.GetByPrincipalCodeAsync(code);
+                    if (existingProduct != null)
+                    {
+                        result.Errors.Add($"Fila {row}: Producto '{code}' omitido (Ya existe en la base de datos)");
+                        processedCodes.Add(code);
+                        continue;
+                    }
+
+                    processedCodes.Add(code);
                 }
 
                 // Columna C: Unidad (por defecto "S/N" si está vacío)
@@ -715,6 +736,7 @@ public class ProductService : IProductService
 
         var headerRow = FindCatalogHeaderRow(worksheet) ?? 1;
         var startRow = headerRow + 1;
+        var processedCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         for (int row = startRow; row <= rowCount; row++)
         {
@@ -729,6 +751,26 @@ public class ProductService : IProductService
                 if (string.IsNullOrWhiteSpace(productCode) && string.IsNullOrWhiteSpace(description))
                 {
                     continue;
+                }
+
+                // ✅ VALIDACIÓN: Evitar duplicados por código
+                if (!string.IsNullOrWhiteSpace(productCode))
+                {
+                    if (processedCodes.Contains(productCode))
+                    {
+                        result.Errors.Add($"Fila {row}: Producto '{productCode}' omitido (Código duplicado en el archivo excel)");
+                        continue;
+                    }
+
+                    var existingProduct = await _productRepository.GetByPrincipalCodeAsync(productCode);
+                    if (existingProduct != null)
+                    {
+                        result.Errors.Add($"Fila {row}: Producto '{productCode}' omitido (Ya existe en la base de datos)");
+                        processedCodes.Add(productCode);
+                        continue;
+                    }
+
+                    processedCodes.Add(productCode);
                 }
 
                 if (string.IsNullOrWhiteSpace(unit))
